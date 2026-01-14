@@ -1,0 +1,221 @@
+<div class="topbar">
+  <div class="container">
+   <div class="topbar-text">{{ cfg.topBarText }}</div>
+ </div>
+</div>
+
+<button
+  type="button"
+  class="scroll-top"
+  *ngIf="showScrollTop"
+  (click)="scrollToTop()"
+  aria-label="Về đầu trang"
+>
+  ↑
+</button>
+
+<header class="header" (click)="closeAccount()">
+  <div class="container header-inner">
+    <a class="brand" routerLink="/">{{ cfg.brandText }}</a>
+
+    <div class="search">
+      <div class="search-wrap" (click)="$event.stopPropagation()">
+        <input
+          type="text"
+          placeholder="Tìm kiếm..."
+          [value]="searchQuery"
+          (focus)="onSearchFocus()"
+          (input)="onSearchInput($any($event.target).value)"
+          (keydown)="onSearchKeydown($any($event))"
+        />
+      </div>
+
+      <button type="button" aria-label="Search" (click)="submitSearch()">🔍</button>
+
+      <div class="search-suggest" *ngIf="showSearchSuggest && searchSuggest.length > 0" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="suggest-item"
+          *ngFor="let s of searchSuggest; let i = index"
+          (click)="selectSuggestion(s.route)"
+          (mouseenter)="activeSuggestIndex = i"
+          [class.active]="i === activeSuggestIndex"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="icon-btn badge" (click)="go('/wishlist')" aria-label="Yêu thích">
+        ❤
+        <span class="badge-count" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
+      </button>
+
+      <button type="button" class="icon-btn badge" (click)="go('/cart')" aria-label="Giỏ hàng">
+        🛒
+        <span class="badge-count" *ngIf="cartCount > 0">{{ cartCount }}</span>
+      </button>
+
+      <div class="action account" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="$event.stopPropagation(); toggleAccount()"
+          aria-label="Tài khoản"
+        >
+          👤
+        </button>
+        <div class="dropdown" *ngIf="accountOpen" (click)="$event.stopPropagation()">
+          <button type="button" class="dropdown-item" (click)="go('/login')">Đăng nhập</button>
+          <button type="button" class="dropdown-item" (click)="go('/register')">Đăng ký</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button
+        type="button"
+        class="nav-item"
+        *ngFor="let item of cfg.nav"
+        (click)="onNavClick(item)"
+      >
+        {{ item.label }}
+      </button>
+    </nav>
+  </div>
+</header>
+
+<div class="page-header">
+  <div class="container">
+    <nav class="breadcrumb">
+      <a routerLink="/">Trang chủ</a>
+      <span class="sep">›</span>
+      <span class="current">{{ categoryName }}</span>
+    </nav>
+    <h1 class="page-title">{{ categoryName }}</h1>
+  </div>
+</div>
+
+<div class="container">
+  <div class="layout">
+    <!-- Sidebar filters -->
+    <aside class="sidebar">
+      <div class="filter-section">
+        <div class="filter-head">
+          <h3 class="filter-title">Khoảng giá</h3>
+          <button type="button" class="filter-reset" (click)="resetPrice()">Xóa</button>
+        </div>
+        <div class="price-range">
+          <select class="price-input" [value]="minPrice" (change)="minPrice = +$any($event.target).value; onPriceRangeChange()">
+            <option *ngFor="let p of priceSteps" [value]="p">{{ formatPriceOption(p) }}</option>
+          </select>
+          <span>-</span>
+          <select class="price-input" [value]="maxPrice" (change)="maxPrice = +$any($event.target).value; onPriceRangeChange()">
+            <option *ngFor="let p of priceSteps" [value]="p">{{ formatPriceOption(p) }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Kích cỡ</h3>
+        <div class="size-list">
+          <label class="size-item" *ngFor="let size of allSizes">
+            <input type="checkbox" [checked]="selectedSizes.includes(size)" (change)="onSizeChange(size, $any($event.target).checked)" />
+            <span class="size-label">{{ size }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Danh mục</h3>
+        <div class="color-list">
+          <label class="color-item" *ngFor="let sub of allSubCategories">
+            <input type="checkbox" [checked]="selectedSubCategories.includes(sub)" (change)="onSubCategoryChange(sub, $any($event.target).checked)" />
+            <span class="color-name">{{ sub }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Đối tượng</h3>
+        <div class="color-list">
+          <label class="color-item" *ngFor="let t of allTargets">
+            <input type="checkbox" [checked]="selectedTargets.includes(t)" (change)="onTargetChange(t, $any($event.target).checked)" />
+            <span class="color-name">{{ t }}</span>
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="results-count">
+          {{ total }} sản phẩm
+        </div>
+        <div class="sort">
+          <label for="sort-select">Sắp xếp:</label>
+          <select
+            id="sort-select"
+            class="sort-select"
+            [value]="sortBy"
+            (change)="onSortChange($any($event.target).value)"
+          >
+            <option value="newest">Mới nhất</option>
+            <option value="bestselling">Bán chạy</option>
+            <option value="price-asc">Giá tăng dần</option>
+            <option value="price-desc">Giá giảm dần</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Loading / Error -->
+      <div class="status" *ngIf="loading">
+        <div class="spinner"></div>
+        <span>Đang tải...</span>
+      </div>
+      <div class="status error" *ngIf="error">
+        {{ error }}
+      </div>
+
+      <!-- Product grid -->
+      <div class="product-grid" *ngIf="!loading && !error">
+        <a class="product-card" *ngFor="let p of products" [routerLink]="['/product', p.slug]">
+          <div class="card-img-wrap">
+            <img class="card-img" [src]="p.imageUrl" [alt]="p.name" />
+            <span class="card-badge" *ngIf="p.badge">{{ p.badge }}</span>
+            <span class="card-discount" *ngIf="p.discount">-{{ p.discount }}%</span>
+          </div>
+          <div class="card-body">
+            <h4 class="card-name">{{ p.name }}</h4>
+            <div class="card-meta">
+              <span class="card-brand" *ngIf="p.brand">{{ p.brand }}</span>
+              <span class="card-sold" *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
+            </div>
+            <div class="card-price-row">
+              <span class="card-price">{{ p.priceText }}</span>
+              <span class="card-old-price" *ngIf="p.discount">{{ Math.round(p.price / (1 - p.discount / 100)) }}đ</span>
+            </div>
+            <div class="card-rating" *ngIf="p.rating">
+              <span class="stars">★</span>
+              <span class="rating-value">{{ p.rating }}</span>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">Đầu</button>
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
+        <button class="page-btn" *ngFor="let page of getVisiblePages()" [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">›</button>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">Cuối</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>

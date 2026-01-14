@@ -1,0 +1,103 @@
+<div class="admin-shell">
+  <div class="admin-head">
+    <a routerLink="/" class="back">← Về trang chủ</a>
+    <div class="title">Admin - Thêm sản phẩm</div>
+  </div>
+
+  <div class="card">
+    <div class="note">
+      Nhập <b>category</b> theo slug bạn muốn hiển thị ở trang danh mục.
+      Ví dụ: <code>ao-khoac-gio</code>, <code>ao-khoac-phao-long-vu</code>...
+    </div>
+
+    <div class="alert error" *ngIf="error">{{ error }}</div>
+    <div class="alert success" *ngIf="success">{{ success }}</div>
+
+    <form class="form" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Tên sản phẩm *</label>
+          <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
+        </div>
+
+        <div class="field">
+          <label class="label">Slug *</label>
+          <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Category (slug) *</label>
+          <input class="input" formControlName="category" placeholder="ao-khoac-gio" />
+        </div>
+
+        <div class="field">
+          <label class="label">Brand *</label>
+          <input class="input" formControlName="brand" placeholder="FashionHub" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Giá *</label>
+          <input class="input" type="number" formControlName="price" />
+        </div>
+
+        <div class="field">
+          <label class="label">Giá cũ</label>
+          <input class="input" type="number" formControlName="oldPrice" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Tồn kho *</label>
+          <input class="input" type="number" formControlName="stock" />
+        </div>
+
+        <div class="field">
+          <label class="label">Ảnh (URL)</label>
+          <input class="input" formControlName="imageUrl" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Badge</label>
+          <input class="input" formControlName="badge" placeholder="HOT/NEW/SALE" />
+        </div>
+
+        <div class="field">
+          <label class="label">Discount %</label>
+          <input class="input" type="number" formControlName="discountPercent" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Sizes (CSV)</label>
+          <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
+        </div>
+
+        <div class="field">
+          <label class="label">Colors (CSV)</label>
+          <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Mô tả</label>
+        <textarea class="textarea" formControlName="description" rows="4" placeholder="Mô tả ngắn..."></textarea>
+      </div>
+
+      <button class="btn" type="submit" [disabled]="saving">
+        {{ saving ? 'Đang lưu...' : 'Tạo sản phẩm' }}
+      </button>
+
+      <div class="hint">
+        Sau khi tạo xong, bạn mở: <code>/category/&lt;category&gt;</code> để xem.
+      </div>
+    </form>
+  </div>
+</div>

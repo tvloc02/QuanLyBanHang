@@ -1,0 +1,188 @@
+<main class="checkout-page">
+  <div class="container">
+    <div class="steps">
+      <div class="step done" (click)="backToCart()" role="button" tabindex="0">
+        <span class="dot"></span>
+        <span class="label">GIỎ HÀNG</span>
+      </div>
+      <div class="divider"></div>
+      <div class="step active">
+        <span class="dot"></span>
+        <span class="label">ĐẶT HÀNG</span>
+      </div>
+      <div class="divider"></div>
+      <div class="step">
+        <span class="dot"></span>
+        <span class="label">HOÀN THÀNH ĐƠN HÀNG</span>
+      </div>
+    </div>
+
+    <div class="empty" *ngIf="items.length === 0">
+      <div class="empty-illu">🧾</div>
+      <div class="empty-title">Giỏ hàng trống</div>
+      <div class="empty-text">Vui lòng quay lại giỏ hàng để thêm sản phẩm.</div>
+      <button type="button" class="primary" (click)="backToCart()">QUAY LẠI GIỎ HÀNG</button>
+    </div>
+
+    <div class="layout" *ngIf="items.length > 0">
+      <section class="panel">
+        <div class="panel-title">Thông tin giao hàng</div>
+
+        <div class="addr-mode" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="mode-btn"
+            [class.active]="addressMode === 'after_merge'"
+            (click)="onAddressModeChange('after_merge')"
+          >
+            Sau sáp nhập
+          </button>
+          <button
+            type="button"
+            class="mode-btn"
+            [class.active]="addressMode === 'before_merge'"
+            (click)="onAddressModeChange('before_merge')"
+          >
+            Trước sáp nhập
+          </button>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <div class="label">Họ tên</div>
+            <input class="input" [(ngModel)]="fullName" placeholder="Nhập họ tên người nhận" />
+          </div>
+
+          <div class="field">
+            <div class="label">Số điện thoại</div>
+            <input class="input" [(ngModel)]="phone" placeholder="Nhập số điện thoại" />
+          </div>
+
+          <div class="field">
+            <div class="label">Tỉnh/Thành phố</div>
+            <div class="suggest-wrap" (click)="$event.stopPropagation()">
+              <input
+                class="input"
+                [value]="provinceQuery"
+                (focus)="focusSuggest('province')"
+                (input)="onProvinceInput($any($event.target).value)"
+                placeholder="VD: Hà Nội"
+              />
+              <div class="suggest" *ngIf="activeSuggest === 'province' && provinceSuggest.length">
+                <button type="button" class="suggest-item" *ngFor="let s of provinceSuggest" (click)="selectProvince(s)">
+                  {{ s }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label">Quận/Huyện</div>
+            <div class="suggest-wrap" (click)="$event.stopPropagation()">
+              <input
+                class="input"
+                [value]="districtQuery"
+                [disabled]="!canPickDistrict"
+                (focus)="focusSuggest('district')"
+                (input)="onDistrictInput($any($event.target).value)"
+                placeholder="VD: Quận 1"
+              />
+              <div class="suggest" *ngIf="activeSuggest === 'district' && districtSuggest.length">
+                <button type="button" class="suggest-item" *ngFor="let s of districtSuggest" (click)="selectDistrict(s)">
+                  {{ s }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label">Phường/Xã</div>
+            <div class="suggest-wrap" (click)="$event.stopPropagation()">
+              <input
+                class="input"
+                [value]="wardQuery"
+                [disabled]="!canPickWard"
+                (focus)="focusSuggest('ward')"
+                (input)="onWardInput($any($event.target).value)"
+                placeholder="VD: Phường Bến Nghé"
+              />
+              <div class="suggest" *ngIf="activeSuggest === 'ward' && wardSuggest.length">
+                <button type="button" class="suggest-item" *ngFor="let s of wardSuggest" (click)="selectWard(s)">
+                  {{ s }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field full">
+            <div class="label">Địa chỉ chi tiết</div>
+            <input class="input" [(ngModel)]="addressDetail" placeholder="Số nhà, tên đường, ..." />
+          </div>
+
+          <div class="field full">
+            <div class="label">Ghi chú (tuỳ chọn)</div>
+            <textarea class="textarea" [(ngModel)]="note" rows="3" placeholder="Ghi chú cho người giao hàng..."></textarea>
+          </div>
+        </div>
+
+        <div class="panel-title" style="margin-top: 16px;">Thanh toán</div>
+        <div class="pay">
+          <label class="pay-item">
+            <input type="radio" name="pm" [checked]="paymentMethod === 'cod'" (change)="paymentMethod = 'cod'" />
+            <div class="pay-main">
+              <div class="pay-name">COD</div>
+              <div class="pay-desc">Thanh toán khi nhận hàng</div>
+            </div>
+          </label>
+          <label class="pay-item">
+            <input type="radio" name="pm" [checked]="paymentMethod === 'bank'" (change)="paymentMethod = 'bank'" />
+            <div class="pay-main">
+              <div class="pay-name">Chuyển khoản</div>
+              <div class="pay-desc">Chuyển khoản ngân hàng (demo)</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="error" *ngIf="error">{{ error }}</div>
+        <div class="success" *ngIf="placed">Đặt hàng thành công! Đang chuyển về trang chủ...</div>
+      </section>
+
+      <aside class="summary">
+        <div class="sum-title">Tóm tắt đơn hàng</div>
+
+        <div class="mini" *ngFor="let it of items">
+          <div class="mini-thumb">
+            <img [src]="it.imageUrl || 'https://via.placeholder.com/80x80?text=Product'" [alt]="it.name" />
+            <span class="mini-qty">{{ it.quantity }}</span>
+          </div>
+          <div class="mini-info">
+            <div class="mini-name">{{ it.name }}</div>
+            <div class="mini-meta" *ngIf="it.size || it.color">
+              <span *ngIf="it.size">Size: {{ it.size }}</span>
+              <span *ngIf="it.color">Màu: {{ it.color }}</span>
+            </div>
+          </div>
+          <div class="mini-price">{{ formatMoney(it.price * it.quantity) }}đ</div>
+        </div>
+
+        <div class="sum-row">
+          <span>Tạm tính</span>
+          <b>{{ formatMoney(subtotal) }}đ</b>
+        </div>
+        <div class="sum-row">
+          <span>Vận chuyển</span>
+          <b>{{ formatMoney(shippingFee) }}đ</b>
+        </div>
+        <div class="sum-row total">
+          <span>Tổng cộng</span>
+          <b>{{ formatMoney(total) }}đ</b>
+        </div>
+
+        <button type="button" class="primary" [disabled]="placed" (click)="placeOrder()">ĐẶT HÀNG</button>
+        <button type="button" class="ghost" (click)="backToCart()">← Quay lại giỏ hàng</button>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>

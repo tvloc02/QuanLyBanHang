@@ -1,0 +1,134 @@
+.admin-shell {
+  min-height: 100vh;
+  padding: 28px 16px;
+  background: var(--fh-bg);
+}
+
+.admin-head {
+  max-width: 980px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.back {
+  color: var(--fh-primary);
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.title {
+  font-weight: 900;
+  color: var(--fh-text);
+}
+
+.card {
+  max-width: 980px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--fh-muted);
+  margin-bottom: 12px;
+  code {
+    padding: 2px 6px;
+    border: 1px solid var(--fh-border);
+    border-radius: 6px;
+    background: #fff;
+  }
+}
+
+.alert {
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  &.error {
+    background: rgba(193, 18, 31, 0.08);
+    color: var(--fh-primary);
+    border: 1px solid rgba(193, 18, 31, 0.18);
+  }
+  &.success {
+    background: rgba(14, 165, 233, 0.08);
+    color: #0369a1;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--fh-text);
+}
+
+.input,
+.textarea {
+  border: 1px solid var(--fh-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: #fff;
+  &:focus {
+    outline: none;
+    border-color: var(--fh-primary);
+    box-shadow: 0 0 0 3px rgba(193, 18, 31, 0.1);
+  }
+}
+
+.btn {
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 900;
+  background: var(--fh-primary);
+  color: var(--fh-primary-contrast);
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--fh-muted);
+  code {
+    padding: 2px 6px;
+    border: 1px solid var(--fh-border);
+    border-radius: 6px;
+    background: #fff;
+  }
+}
+
+@media (max-width: 720px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}

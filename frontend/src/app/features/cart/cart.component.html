@@ -1,0 +1,167 @@
+<div class="topbar">
+  <div class="container">
+    <div class="topbar-text">{{ cfg.topBarText }}</div>
+  </div>
+</div>
+
+<button
+  type="button"
+  class="scroll-top"
+  *ngIf="showScrollTop"
+  (click)="scrollToTop()"
+  aria-label="Về đầu trang"
+>
+  ↑
+</button>
+
+<header class="header" (click)="closeAccount()">
+  <div class="container header-inner">
+    <a class="brand" routerLink="/">{{ cfg.brandText }}</a>
+
+    <div class="search">
+      <div class="search-wrap" (click)="$event.stopPropagation()">
+        <input
+          type="text"
+          placeholder="Tìm kiếm..."
+          [value]="searchQuery"
+          (focus)="onSearchFocus()"
+          (input)="onSearchInput($any($event.target).value)"
+          (keydown)="onSearchKeydown($any($event))"
+        />
+      </div>
+
+      <button type="button" aria-label="Search" (click)="submitSearch()">🔍</button>
+
+      <div class="search-suggest" *ngIf="showSearchSuggest && searchSuggest.length > 0" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="suggest-item"
+          *ngFor="let s of searchSuggest; let i = index"
+          (click)="selectSuggestion(s.route)"
+          (mouseenter)="activeSuggestIndex = i"
+          [class.active]="i === activeSuggestIndex"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="icon-btn badge" (click)="go('/wishlist')" aria-label="Yêu thích">
+        ❤
+        <span class="badge-count" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
+      </button>
+
+      <button type="button" class="icon-btn badge" (click)="go('/cart')" aria-label="Giỏ hàng">
+        🛒
+        <span class="badge-count" *ngIf="cartCount > 0">{{ cartCount }}</span>
+      </button>
+
+      <div class="action account" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="$event.stopPropagation(); toggleAccount()"
+          aria-label="Tài khoản"
+        >
+          👤
+        </button>
+        <div class="dropdown" *ngIf="accountOpen" (click)="$event.stopPropagation()">
+          <button type="button" class="dropdown-item" (click)="go('/login')">Đăng nhập</button>
+          <button type="button" class="dropdown-item" (click)="go('/register')">Đăng ký</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button
+        type="button"
+        class="nav-item"
+        *ngFor="let item of cfg.nav"
+        (click)="onNavClick(item)"
+      >
+        {{ item.label }}
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main class="cart-page">
+  <div class="container">
+    <div class="steps">
+      <div class="step active">
+        <span class="dot"></span>
+        <span class="label">GIỎ HÀNG</span>
+      </div>
+      <div class="divider"></div>
+      <div class="step">
+        <span class="dot"></span>
+        <span class="label">ĐẶT HÀNG</span>
+      </div>
+      <div class="divider"></div>
+      <div class="step">
+        <span class="dot"></span>
+        <span class="label">HOÀN THÀNH ĐƠN HÀNG</span>
+      </div>
+    </div>
+
+    <div class="empty" *ngIf="items.length === 0">
+      <div class="empty-illu">🛍️</div>
+      <div class="empty-title">Ốp!</div>
+      <div class="empty-text">Bạn chưa có sản phẩm nào trong giỏ hàng</div>
+      <button type="button" class="primary" (click)="continueShopping()">TIẾP TỤC MUA SẮM</button>
+    </div>
+
+    <div class="cart" *ngIf="items.length > 0">
+      <div class="cart-left">
+        <div class="cart-title">Giỏ hàng ({{ cartCount }})</div>
+
+        <div class="item" *ngFor="let it of items">
+          <div class="thumb">
+            <img [src]="it.imageUrl || 'https://via.placeholder.com/120x120?text=Product'" [alt]="it.name" />
+          </div>
+          <div class="info">
+            <div class="name">{{ it.name }}</div>
+            <div class="meta" *ngIf="it.size || it.color">
+              <span *ngIf="it.size">Size: {{ it.size }}</span>
+              <span *ngIf="it.color">Màu: {{ it.color }}</span>
+            </div>
+            <div class="row">
+              <div class="price">{{ formatMoney(it.price) }}đ</div>
+              <div class="qty">
+                <button type="button" (click)="dec(it)" aria-label="Giảm">−</button>
+                <div class="num">{{ it.quantity }}</div>
+                <button type="button" (click)="inc(it)" aria-label="Tăng">+</button>
+              </div>
+              <div class="line">{{ formatMoney(it.price * it.quantity) }}đ</div>
+              <button type="button" class="remove" (click)="remove(it)">Xóa</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button type="button" class="ghost" (click)="continueShopping()">← Tiếp tục mua sắm</button>
+        </div>
+      </div>
+
+      <aside class="summary">
+        <div class="sum-title">Tóm tắt</div>
+        <div class="sum-row">
+          <span>Tạm tính</span>
+          <b>{{ formatMoney(subtotal) }}đ</b>
+        </div>
+        <div class="sum-row">
+          <span>Vận chuyển</span>
+          <b>0đ</b>
+        </div>
+        <div class="sum-row total">
+          <span>Tổng cộng</span>
+          <b>{{ formatMoney(subtotal) }}đ</b>
+        </div>
+        <button type="button" class="primary" (click)="checkout()">THANH TOÁN</button>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>

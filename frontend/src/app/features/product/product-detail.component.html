@@ -1,0 +1,191 @@
+<main class="page">
+  <div class="container">
+    <div class="breadcrumbs">
+      <a routerLink="/">Trang chủ</a>
+      <span class="sep">/</span>
+      <a *ngIf="product?.category" [routerLink]="['/category', product?.category]">{{ product?.category }}</a>
+      <span class="sep" *ngIf="product?.category">/</span>
+      <span class="current">{{ product?.name || productSlug }}</span>
+    </div>
+
+    <div class="status" *ngIf="loading">
+      <div class="spinner"></div>
+      <span>Đang tải sản phẩm...</span>
+    </div>
+
+    <div class="status error" *ngIf="!loading && error">
+      {{ error }}
+    </div>
+
+    <section class="top" *ngIf="!loading && !error && product">
+      <div class="gallery">
+        <div class="thumbs">
+          <button
+            type="button"
+            class="thumb"
+            *ngFor="let img of images"
+            [class.active]="img === activeImage"
+            (click)="selectImage(img)"
+          >
+            <img [src]="img" [alt]="product.name" />
+          </button>
+        </div>
+
+        <div class="hero">
+          <img class="hero-img" [src]="activeImage" [alt]="product.name" />
+        </div>
+      </div>
+
+      <div class="buy">
+        <div class="title-row">
+          <div class="title">{{ product.name }}</div>
+          <div class="sku" *ngIf="product.sku">Mã: {{ product.sku }}</div>
+        </div>
+
+        <div class="meta">
+          <div class="rating" *ngIf="product.rating">
+            <span class="stars">★</span>
+            <span class="val">{{ product.rating }}</span>
+            <span class="sep">•</span>
+            <span class="sold" *ngIf="product.soldCount">Đã bán {{ product.soldCount }}</span>
+          </div>
+          <div class="brand" *ngIf="product.brand">Thương hiệu: <b>{{ product.brand }}</b></div>
+          <div class="stock" [class.ok]="stockStatus.ok" [class.bad]="!stockStatus.ok">
+            {{ stockStatus.label }}
+          </div>
+        </div>
+
+        <div class="price-box">
+          <div class="price">
+            <span class="now">{{ formatMoney(product.price) }}đ</span>
+            <span class="old" *ngIf="product.oldPrice">{{ formatMoney(product.oldPrice) }}đ</span>
+          </div>
+          <span class="discount" *ngIf="discountLabel">{{ discountLabel }}</span>
+        </div>
+
+        <div class="promo">
+          <div class="promo-title">ƯU ĐÃI KHÁCH MUA ONLINE</div>
+          <div class="promo-main">MUA TỪ 2 GIẢM 20%</div>
+          <div class="promo-sub">Áp dụng với một số sản phẩm (demo)</div>
+        </div>
+
+        <div class="variants" *ngIf="(product.colors && product.colors.length) || (product.sizes && product.sizes.length)">
+          <div class="variant" *ngIf="product.colors && product.colors.length">
+            <div class="label">Màu sắc</div>
+            <div class="chips">
+              <button
+                type="button"
+                class="chip"
+                *ngFor="let c of product.colors"
+                [class.active]="c === selectedColor"
+                (click)="selectColor(c)"
+              >
+                {{ c }}
+              </button>
+            </div>
+          </div>
+
+          <div class="variant" *ngIf="product.sizes && product.sizes.length">
+            <div class="label">Kích thước</div>
+            <div class="chips">
+              <button
+                type="button"
+                class="chip"
+                *ngFor="let s of product.sizes"
+                [class.active]="s === selectedSize"
+                (click)="selectSize(s)"
+              >
+                {{ s }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="qty">
+          <div class="label">Số lượng</div>
+          <div class="qty-box">
+            <button type="button" class="qty-btn" (click)="decQty()">−</button>
+            <input class="qty-input" type="number" [(ngModel)]="quantity" min="1" max="99" />
+            <button type="button" class="qty-btn" (click)="incQty()">+</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="ghost" (click)="addToCart()">THÊM GIỎ</button>
+          <button type="button" class="primary" (click)="buyNow()">MUA NGAY</button>
+        </div>
+
+        <div class="note">
+          <div class="note-item"><b>Đổi trả</b> trong 7 ngày (demo)</div>
+          <div class="note-item"><b>Giao hàng</b> toàn quốc (demo)</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tabs" *ngIf="!loading && !error && product">
+      <div class="tab-head">
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'desc'" (click)="setTab('desc')">
+          Mô tả
+        </button>
+        <button type="button" class="tab-btn" [class.active]="activeTab === 'reviews'" (click)="setTab('reviews')">
+          Đánh giá
+        </button>
+      </div>
+
+      <div class="tab-body" *ngIf="activeTab === 'desc'">
+        <div class="desc" [innerText]="product.description || 'Chưa có mô tả cho sản phẩm.'"></div>
+      </div>
+
+      <div class="tab-body" *ngIf="activeTab === 'reviews'">
+        <div class="reviews">
+          <div class="reviews-head">
+            <div class="score">5/5</div>
+            <div class="stars">★★★★★</div>
+            <div class="count">2 đánh giá (demo)</div>
+          </div>
+
+          <div class="review">
+            <div class="avatar">C</div>
+            <div class="r-body">
+              <div class="r-name">Chi Hằng</div>
+              <div class="r-stars">★★★★★</div>
+              <div class="r-text">Sản phẩm đẹp, chất liệu ổn, giao nhanh.</div>
+            </div>
+          </div>
+
+          <div class="review">
+            <div class="avatar">K</div>
+            <div class="r-body">
+              <div class="r-name">Kinh Tinh Linh</div>
+              <div class="r-stars">★★★★★</div>
+              <div class="r-text">Form mặc vừa, màu đúng hình, sẽ ủng hộ tiếp.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="related" *ngIf="related.length">
+      <div class="section-title">Sản phẩm bạn đã xem</div>
+      <div class="related-grid">
+        <a class="card" *ngFor="let p of related" (click)="goToProduct(p.slug)">
+          <div class="img">
+            <img [src]="p.imageUrl || 'https://via.placeholder.com/300x400?text=Product'" [alt]="p.name" />
+            <span class="badge" *ngIf="p.badge">{{ p.badge }}</span>
+            <span class="disc" *ngIf="p.discountPercent">-{{ p.discountPercent }}%</span>
+          </div>
+          <div class="body">
+            <div class="name">{{ p.name }}</div>
+            <div class="price">{{ formatMoney(p.price) }}đ</div>
+            <div class="rating" *ngIf="p.rating">
+              <span class="stars">★</span>
+              <span>{{ p.rating }}</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+  </div>
+</main>
+
+<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>

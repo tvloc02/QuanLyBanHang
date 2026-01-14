@@ -1,0 +1,290 @@
+<div class="topbar">
+  <div class="container">
+    <div class="topbar-text">{{ cfg.topBarText }}</div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="container header-inner">
+    <div class="brand" (click)="scrollTo('hero')">{{ cfg.brandText }}</div>
+
+    <div class="search">
+      <div class="search-wrap" (click)="$event.stopPropagation()">
+        <input
+          type="text"
+          placeholder="Tìm kiếm..."
+          [value]="searchQuery"
+          (focus)="onSearchFocus()"
+          (input)="onSearchInput($any($event.target).value)"
+          (keydown)="onSearchKeydown($any($event))"
+        />
+      </div>
+
+      <button type="button" aria-label="Search" (click)="submitSearch()">🔍</button>
+
+      <div class="search-suggest" *ngIf="showSearchSuggest && searchSuggest.length > 0" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="suggest-item"
+          *ngFor="let s of searchSuggest; let i = index"
+          (click)="selectSuggestion(s.route)"
+          (mouseenter)="activeSuggestIndex = i"
+          [class.active]="i === activeSuggestIndex"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="icon-btn badge" (click)="go('/wishlist')" aria-label="Yêu thích">
+        ❤
+        <span class="badge-count" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
+      </button>
+
+      <button type="button" class="icon-btn badge" (click)="go('/cart')" aria-label="Giỏ hàng">
+        🛒
+        <span class="badge-count" *ngIf="cartCount > 0">{{ cartCount }}</span>
+      </button>
+
+      <div class="action account" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="$event.stopPropagation(); toggleAccount()"
+          aria-label="Tài khoản"
+        >
+          👤
+        </button>
+        <div class="dropdown" *ngIf="accountOpen" (click)="$event.stopPropagation()">
+          <button type="button" class="dropdown-item" (click)="go('/login')">Đăng nhập</button>
+          <button type="button" class="dropdown-item" (click)="go('/register')">Đăng ký</button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button
+        type="button"
+        class="nav-item"
+        *ngFor="let item of cfg.nav"
+        (click)="onNavClick(item)"
+      >
+        {{ item.label }}
+      </button>
+    </nav>
+  </div>
+</header>
+
+<div class="dot-nav">
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'hero'"
+    (click)="scrollTo('hero')"
+    aria-label="Hero"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'vouchers'"
+    (click)="scrollTo('vouchers')"
+    aria-label="Vouchers"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'quick-categories'"
+    (click)="scrollTo('quick-categories')"
+    aria-label="Categories"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'featured'"
+    (click)="scrollTo('featured')"
+    aria-label="Featured"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'hot'"
+    (click)="scrollTo('hot')"
+    aria-label="Hot"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'exclusive'"
+    (click)="scrollTo('exclusive')"
+    aria-label="Exclusive"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'news'"
+    (click)="scrollTo('news')"
+    aria-label="News"
+  ></button>
+  <button
+    type="button"
+    class="dot"
+    [class.active]="activeSection === 'footer'"
+    (click)="scrollTo('footer')"
+    aria-label="Footer"
+  ></button>
+</div>
+
+<main class="page">
+  <section id="hero" class="section hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <div class="hero-title">{{ cfg.hero.title }}</div>
+        <div class="hero-sub">{{ cfg.hero.subtitle }}</div>
+        <a class="hero-cta" [routerLink]="cfg.hero.ctaRoute">{{ cfg.hero.ctaText }}</a>
+      </div>
+      <div class="hero-media">
+        <img [src]="cfg.hero.imageUrl" alt="hero" />
+      </div>
+    </div>
+  </section>
+
+  <section id="vouchers" class="section">
+    <div class="container">
+      <h2 class="section-title">{{ cfg.vouchersTitle }}</h2>
+      <div class="voucher-grid">
+        <div class="voucher" *ngFor="let v of cfg.vouchers">
+          <div class="voucher-main">
+            <div class="voucher-title">{{ v.title }}</div>
+            <div class="voucher-code">Mã: <b>{{ v.code }}</b></div>
+            <div class="voucher-note">{{ v.note }}</div>
+          </div>
+          <button
+            type="button"
+            class="voucher-btn"
+            (click)="claimVoucher(v.code)"
+            [disabled]="isVoucherClaimed(v.code)"
+          >
+            {{ isVoucherClaimed(v.code) ? 'Đã lưu' : v.buttonText }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="quick-categories" class="section">
+    <div class="container">
+      <h2 class="section-title">{{ cfg.circleTitle }}</h2>
+      <div class="category-scroll-wrapper">
+        <button type="button" class="scroll-btn left" (click)="scrollGroups('left')" aria-label="Scroll left">‹</button>
+        <div class="quick-tiles-scroll" #categoryScroll (scroll)="onQuickTilesScroll()">
+          <a class="quick-tile" *ngFor="let cat of (cfg.quickTiles || cfg.circleCategories || [])" [routerLink]="cat.route">
+            <div class="quick-tile-img">
+              <img [src]="cat.imageUrl" [alt]="cat.label" />
+            </div>
+            <div class="quick-tile-label">{{ cat.label }}</div>
+          </a>
+        </div>
+        <button type="button" class="scroll-btn right" (click)="scrollGroups('right')" aria-label="Scroll right">›</button>
+      </div>
+
+      <div class="quick-dots" *ngIf="quickTilesPageCount > 1">
+        <button
+          type="button"
+          class="quick-dot"
+          *ngFor="let _ of quickTilesPages; let i = index"
+          [class.active]="i === quickTilesActivePage"
+          (click)="scrollQuickTilesToPage(i)"
+          [attr.aria-label]="'Page ' + (i + 1)"
+        ></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="featured" class="section">
+    <div class="container">
+      <h2 class="section-title">{{ cfg.featuredTitle }}</h2>
+      <div class="card-grid">
+        <a class="card" *ngFor="let p of cfg.featuredProducts" [routerLink]="p.route">
+          <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
+          <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
+          <div class="card-body">
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-price" *ngIf="p.priceText">{{ p.priceText }}</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="view-all-row">
+        <a class="view-all-btn" [routerLink]="cfg.featuredViewAll.route">{{ cfg.featuredViewAll.text }}</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="hot" class="section">
+    <div class="container">
+      <h2 class="section-title">{{ cfg.hotTitle }}</h2>
+      <div class="card-grid">
+        <a class="card" *ngFor="let p of cfg.hotProducts" [routerLink]="p.route">
+          <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
+          <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
+          <div class="card-body">
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-price" *ngIf="p.priceText">{{ p.priceText }}</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="view-all-row">
+        <a class="view-all-btn" [routerLink]="cfg.hotViewAll.route">{{ cfg.hotViewAll.text }}</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="exclusive" class="section">
+    <div class="container">
+      <h2 class="section-title">{{ cfg.exclusiveTitle }}</h2>
+      <div class="card-grid">
+        <a class="card" *ngFor="let p of cfg.exclusiveProducts" [routerLink]="p.route">
+          <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
+          <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
+          <div class="card-body">
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-price" *ngIf="p.priceText">{{ p.priceText }}</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="view-all-row">
+        <a class="view-all-btn" [routerLink]="cfg.exclusiveViewAll.route">{{ cfg.exclusiveViewAll.text }}</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="news" class="section">
+    <div class="container">
+      <h2 class="section-title">{{ cfg.newsTitle }}</h2>
+      <div class="news-grid">
+        <a class="news" *ngFor="let n of cfg.news" [routerLink]="n.route">
+          <img class="news-img" [src]="n.imageUrl" [alt]="n.title" />
+          <div class="news-body">
+            <div class="news-title">{{ n.title }}</div>
+            <div class="news-desc">{{ n.description }}</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>
+</main>
+
+<button
+  type="button"
+  class="scroll-top"
+  *ngIf="showScrollTop"
+  (click)="scrollToTop()"
+  aria-label="Về đầu trang"
+>
+  ↑
+</button>
