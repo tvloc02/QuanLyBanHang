@@ -1,0 +1,40 @@
+<div class="page">
+  <div class="page-head">
+    <div class="title">Khách hàng</div>
+    <div class="head-actions">
+      <button class="btn" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
+    </div>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="card">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 90px">ID</th>
+          <th>Họ tên</th>
+          <th>Email</th>
+          <th style="width: 140px">Username</th>
+          <th style="width: 140px">SĐT</th>
+          <th style="width: 110px">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="!loading && rows.length === 0">
+          <td colspan="6" class="empty">Chưa có khách hàng.</td>
+        </tr>
+        <tr *ngFor="let r of rows">
+          <td>#{{ r.id }}</td>
+          <td class="strong">{{ r.fullName || '-' }}</td>
+          <td class="muted">{{ r.email || '-' }}</td>
+          <td>{{ r.username || '-' }}</td>
+          <td>{{ r.phone || '-' }}</td>
+          <td>
+            <span class="badge" [class.off]="r.enabled === false">{{ r.enabled === false ? 'Khóa' : 'Hoạt động' }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

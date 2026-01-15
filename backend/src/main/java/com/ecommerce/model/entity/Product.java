@@ -66,6 +66,11 @@ public class Product {
     @Column(name = "color")
     private List<String> colors = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "image_url")
+    private List<String> images = new ArrayList<>();
+
     private Boolean active = true;
 
     private Instant createdAt;
@@ -128,6 +133,9 @@ public class Product {
 
     public List<String> getColors() { return colors; }
     public void setColors(List<String> colors) { this.colors = colors; }
+
+    public List<String> getImages() { return images; }
+    public void setImages(List<String> images) { this.images = images; }
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }

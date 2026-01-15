@@ -1,0 +1,112 @@
+@import '../orders/admin-orders.component.scss';
+
+.strong {
+  font-weight: 1000;
+}
+
+.muted {
+  color: rgba(107, 114, 128, 1);
+}
+
+.badge.off {
+  border-color: rgba(193, 18, 31, 0.18);
+  background: rgba(193, 18, 31, 0.08);
+}
+
+/* Căn giữa tiêu đề và nội dung bảng cho trang Người dùng */
+.tbl th,
+.tbl td {
+  text-align: center;
+}
+
+/* Hạn chế co cột quá nhỏ trên màn nhỏ */
+.tbl {
+  table-layout: fixed;
+  width: 100%;
+}
+.tbl th:nth-child(1) { min-width: 72px; }
+.tbl th:nth-child(2) { min-width: 180px; }
+.tbl th:nth-child(3) { min-width: 200px; }
+.tbl th:nth-child(4) { min-width: 120px; }
+.tbl th:nth-child(5) { min-width: 120px; }
+.tbl th:nth-child(6) { min-width: 120px; }
+.tbl th:nth-child(7) { min-width: 110px; }
+.tbl th:nth-child(8) { min-width: 120px; }
+
+/* Giữ nội dung gọn gàng với ellipsis */
+.tbl td,
+.tbl th {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cuộn ngang trong thẻ card thay vì toàn trang */
+.card {
+  overflow-x: auto;
+}
+
+/* Nút icon đẹp hơn */
+.btn.icon-only {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.btn.icon-only.ghost {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  color: #111827;
+}
+.btn.icon-only.ghost:hover {
+  background: rgba(17,24,39,0.04);
+}
+
+.btn.icon-only.danger {
+  background: #fff;
+  border: 1px solid rgba(193, 18, 31, 0.15);
+  color: rgba(193, 18, 31, 1);
+}
+.btn.icon-only.danger:hover {
+  background: rgba(193, 18, 31, 0.06);
+}
+
+.row-actions {
+  gap: 10px;
+}
+
+/* Breakpoints */
+@media (max-width: 1200px) {
+  .tbl th:nth-child(2) { min-width: 160px; }
+  .tbl th:nth-child(3) { min-width: 180px; }
+  .tbl th:nth-child(8) { min-width: 160px; }
+}
+
+/* Ẩn Email, Username ở màn vừa để đỡ chật */
+@media (max-width: 992px) {
+  .tbl th:nth-child(3),
+  .tbl td:nth-child(3),
+  .tbl th:nth-child(4),
+  .tbl td:nth-child(4) {
+    display: none;
+  }
+}
+
+/* Ẩn thêm SĐT và Vai trò ở màn nhỏ; thu nhỏ nút hành động */
+@media (max-width: 768px) {
+  .tbl th:nth-child(5),
+  .tbl td:nth-child(5),
+  .tbl th:nth-child(6),
+  .tbl td:nth-child(6) {
+    display: none;
+  }
+  .btn.icon-only {
+    width: 28px;
+    height: 28px;
+  }
+  .row-actions { gap: 6px; }
+}

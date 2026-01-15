@@ -1,7 +1,8 @@
 .container {
-  max-width: 1200px;
+  /* Mở rộng hơn nữa trên màn lớn, tận dụng 96vw nhưng giới hạn trần để vẫn đẹp */
+  max-width: clamp(1200px, 96vw, 1600px);
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 22px;
 }
 
 .topbar {
@@ -297,7 +298,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 240px 1fr; /* sidebar gọn hơn một chút để nhường chỗ cho nội dung */
   gap: 24px;
   margin-top: 24px;
 }
@@ -540,7 +541,7 @@
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 16px;
 }
 

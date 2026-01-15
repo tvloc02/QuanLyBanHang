@@ -1,50 +1,53 @@
-.admin-shell {
-  min-height: 100vh;
-  padding: 28px 16px;
-  background: var(--fh-bg);
+
+.page {
+  width: 100%;
+  max-width: none; /* mở rộng full chiều ngang khu vực nội dung */
 }
 
-.admin-head {
-  max-width: 980px;
-  margin: 0 auto 14px;
+.page-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
-.back {
-  color: var(--fh-primary);
-  text-decoration: none;
-  font-weight: 900;
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search {
+  height: 38px;
+  width: 360px;
+  border-radius: 12px;
+  border: 1px solid var(--fh-border);
+  padding: 0 12px;
+  font-weight: 800;
+  font-size: 13px;
+  background: #fff;
 }
 
 .title {
-  font-weight: 900;
-  color: var(--fh-text);
+  font-weight: 1000;
+  color: rgba(17, 24, 39, 0.92);
+  font-size: 18px;
 }
 
+
+
 .card {
-  max-width: 980px;
-  margin: 0 auto;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 14px;
-  padding: 18px;
+  padding: 0;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  width: 100%;
 }
 
-.note {
-  font-size: 13px;
-  color: var(--fh-muted);
-  margin-bottom: 12px;
-  code {
-    padding: 2px 6px;
-    border: 1px solid var(--fh-border);
-    border-radius: 6px;
-    background: #fff;
-  }
-}
+
 
 .alert {
   border-radius: 10px;
@@ -115,6 +118,111 @@
   }
 }
 
+.btn.ghost {
+  background: rgba(245, 247, 251, 1);
+  color: rgba(17, 24, 39, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 60;
+}
+
+.modal {
+  width: min(860px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(245, 247, 251, 1);
+}
+
+.modal-title {
+  font-weight: 1000;
+  color: rgba(17, 24, 39, 0.92);
+}
+
+.icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  cursor: pointer;
+}
+
+.modal .form {
+  padding: 16px;
+}
+
+.images {
+  display: grid;
+  gap: 10px;
+}
+
+/* Bảng sản phẩm full width và canh cột đúng kích thước */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th {
+  background: rgba(245, 247, 251, 1);
+  font-weight: 1000;
+  color: rgba(107, 114, 128, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 11px;
+}
+
+.right {
+  text-align: right;
+}
+
+.tbl th:last-child,
+.tbl td:last-child {
+  text-align: right;
+}
+
+.img-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
 .hint {
   margin-top: 6px;
   font-size: 13px;
@@ -130,5 +238,13 @@
 @media (max-width: 720px) {
   .grid2 {
     grid-template-columns: 1fr;
+  }
+  .head-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .search {
+    width: 100%;
   }
 }

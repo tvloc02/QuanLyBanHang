@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
+import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
@@ -24,6 +25,7 @@ interface ProductResponse {
   category: string;
   brand: string;
   imageUrl?: string;
+  images?: string[];
   badge?: string;
   discountPercent?: number;
   rating?: number;
@@ -36,14 +38,20 @@ interface ProductResponse {
 @Component({
   selector: 'app-admin-products',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   templateUrl: './admin-products.component.html',
   styleUrls: ['./admin-products.component.scss']
 })
 export class AdminProductsComponent {
+  loading = false;
+  products: ProductResponse[] = [];
+  q = '';
+
   saving = false;
   error = '';
   success = '';
+
+  modalOpen = false;
 
   form = this.fb.group({
     name: ['', [Validators.required]],
@@ -53,7 +61,7 @@ export class AdminProductsComponent {
     price: [199000, [Validators.required]],
     oldPrice: [null as number | null],
     stock: [10, [Validators.required]],
-    imageUrl: [''],
+    images: this.fb.array<string>([]),
     badge: [''],
     discountPercent: [null as number | null],
     rating: [null as number | null],
@@ -64,7 +72,112 @@ export class AdminProductsComponent {
     active: [true]
   });
 
-  constructor(private fb: FormBuilder, private http: HttpClient) {}
+  constructor(private fb: FormBuilder, private http: HttpClient) {
+    this.load();
+  }
+
+  get images(): FormArray {
+    return this.form.get('images') as FormArray;
+  }
+
+  openCreate(): void {
+    this.error = '';
+    this.success = '';
+    this.modalOpen = true;
+    this.form.reset({
+      name: '',
+      slug: '',
+      category: '',
+      brand: 'FashionHub',
+      price: 199000,
+      oldPrice: null,
+      stock: 10,
+      badge: '',
+      discountPercent: null,
+      rating: null,
+      soldCount: null,
+      sizesCsv: 'S,M,L',
+      colorsCsv: 'Đen,Trắng',
+      description: '',
+      active: true
+    });
+    this.images.clear();
+    this.addImage();
+  }
+
+  closeModal(): void {
+    this.modalOpen = false;
+  }
+
+  addImage(value = ''): void {
+    this.images.push(this.fb.control(value));
+  }
+
+  removeImage(i: number): void {
+    this.images.removeAt(i);
+    if (this.images.length === 0) this.addImage();
+  }
+
+  async onFileSelect(index: number, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+    this.error = '';
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const url = `${environment.apiBaseUrl}/api/admin/uploads`;
+      const res = await this.http.post<ApiResponse<{ url: string }>>(url, formData).toPromise();
+      const uploaded = res?.data?.url;
+      if (!uploaded) {
+        this.error = res?.message || 'Upload thất bại.';
+        return;
+      }
+      this.images.at(index).setValue(uploaded);
+    } catch (e: any) {
+      this.error = e?.error?.message || 'Không upload được ảnh.';
+    } finally {
+      // reset input to allow re-select same file
+      (event.target as HTMLInputElement).value = '';
+    }
+  }
+
+  setMain(index: number): void {
+    if (index <= 0) return;
+    const val = this.images.at(index).value;
+    const first = this.images.at(0).value;
+    this.images.at(0).setValue(val);
+    this.images.at(index).setValue(first);
+  }
+
+  load(): void {
+    this.loading = true;
+    this.error = '';
+    const url = `${environment.apiBaseUrl}/api/products`;
+    this.http.get<ApiResponse<ProductResponse[]>>(url).subscribe({
+      next: (res) => {
+        this.loading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Không thể tải danh sách sản phẩm.';
+          return;
+        }
+        this.products = Array.isArray(res.data) ? res.data : [];
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = err?.error?.message || 'Không thể kết nối backend để lấy danh sách sản phẩm.';
+      }
+    });
+  }
+
+  get filteredProducts(): ProductResponse[] {
+    const q = (this.q || '').trim().toLowerCase();
+    if (!q) return this.products;
+    return this.products.filter((p) => {
+      const hay = `${p.name} ${p.slug} ${p.category} ${p.brand}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
 
   autoSlug(): void {
     const name = (this.form.value.name || '').toString();
@@ -100,6 +213,10 @@ export class AdminProductsComponent {
       .map(s => s.trim())
       .filter(Boolean);
 
+    const images = this.images.controls
+      .map((c) => (c.value || '').toString().trim())
+      .filter(Boolean);
+
     const payload = {
       sku: null,
       name: this.form.value.name,
@@ -109,13 +226,14 @@ export class AdminProductsComponent {
       price: this.form.value.price,
       oldPrice: this.form.value.oldPrice,
       stock: this.form.value.stock,
-      imageUrl: this.form.value.imageUrl || null,
+      imageUrl: images[0] || null,
       badge: this.form.value.badge || null,
       discountPercent: this.form.value.discountPercent,
       rating: this.form.value.rating,
       soldCount: this.form.value.soldCount,
       sizes,
       colors,
+      images,
       description: this.form.value.description || null,
       active: this.form.value.active
     };
@@ -131,6 +249,8 @@ export class AdminProductsComponent {
           return;
         }
         this.success = `Đã tạo sản phẩm #${res.data?.id} (${res.data?.name}).`;
+        this.closeModal();
+        this.load();
       },
       error: (err) => {
         this.saving = false;

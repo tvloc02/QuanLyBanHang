@@ -1,0 +1,116 @@
+<div class="adm-layout">
+  <header class="adm-topbar">
+    <a class="adm-brand" routerLink="/admin">
+      <span class="logo">FH</span>
+      <span class="text">
+        <span class="name">FashionHub</span>
+        <span class="sub">Quản trị hệ thống</span>
+      </span>
+    </a>
+
+    <div class="actions">
+      <button class="icon-btn" type="button" aria-label="Thông báo">🔔</button>
+
+      <div class="user-wrap" (mouseleave)="closeUserMenu()">
+        <button class="user" type="button" (click)="toggleUserMenu()">
+          <span class="avatar">A</span>
+          <div class="meta">
+            <div class="role">Quản trị viên hệ thống</div>
+            <div class="user-sub">admin</div>
+          </div>
+          <span class="caret">▾</span>
+        </button>
+
+        <div class="menu" *ngIf="userMenuOpen">
+          <div class="menu-head">
+            <div class="menu-title">Quản trị viên hệ thống</div>
+            <div class="menu-sub">admin</div>
+          </div>
+          <a class="menu-item" routerLink="/admin">Thông tin tài khoản</a>
+          <a class="menu-item" routerLink="/admin">Cài đặt</a>
+          <button class="menu-item danger" type="button" (click)="logout()">Đăng xuất</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="adm-body">
+    <aside class="adm-sidebar">
+      <div class="adm-search">
+        <input class="adm-search-input" placeholder="Tìm kiếm menu..." />
+      </div>
+
+      <nav class="adm-nav">
+        <div class="nav-group">
+          <div class="nav-title">Tổng quan</div>
+          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+            <span class="ic">🏠</span>
+            <span>Trang chủ</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">Quản lý bán hàng</div>
+          <a routerLink="/admin/orders" routerLinkActive="active" class="item">
+            <span class="ic">🧾</span>
+            <span>Đơn hàng</span>
+          </a>
+          <a routerLink="/admin/products" routerLinkActive="active" class="item">
+            <span class="ic">📦</span>
+            <span>Sản phẩm</span>
+          </a>
+          <a routerLink="/admin/categories" routerLinkActive="active" class="item">
+            <span class="ic">🗂️</span>
+            <span>Danh mục</span>
+          </a>
+          <a routerLink="/admin/coupons" routerLinkActive="active" class="item">
+            <span class="ic">🎟️</span>
+            <span>Mã giảm giá</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">Cấu hình hệ thống</div>
+          <a routerLink="/admin/users" routerLinkActive="active" class="item">
+            <span class="ic">🧑‍💼</span>
+            <span>Người dùng</span>
+          </a>
+          <a routerLink="/admin/settings" routerLinkActive="active" class="item">
+            <span class="ic">⚙️</span>
+            <span>Cấu hình chung</span>
+          </a>
+          <a routerLink="/admin/settings/mail" routerLinkActive="active" class="item">
+            <span class="ic">✉️</span>
+            <span>Cấu hình mail</span>
+          </a>
+          <a routerLink="/admin/settings/notifications" routerLinkActive="active" class="item">
+            <span class="ic">🔔</span>
+            <span>Thông báo</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-title">Khách hàng</div>
+          <a routerLink="/admin/customers" routerLinkActive="active" class="item">
+            <span class="ic">👥</span>
+            <span>Khách hàng</span>
+          </a>
+          <a routerLink="/admin/reviews" routerLinkActive="active" class="item">
+            <span class="ic">⭐</span>
+            <span>Đánh giá</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="adm-footer">
+        <a class="back" routerLink="/">← Về trang bán hàng</a>
+      </div>
+    </aside>
+
+    <div class="adm-main">
+      <main class="adm-content">
+        <router-outlet />
+      </main>
+    </div>
+  </div>
+</div>

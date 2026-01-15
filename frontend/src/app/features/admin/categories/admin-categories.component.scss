@@ -1,0 +1,14 @@
+@import '../orders/admin-orders.component.scss';
+
+.strong {
+  font-weight: 1000;
+}
+
+.muted {
+  color: rgba(107, 114, 128, 1);
+}
+
+.badge.off {
+  border-color: rgba(193, 18, 31, 0.18);
+  background: rgba(193, 18, 31, 0.08);
+}

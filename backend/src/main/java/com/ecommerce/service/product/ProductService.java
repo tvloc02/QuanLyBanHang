@@ -132,7 +132,6 @@ public class ProductService {
 
         product.setCategory(req.getCategory());
         product.setBrand(req.getBrand());
-        product.setImageUrl(req.getImageUrl());
         product.setBadge(req.getBadge());
         product.setDiscountPercent(req.getDiscountPercent());
         product.setRating(req.getRating());
@@ -140,9 +139,16 @@ public class ProductService {
         if (req.getSizes() != null) product.setSizes(req.getSizes());
         if (req.getColors() != null) product.setColors(req.getColors());
 
-        if (req.getImages() != null && product.getImageUrl() == null && !req.getImages().isEmpty()) {
-            product.setImageUrl(req.getImages().get(0));
+        if (req.getImages() != null) {
+            product.setImages(req.getImages());
         }
+
+        if (req.getImageUrl() != null && !req.getImageUrl().isBlank()) {
+            product.setImageUrl(req.getImageUrl());
+        } else if (product.getImages() != null && !product.getImages().isEmpty()) {
+            product.setImageUrl(product.getImages().get(0));
+        }
+
         if (req.getActive() != null) {
             product.setActive(req.getActive());
         }
@@ -169,7 +175,9 @@ public class ProductService {
         res.setSizes(p.getSizes());
         res.setColors(p.getColors());
 
-        if (p.getImageUrl() != null) {
+        if (p.getImages() != null && !p.getImages().isEmpty()) {
+            res.setImages(p.getImages());
+        } else if (p.getImageUrl() != null) {
             res.setImages(java.util.List.of(p.getImageUrl()));
         }
         res.setActive(p.getActive());

@@ -1,103 +1,163 @@
-<div class="admin-shell">
-  <div class="admin-head">
-    <a routerLink="/" class="back">← Về trang chủ</a>
-    <div class="title">Admin - Thêm sản phẩm</div>
+<div class="page">
+  <div class="page-head">
+    <div class="title">Sản phẩm</div>
+    <div class="head-actions">
+      <input class="search" [(ngModel)]="q" placeholder="Tìm theo tên/slug/category/brand..." />
+      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
+      <button class="btn" type="button" (click)="openCreate()">Thêm sản phẩm</button>
+    </div>
   </div>
 
+  <div class="alert error" *ngIf="error">{{ error }}</div>
+  <div class="alert success" *ngIf="success">{{ success }}</div>
+
   <div class="card">
-    <div class="note">
-      Nhập <b>category</b> theo slug bạn muốn hiển thị ở trang danh mục.
-      Ví dụ: <code>ao-khoac-gio</code>, <code>ao-khoac-phao-long-vu</code>...
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 70px">Ảnh</th>
+          <th>Tên</th>
+          <th style="width: 170px">Category</th>
+          <th style="width: 160px">Brand</th>
+          <th style="width: 120px" class="right">Giá</th>
+          <th style="width: 110px" class="right">Tồn</th>
+          <th style="width: 110px">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="!loading && filteredProducts.length === 0">
+          <td colspan="7" class="empty">Chưa có sản phẩm.</td>
+        </tr>
+        <tr *ngFor="let p of filteredProducts">
+          <td>
+            <div class="thumb">
+              <img *ngIf="p.imageUrl" [src]="p.imageUrl" alt="thumb" />
+            </div>
+          </td>
+          <td>
+            <div class="pname">{{ p.name }}</div>
+            <div class="pslug">/{{ p.slug }}</div>
+          </td>
+          <td>{{ p.category }}</td>
+          <td>{{ p.brand }}</td>
+          <td class="right">{{ p.price }}</td>
+          <td class="right">{{ p.stock }}</td>
+          <td>
+            <span class="badge" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Bật' }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="overlay" *ngIf="modalOpen" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">Thêm sản phẩm</div>
+        <button class="icon" type="button" (click)="closeModal()">✕</button>
+      </div>
+
+      <form class="form" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Tên sản phẩm *</label>
+            <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
+          </div>
+
+          <div class="field">
+            <label class="label">Slug *</label>
+            <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Category (slug) *</label>
+            <input class="input" formControlName="category" placeholder="ao-khoac-gio" />
+          </div>
+
+          <div class="field">
+            <label class="label">Brand *</label>
+            <input class="input" formControlName="brand" placeholder="FashionHub" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Giá *</label>
+            <input class="input" type="number" formControlName="price" />
+          </div>
+
+          <div class="field">
+            <label class="label">Giá cũ</label>
+            <input class="input" type="number" formControlName="oldPrice" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Tồn kho *</label>
+            <input class="input" type="number" formControlName="stock" />
+          </div>
+
+          <div class="field">
+            <label class="label">Badge</label>
+            <input class="input" formControlName="badge" placeholder="HOT/NEW/SALE" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Discount %</label>
+            <input class="input" type="number" formControlName="discountPercent" />
+          </div>
+
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" formControlName="active">
+              <option [ngValue]="true">Bật</option>
+              <option [ngValue]="false">Ẩn</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Sizes (CSV)</label>
+            <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
+          </div>
+
+          <div class="field">
+            <label class="label">Colors (CSV)</label>
+            <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Ảnh (URL hoặc chọn file)</label>
+          <div class="images" formArrayName="images">
+            <div class="img-row" *ngFor="let c of images.controls; let i = index">
+              <input class="input" [formControlName]="i" placeholder="https://..." />
+              <input type="file" accept="image/*" (change)="onFileSelect(i, $event)" style="margin-left:8px" />
+              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính" style="margin-left:8px">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
+              <button class="btn ghost" type="button" (click)="removeImage(i)" style="margin-left:8px">Xóa</button>
+            </div>
+            <button class="btn ghost" type="button" (click)="addImage()">+ Thêm ảnh</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Mô tả</label>
+          <textarea class="textarea" formControlName="description" rows="4" placeholder="Mô tả sản phẩm..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="closeModal()">Hủy</button>
+          <button class="btn" type="submit" [disabled]="saving">
+            {{ saving ? 'Đang lưu...' : 'Tạo sản phẩm' }}
+          </button>
+        </div>
+      </form>
     </div>
-
-    <div class="alert error" *ngIf="error">{{ error }}</div>
-    <div class="alert success" *ngIf="success">{{ success }}</div>
-
-    <form class="form" [formGroup]="form" (ngSubmit)="submit()">
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Tên sản phẩm *</label>
-          <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
-        </div>
-
-        <div class="field">
-          <label class="label">Slug *</label>
-          <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Category (slug) *</label>
-          <input class="input" formControlName="category" placeholder="ao-khoac-gio" />
-        </div>
-
-        <div class="field">
-          <label class="label">Brand *</label>
-          <input class="input" formControlName="brand" placeholder="FashionHub" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Giá *</label>
-          <input class="input" type="number" formControlName="price" />
-        </div>
-
-        <div class="field">
-          <label class="label">Giá cũ</label>
-          <input class="input" type="number" formControlName="oldPrice" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Tồn kho *</label>
-          <input class="input" type="number" formControlName="stock" />
-        </div>
-
-        <div class="field">
-          <label class="label">Ảnh (URL)</label>
-          <input class="input" formControlName="imageUrl" placeholder="https://..." />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Badge</label>
-          <input class="input" formControlName="badge" placeholder="HOT/NEW/SALE" />
-        </div>
-
-        <div class="field">
-          <label class="label">Discount %</label>
-          <input class="input" type="number" formControlName="discountPercent" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Sizes (CSV)</label>
-          <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
-        </div>
-
-        <div class="field">
-          <label class="label">Colors (CSV)</label>
-          <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Mô tả</label>
-        <textarea class="textarea" formControlName="description" rows="4" placeholder="Mô tả ngắn..."></textarea>
-      </div>
-
-      <button class="btn" type="submit" [disabled]="saving">
-        {{ saving ? 'Đang lưu...' : 'Tạo sản phẩm' }}
-      </button>
-
-      <div class="hint">
-        Sau khi tạo xong, bạn mở: <code>/category/&lt;category&gt;</code> để xem.
-      </div>
-    </form>
   </div>
 </div>

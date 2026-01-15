@@ -1,0 +1,70 @@
+<div class="dash">
+  <section class="hero">
+    <div class="hero-text">
+      <div class="kicker">
+        <span class="pill">Tổng quan</span>
+        <span class="time">FashionHub Admin</span>
+      </div>
+      <h1>Chào buổi sáng, Quản trị viên!</h1>
+      <div class="sub">Theo dõi nhanh tình hình kinh doanh và quản lý hệ thống FashionHub.</div>
+
+      <div class="hero-actions">
+        <button class="cta" type="button" (click)="load()" [disabled]="loading">
+          {{ loading ? 'Đang tải...' : 'Làm mới thống kê' }}
+        </button>
+        <div class="status" *ngIf="error">{{ error }}</div>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="cube"></div>
+    </div>
+  </section>
+
+  <section class="cards">
+    <div class="card">
+      <div class="card-top">
+        <div class="label">Tổng đơn hàng</div>
+        <div class="ic">🧾</div>
+      </div>
+      <div class="value">{{ stats?.orders ?? 0 }}</div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <div class="label">Tổng sản phẩm</div>
+        <div class="ic">📦</div>
+      </div>
+      <div class="value">{{ stats?.products ?? 0 }}</div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <div class="label">Tổng người dùng</div>
+        <div class="ic">👥</div>
+      </div>
+      <div class="value">{{ stats?.users ?? 0 }}</div>
+    </div>
+    <div class="card">
+      <div class="card-top">
+        <div class="label">Mã giảm giá</div>
+        <div class="ic">🎟️</div>
+      </div>
+      <div class="value">{{ stats?.coupons ?? 0 }}</div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">Danh mục</div>
+        <div class="tag">{{ stats?.categories ?? 0 }}</div>
+      </div>
+      <div class="body">Theo dõi & quản lý danh mục sản phẩm.</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">Đánh giá</div>
+        <div class="tag">{{ stats?.reviews ?? 0 }}</div>
+      </div>
+      <div class="body">Tổng số đánh giá sản phẩm từ khách hàng.</div>
+    </div>
+  </section>
+</div>

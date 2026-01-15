@@ -1,0 +1,224 @@
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { AdminDataService, AdminUserResponse } from '../../../core/services/admin-data.service';
+
+@Component({
+  selector: 'app-admin-users',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './admin-users.component.html',
+  styleUrls: ['./admin-users.component.scss']
+})
+export class AdminUsersComponent {
+  loading = false;
+  error = '';
+  rows: AdminUserResponse[] = [];
+  createOpen = false;
+  createLoading = false;
+  viewOpen = false;
+  selectedUser: AdminUserResponse | null = null;
+  form: { fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'STAFF' | 'CUSTOMER'; enabled: boolean } = {
+    fullName: '',
+    email: '',
+    username: '',
+    phone: '',
+    role: 'CUSTOMER',
+    enabled: true
+  };
+
+  // Edit modal state
+  editOpen = false;
+  editLoading = false;
+  editForm: { id?: number; fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'STAFF' | 'CUSTOMER'; enabled: boolean } = {
+    id: undefined,
+    fullName: '',
+    email: '',
+    username: '',
+    phone: '',
+    role: 'CUSTOMER',
+    enabled: true
+  };
+
+  constructor(private adminData: AdminDataService) {
+    this.load();
+  }
+
+  formatRoles(roles?: string[]): string {
+    if (!roles || roles.length === 0) return '-';
+    return roles.map(r => this.roleLabel(r)).join(', ');
+  }
+
+  roleLabel(role?: string): string {
+    switch (role) {
+      case 'ADMIN':
+        return 'Quản trị';
+      case 'STAFF':
+        return 'Nhân viên';
+      case 'CUSTOMER':
+      case 'USER':
+        return 'Khách hàng';
+      default:
+        return role || '-';
+    }
+  }
+
+  load(): void {
+    this.error = '';
+    this.loading = true;
+    this.adminData.getUsers().subscribe({
+      next: (res) => {
+        this.loading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Không thể tải danh sách người dùng.';
+          return;
+        }
+        this.rows = Array.isArray(res.data) ? res.data : [];
+      },
+      error: () => {
+        this.loading = false;
+        this.error = 'Không thể kết nối backend để lấy người dùng.';
+      }
+    });
+  }
+
+  openCreate(): void {
+    this.form = { fullName: '', email: '', username: '', phone: '', role: 'CUSTOMER', enabled: true };
+    this.createOpen = true;
+  }
+
+  cancelCreate(): void {
+    this.createOpen = false;
+  }
+
+  submitCreate(): void {
+    this.createLoading = true;
+    this.error = '';
+    this.adminData.createUser({
+      fullName: this.form.fullName?.trim() || undefined,
+      email: this.form.email?.trim() || undefined,
+      username: this.form.username?.trim() || undefined,
+      phone: this.form.phone?.trim() || undefined,
+      roles: [this.form.role],
+      enabled: !!this.form.enabled
+    }).subscribe({
+      next: (res) => {
+        this.createLoading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Tạo người dùng thất bại.';
+          return;
+        }
+        this.createOpen = false;
+        this.load();
+      },
+      error: () => {
+        this.createLoading = false;
+        this.error = 'Không thể tạo người dùng. Vui lòng thử lại.';
+      }
+    });
+  }
+
+  onView(row: AdminUserResponse): void {
+    this.selectedUser = row;
+    this.viewOpen = true;
+  }
+
+  onEdit(row: AdminUserResponse): void {
+    // Prefill edit form
+    const role = (row.roles || []).includes('ADMIN')
+      ? 'ADMIN'
+      : (row.roles || []).includes('STAFF')
+      ? 'STAFF'
+      : 'CUSTOMER';
+    this.editForm = {
+      id: row.id,
+      fullName: row.fullName || '',
+      email: row.email || '',
+      username: row.username || '',
+      phone: row.phone || '',
+      role,
+      enabled: row.enabled !== false
+    };
+    this.editOpen = true;
+  }
+
+  onDelete(row: AdminUserResponse): void {
+    console.log('delete user', row);
+  }
+
+  onResetPassword(row: AdminUserResponse): void {
+    if (!row?.id) return;
+    const ok = confirm(`Bạn có chắc muốn reset mật khẩu cho tài khoản #${row.id}?`);
+    if (!ok) return;
+    this.adminData.resetUserPassword(row.id).subscribe({
+      next: (res) => {
+        if (!res?.success) {
+          this.error = res?.message || 'Reset mật khẩu thất bại.';
+          return;
+        }
+        // Có thể hiển thị thông báo thành công nếu cần
+      },
+      error: () => {
+        this.error = 'Không thể reset mật khẩu. Vui lòng thử lại.';
+      }
+    });
+  }
+
+  onToggleEnabled(row: AdminUserResponse): void {
+    if (!row?.id) return;
+    const target = !(row.enabled === false);
+    const newEnabled = !target; // nếu đang hoạt động (true), sẽ khóa (false)
+    const message = newEnabled ? `Mở khóa tài khoản #${row.id}?` : `Khóa tài khoản #${row.id}?`;
+    const ok = confirm(message);
+    if (!ok) return;
+    this.adminData.setUserEnabled(row.id, newEnabled).subscribe({
+      next: (res) => {
+        if (!res?.success) {
+          this.error = res?.message || 'Cập nhật trạng thái tài khoản thất bại.';
+          return;
+        }
+        this.load();
+      },
+      error: () => {
+        this.error = 'Không thể cập nhật trạng thái tài khoản. Vui lòng thử lại.';
+      }
+    });
+  }
+
+  closeView(): void {
+    this.viewOpen = false;
+    this.selectedUser = null;
+  }
+
+  cancelEdit(): void {
+    this.editOpen = false;
+  }
+
+  submitEdit(): void {
+    if (!this.editForm.id) return;
+    this.editLoading = true;
+    this.error = '';
+    this.adminData.updateUser(this.editForm.id, {
+      fullName: this.editForm.fullName?.trim() || undefined,
+      email: this.editForm.email?.trim() || undefined,
+      username: this.editForm.username?.trim() || undefined,
+      phone: this.editForm.phone?.trim() || undefined,
+      roles: [this.editForm.role],
+      enabled: !!this.editForm.enabled
+    }).subscribe({
+      next: (res) => {
+        this.editLoading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Cập nhật người dùng thất bại.';
+          return;
+        }
+        this.editOpen = false;
+        this.load();
+      },
+      error: () => {
+        this.editLoading = false;
+        this.error = 'Không thể cập nhật người dùng. Vui lòng thử lại.';
+      }
+    });
+  }
+}

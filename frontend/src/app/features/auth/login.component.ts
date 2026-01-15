@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { AfterViewInit, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 declare const google: any;
@@ -24,25 +25,28 @@ declare const google: any;
           <div class="sub">Đăng nhập để tích voucher và đặt hàng nhanh hơn.</div>
 
           <div class="field">
-            <div class="label">SĐT (demo: nhập userId)</div>
+            <div class="label">SĐT / Email / Tên đăng nhập</div>
             <div class="input-wrap">
-              <span class="icon" aria-hidden="true">☎</span>
+              <span class="icon" aria-hidden="true">👤</span>
               <input
                 class="input"
-                type="number"
-                inputmode="numeric"
-                [(ngModel)]="userId"
-                placeholder="Vui lòng nhập SĐT"
+                type="text"
+                [(ngModel)]="usernameOrEmail"
+                placeholder="Nhập SĐT, email hoặc tên đăng nhập"
               />
             </div>
-            <div class="hint">Demo: userId sẽ được lưu vào trình duyệt để claim voucher.</div>
           </div>
 
           <div class="field">
             <div class="label">Mật khẩu</div>
             <div class="input-wrap">
               <span class="icon" aria-hidden="true">🔒</span>
-              <input class="input" [type]="showPassword ? 'text' : 'password'" placeholder="Nhập mật khẩu" />
+              <input
+                class="input"
+                [type]="showPassword ? 'text' : 'password'"
+                [(ngModel)]="password"
+                placeholder="Nhập mật khẩu"
+              />
               <button type="button" class="icon-btn" (click)="showPassword = !showPassword" aria-label="Toggle password">
                 {{ showPassword ? 'Ẩn' : 'Hiện' }}
               </button>
@@ -57,7 +61,11 @@ declare const google: any;
             <a routerLink="/register" class="link">Quên mật khẩu?</a>
           </div>
 
-          <button type="button" class="btn" (click)="save()">Đăng nhập</button>
+          <div class="alert" *ngIf="error">{{ error }}</div>
+
+          <button type="button" class="btn" (click)="save()" [disabled]="loading">
+            {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+          </button>
 
           <div class="divider"><span>Hoặc</span></div>
 
@@ -72,27 +80,49 @@ declare const google: any;
     `
       .auth-shell {
         position: relative;
-        min-height: 100vh;
+        min-height: calc(100vh - 144px);
         display: grid;
         place-items: center;
-        padding: 34px 16px;
+        padding: 18px 16px;
         background: var(--fh-bg);
+        overflow: hidden;
       }
+
+      .auth-shell::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('https://via.placeholder.com/1600x900?text=FashionHub+Background');
+        background-size: cover;
+        background-position: center;
+        transform: scale(1.03);
+        filter: saturate(1.05) contrast(1.02);
+        opacity: 0.22;
+      }
+
+      .auth-shell::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.98));
+      }
+
       .auth-modal {
         position: relative;
-        width: min(460px, 100%);
-        background: rgba(255, 255, 255, 0.78);
-        backdrop-filter: blur(14px);
-        border-radius: 16px;
+        z-index: 1;
+        width: min(420px, 100%);
+        background: rgba(255, 255, 255, 0.86);
+        backdrop-filter: blur(10px);
+        border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.16);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
         border: 1px solid rgba(0, 0, 0, 0.06);
       }
       .auth-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 18px;
+        padding: 14px 16px;
         border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         background: rgba(255, 255, 255, 0.6);
       }
@@ -106,7 +136,7 @@ declare const google: any;
       }
 
       .auth-col {
-        padding: 20px 22px 22px;
+        padding: 18px 18px 18px;
       }
 
       .back {
@@ -121,7 +151,7 @@ declare const google: any;
 
       .title {
         font-weight: 1000;
-        font-size: 20px;
+        font-size: 19px;
         margin: 0 0 6px;
         letter-spacing: 0.2px;
         color: #111;
@@ -130,7 +160,7 @@ declare const google: any;
         color: #6b7280;
         font-size: 12px;
         line-height: 1.55;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
       }
 
       .field {
@@ -243,10 +273,21 @@ declare const google: any;
         font-weight: 1000;
         cursor: pointer;
         letter-spacing: 0.3px;
-        box-shadow: 0 10px 22px rgba(193, 18, 31, 0.24);
+        box-shadow: 0 10px 20px rgba(193, 18, 31, 0.22);
       }
       .btn:hover {
         filter: brightness(0.98);
+      }
+
+      .alert {
+        margin: 8px 0 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(193, 18, 31, 0.18);
+        background: rgba(193, 18, 31, 0.08);
+        color: rgba(193, 18, 31, 1);
+        font-weight: 900;
+        font-size: 12px;
       }
 
       .divider {
@@ -289,16 +330,26 @@ declare const google: any;
           padding: 18px 16px 18px;
         }
       }
+
+      @media (max-width: 640px) {
+        .auth-shell {
+          min-height: calc(100vh - 120px);
+        }
+      }
     `
   ]
 })
 export class LoginComponent implements AfterViewInit {
-  userId: number | null = null;
+  usernameOrEmail = '';
+  password = '';
   showPassword = false;
+  loading = false;
+  error = '';
 
   constructor(
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private auth: AuthService
   ) {}
 
   ngAfterViewInit(): void {
@@ -334,15 +385,9 @@ export class LoginComponent implements AfterViewInit {
       .subscribe({
         next: (res) => {
           const data = res?.data;
-          const userId = data?.userId;
-          const token = data?.token;
-          if (userId) {
-            localStorage.setItem('fh_userId', String(userId));
-          }
-          if (token) {
-            localStorage.setItem('fh_token', String(token));
-          }
-          this.router.navigateByUrl('/');
+          this.auth.setSession(data);
+          const roles = Array.isArray(data?.roles) ? data.roles : [];
+          this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
         },
         error: () => {
           // ignore
@@ -351,9 +396,32 @@ export class LoginComponent implements AfterViewInit {
   }
 
   save(): void {
-    const id = Number(this.userId);
-    if (!Number.isFinite(id) || id <= 0) return;
-    localStorage.setItem('fh_userId', String(id));
-    this.router.navigateByUrl('/');
+    this.error = '';
+    const usernameOrEmail = (this.usernameOrEmail || '').trim();
+    const password = (this.password || '').trim();
+
+    if (!usernameOrEmail || !password) {
+      this.error = 'Vui lòng nhập tài khoản và mật khẩu.';
+      return;
+    }
+
+    this.loading = true;
+    this.auth.login(usernameOrEmail, password).subscribe({
+      next: (res) => {
+        this.loading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Đăng nhập thất bại.';
+          return;
+        }
+        const data = res?.data;
+        this.auth.setSession(data);
+        const roles = Array.isArray(data?.roles) ? data.roles : [];
+        this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = err?.error?.message || 'Đăng nhập thất bại. Hãy kiểm tra backend.';
+      }
+    });
   }
 }

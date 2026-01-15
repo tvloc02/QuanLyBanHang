@@ -1,0 +1,62 @@
+<div class="tl-topbar">
+  <button type="button" class="tl-topbar__arrow" aria-label="Prev">‹</button>
+  <div class="tl-topbar__text">{{ promoText }}</div>
+  <button type="button" class="tl-topbar__arrow" aria-label="Next">›</button>
+</div>
+
+<header class="tl-header" (click)="showSuggest = false">
+  <div class="container tl-header__inner">
+    <a class="tl-header__brand" routerLink="/" aria-label="Home">
+      <span class="tl-header__brand-text">FASHIONHUB</span>
+    </a>
+
+    <div class="tl-header__search" (click)="$event.stopPropagation()">
+      <input
+        class="tl-header__search-input"
+        type="text"
+        placeholder="Tìm kiếm..."
+        [value]="searchQuery"
+        (focus)="onSearchFocus()"
+        (input)="onSearchInput($any($event.target).value)"
+        (keydown)="onSearchKeydown($any($event))"
+      />
+      <button type="button" class="tl-header__search-btn" aria-label="Search" (click)="submitSearch()">🔍</button>
+
+      <div class="tl-header__suggest" *ngIf="showSuggest && suggest.length > 0">
+        <button
+          type="button"
+          class="tl-header__suggest-item"
+          *ngFor="let s of suggest; let i = index"
+          (click)="selectSuggestion(s.slug)"
+          (mouseenter)="activeSuggestIndex = i"
+          [class.active]="i === activeSuggestIndex"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="tl-header__icons">
+      <a class="tl-header__icon" routerLink="/cart" aria-label="Cart">
+        🛒
+        <span class="tl-header__badge" *ngIf="cartCount > 0">{{ cartCount }}</span>
+      </a>
+      <a class="tl-header__icon" routerLink="/login" aria-label="Account">👤</a>
+    </div>
+  </div>
+
+  <nav class="tl-nav">
+    <div class="container tl-nav__inner">
+      <a class="tl-nav__item" routerLink="/" aria-label="Sale">Sale</a>
+      <a
+        class="tl-nav__item"
+        *ngFor="let c of categories"
+        [routerLink]="['/category', c.slug]"
+      >
+        {{ c.label }}
+      </a>
+      <a class="tl-nav__item" routerLink="/news">Tin tức</a>
+      <a class="tl-nav__item" routerLink="/">Tra cứu đơn hàng</a>
+    </div>
+  </nav>
+</header>
