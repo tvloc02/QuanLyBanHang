@@ -58,7 +58,9 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(String.valueOf(user.getId()));
-        Set<String> roles = user.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
+        Set<String> roles = user.getRoles() == null
+            ? Set.of()
+            : user.getRoles().stream().filter(r -> r != null).map(Enum::name).collect(Collectors.toSet());
         return new AuthTokenResponse(user.getId(), token, roles);
     }
 
@@ -84,7 +86,9 @@ public class AuthService {
         user = userRepository.save(user);
 
         String token = jwtService.generateToken(String.valueOf(user.getId()));
-        Set<String> roles = user.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
+        Set<String> roles = user.getRoles() == null
+            ? Set.of()
+            : user.getRoles().stream().filter(r -> r != null).map(Enum::name).collect(Collectors.toSet());
         return new AuthTokenResponse(user.getId(), token, roles);
     }
 
@@ -136,7 +140,9 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(String.valueOf(user.getId()));
-        Set<String> roles = user.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
+        Set<String> roles = user.getRoles() == null
+            ? Set.of()
+            : user.getRoles().stream().filter(r -> r != null).map(Enum::name).collect(Collectors.toSet());
         return new AuthTokenResponse(user.getId(), token, roles);
     }
 }

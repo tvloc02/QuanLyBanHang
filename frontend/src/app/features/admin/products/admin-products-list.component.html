@@ -1,0 +1,85 @@
+<div class="page">
+  <div class="page-head">
+    <div class="title">
+      <div class="title-main">Sản phẩm</div>
+      <div class="title-sub">Quản lý danh sách sản phẩm, biến thể màu/size và tồn kho</div>
+    </div>
+
+    <div class="head-actions">
+      <input class="search" [(ngModel)]="q" placeholder="Tìm theo tên/slug/category/brand..." />
+      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
+      <a class="btn" routerLink="/admin/products/new">+ Thêm sản phẩm</a>
+    </div>
+  </div>
+
+  <div class="alert error" *ngIf="error">{{ error }}</div>
+  <div class="alert success" *ngIf="success">{{ success }}</div>
+
+  <div class="card">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 70px">Ảnh</th>
+          <th>Tên</th>
+          <th style="width: 180px">Danh mục</th>
+          <th style="width: 150px">Brand</th>
+          <th style="width: 120px" class="right">Giá</th>
+          <th style="width: 110px" class="right">Tồn</th>
+          <th style="width: 110px">Trạng thái</th>
+          <th style="width: 170px" class="right">Thao tác</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngIf="!loading && filteredProducts.length === 0">
+          <td colspan="8" class="empty">Chưa có sản phẩm.</td>
+        </tr>
+
+        <tr *ngFor="let p of filteredProducts">
+          <td>
+            <div class="thumb">
+              <img *ngIf="p.imageUrl" [src]="p.imageUrl" alt="thumb" />
+            </div>
+          </td>
+
+          <td>
+            <div class="pname">{{ p.name }}</div>
+            <div class="pslug">/{{ p.slug }}</div>
+            <div class="meta" *ngIf="(p.colors?.length || 0) > 0 || (p.sizes?.length || 0) > 0">
+              <span *ngIf="(p.colors?.length || 0) > 0">Màu: {{ p.colors?.length }}</span>
+              <span *ngIf="(p.sizes?.length || 0) > 0">Size: {{ p.sizes?.length }}</span>
+            </div>
+          </td>
+
+          <td>
+            <div class="cat">{{ p.category }}</div>
+            <div class="cat-sub" *ngIf="(p.categoryIds?.length || 0) > 1">+{{ (p.categoryIds?.length || 0) - 1 }} danh mục</div>
+          </td>
+
+          <td>{{ p.brand }}</td>
+
+          <td class="right">
+            <div class="money">{{ formatMoney(p.price) }}</div>
+            <div class="old" *ngIf="p.oldPrice">{{ formatMoney(p.oldPrice) }}</div>
+          </td>
+
+          <td class="right">{{ p.stock }}</td>
+
+          <td>
+            <span class="badge" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Bật' }}</span>
+          </td>
+
+          <td class="right">
+            <div class="row-actions">
+              <a class="btn sm ghost" [routerLink]="['/admin/products', p.id]">Xem</a>
+              <a class="btn sm" [routerLink]="['/admin/products', p.id, 'edit']">Sửa</a>
+              <button class="btn sm danger" type="button" (click)="remove(p)" [disabled]="deletingId === p.id">
+                {{ deletingId === p.id ? 'Đang xóa...' : 'Xóa' }}
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

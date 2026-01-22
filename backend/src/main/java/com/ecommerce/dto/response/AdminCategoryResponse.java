@@ -8,6 +8,12 @@ public class AdminCategoryResponse {
 
     private String name;
 
+    private String slug;
+
+    private Long parentId;
+
+    private String icon;
+
     private String description;
 
     private Boolean active;
@@ -16,9 +22,12 @@ public class AdminCategoryResponse {
 
     public AdminCategoryResponse() {}
 
-    public AdminCategoryResponse(Long id, String name, String description, Boolean active, Instant createdAt) {
+    public AdminCategoryResponse(Long id, String name, String slug, Long parentId, String icon, String description, Boolean active, Instant createdAt) {
         this.id = id;
         this.name = name;
+        this.slug = slug;
+        this.parentId = parentId;
+        this.icon = icon;
         this.description = description;
         this.active = active;
         this.createdAt = createdAt;
@@ -38,6 +47,30 @@ public class AdminCategoryResponse {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
     }
 
     public String getDescription() {

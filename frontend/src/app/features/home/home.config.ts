@@ -120,7 +120,7 @@ export const HOME_CONFIG: HomeConfig = {
     title: 'ĐÓN TẾT SỚM',
     subtitle: 'SALE UP TO 50% - Voucher đến 200K | Freeship',
     ctaText: 'MUA NGAY',
-    ctaRoute: '/category/sale',
+    ctaRoute: '/sale',
     imageUrl: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1400&q=80'
   },
   vouchersTitle: 'VOUCHER ĐỘC QUYỀN ONLINE',

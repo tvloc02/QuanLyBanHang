@@ -1,0 +1,136 @@
+<div class="page" *ngIf="!loading">
+  <div class="page-head">
+    <div class="title">
+      <div class="title-main">Chi tiết sản phẩm</div>
+      <div class="title-sub" *ngIf="product">#{{ product.id }} · /{{ product.slug }}</div>
+    </div>
+
+    <div class="head-actions">
+      <button class="btn ghost" type="button" (click)="back()">← Quay lại</button>
+      <button class="btn" type="button" (click)="edit()" [disabled]="!product">Sửa</button>
+      <button class="btn danger" type="button" (click)="remove()" [disabled]="!product || deleting">{{ deleting ? 'Đang xóa...' : 'Xóa' }}</button>
+    </div>
+  </div>
+
+  <div class="alert error" *ngIf="error">{{ error }}</div>
+
+  <ng-container *ngIf="product as p">
+    <div class="layout">
+      <div class="main">
+        <div class="card">
+          <div class="card-head">Tổng quan</div>
+          <div class="card-body">
+            <div class="grid2">
+              <div>
+                <div class="k">Tên</div>
+                <div class="v">{{ p.name }}</div>
+              </div>
+              <div>
+                <div class="k">Brand</div>
+                <div class="v">{{ p.brand }}</div>
+              </div>
+            </div>
+
+            <div class="grid3" style="margin-top: 12px">
+              <div class="stat">
+                <div class="k">Giá</div>
+                <div class="v">{{ formatMoney(p.price) }}</div>
+                <div class="sub" *ngIf="p.oldPrice">Giá cũ: {{ formatMoney(p.oldPrice) }}</div>
+              </div>
+              <div class="stat">
+                <div class="k">Tồn</div>
+                <div class="v">{{ p.stock }}</div>
+              </div>
+              <div class="stat">
+                <div class="k">Trạng thái</div>
+                <div class="v">
+                  <span class="badge" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Bật' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="desc" *ngIf="p.description">
+              <div class="k">Mô tả</div>
+              <div class="v">{{ p.description }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" *ngIf="images.length > 0">
+          <div class="card-head">Ảnh sản phẩm</div>
+          <div class="card-body">
+            <div class="gallery">
+              <div class="g-item" *ngFor="let img of images">
+                <img [src]="img" alt="img" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" *ngIf="(p.variants?.length || 0) > 0">
+          <div class="card-head">Biến thể theo màu</div>
+          <div class="card-body">
+            <div class="variants">
+              <div class="variant" *ngFor="let v of p.variants">
+                <div class="variant__head">
+                  <div class="variant__title">Màu: <code>{{ v.color }}</code></div>
+                  <span class="badge" [class.off]="v.active === false">{{ v.active === false ? 'Ẩn' : 'Bật' }}</span>
+                </div>
+
+                <div class="grid3">
+                  <div class="stat">
+                    <div class="k">Giá</div>
+                    <div class="v">{{ formatMoney(v.price) }}</div>
+                    <div class="sub" *ngIf="v.oldPrice">Giá cũ: {{ formatMoney(v.oldPrice) }}</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Tồn (màu)</div>
+                    <div class="v">{{ totalVariantStock(v) }}</div>
+                  </div>
+                  <div class="stat">
+                    <div class="k">Ảnh</div>
+                    <div class="v">{{ v.images?.length || 0 }}</div>
+                  </div>
+                </div>
+
+                <div class="stock" *ngIf="(v.stocks?.length || 0) > 0">
+                  <div class="k">Tồn theo size</div>
+                  <div class="stock-grid">
+                    <div class="stock-row" *ngFor="let s of v.stocks">
+                      <div class="stock-size">{{ s.size }}</div>
+                      <div class="stock-val">{{ s.stock }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="card sticky">
+          <div class="card-head">Danh mục</div>
+          <div class="card-body">
+            <div class="k">Slug lọc hiện tại</div>
+            <div class="v">{{ p.category }}</div>
+
+            <div class="k" style="margin-top: 10px">Số danh mục cấp 3 gán</div>
+            <div class="v">{{ p.categoryIds?.length || 0 }}</div>
+
+            <div class="k" style="margin-top: 10px">Màu / Size</div>
+            <div class="v">
+              {{ p.colors?.length || 0 }} màu · {{ p.sizes?.length || 0 }} size
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div class="page" *ngIf="loading">
+  <div class="card">
+    <div class="card-body">Đang tải...</div>
+  </div>
+</div>

@@ -53,6 +53,26 @@ export class AuthService {
     return localStorage.getItem(this.tokenKey);
   }
 
+  private decodeJwtPayload(token: string): any | null {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+      const json = atob(padded);
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  private isTokenExpired(token: string): boolean {
+    const payload = this.decodeJwtPayload(token);
+    const exp = payload?.exp;
+    if (typeof exp !== 'number') return false;
+    return Date.now() >= exp * 1000;
+  }
+
   getRoles(): string[] {
     const raw = localStorage.getItem(this.rolesKey);
     if (!raw) return [];
@@ -66,10 +86,29 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+    if (this.isTokenExpired(token)) {
+      this.logout();
+      return false;
+    }
+    return true;
   }
 
   isAdmin(): boolean {
     return this.getRoles().includes('ADMIN');
+  }
+
+  isManager(): boolean {
+    return this.getRoles().includes('MANAGER');
+  }
+
+  isStaff(): boolean {
+    return this.getRoles().includes('STAFF');
+  }
+
+  isInternal(): boolean {
+    const roles = this.getRoles();
+    return roles.includes('ADMIN') || roles.includes('MANAGER') || roles.includes('STAFF');
   }
 }

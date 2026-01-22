@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AdminCouponResponse, AdminDataService } from '../../../core/services/admin-data.service';
 
 @Component({
   selector: 'app-admin-coupons',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin-coupons.component.html',
   styleUrls: ['./admin-coupons.component.scss']
 })
@@ -21,11 +22,28 @@ export class AdminCouponsComponent {
     description?: string;
     discountAmount?: number | null;
     discountPercent?: number | null;
+    minOrderAmount?: number | null;
+    maxDiscountAmount?: number | null;
+    shippingDiscountAmount?: number | null;
+    allowedSegments?: string | null;
     usageLimit?: number | null;
     startsAt?: string | null;
     endsAt?: string | null;
     active?: boolean | null;
-  } = { code: '', description: '', discountAmount: null, discountPercent: null, usageLimit: null, startsAt: null, endsAt: null, active: true };
+  } = {
+    code: '',
+    description: '',
+    discountAmount: null,
+    discountPercent: null,
+    minOrderAmount: null,
+    maxDiscountAmount: null,
+    shippingDiscountAmount: null,
+    allowedSegments: null,
+    usageLimit: null,
+    startsAt: null,
+    endsAt: null,
+    active: true
+  };
 
   editOpen = false;
   editLoading = false;
@@ -35,14 +53,53 @@ export class AdminCouponsComponent {
     description?: string;
     discountAmount?: number | null;
     discountPercent?: number | null;
+    minOrderAmount?: number | null;
+    maxDiscountAmount?: number | null;
+    shippingDiscountAmount?: number | null;
+    allowedSegments?: string | null;
     usageLimit?: number | null;
     startsAt?: string | null;
     endsAt?: string | null;
     active?: boolean | null;
-  } = { id: undefined, code: '', description: '', discountAmount: null, discountPercent: null, usageLimit: null, startsAt: null, endsAt: null, active: true };
+  } = {
+    id: undefined,
+    code: '',
+    description: '',
+    discountAmount: null,
+    discountPercent: null,
+    minOrderAmount: null,
+    maxDiscountAmount: null,
+    shippingDiscountAmount: null,
+    allowedSegments: null,
+    usageLimit: null,
+    startsAt: null,
+    endsAt: null,
+    active: true
+  };
 
   constructor(private adminData: AdminDataService) {
     this.load();
+  }
+
+  formatVnd(v?: number | null): string {
+    const n = typeof v === 'number' && isFinite(v) ? v : 0;
+    return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+  }
+
+  displayDiscount(r: AdminCouponResponse): string {
+    if (r.discountPercent != null) return `${r.discountPercent}%`;
+    if (r.discountAmount != null) return this.formatVnd(r.discountAmount);
+    return '0';
+  }
+
+  displaySegments(csv?: string | null): string {
+    const s = (csv || '').trim();
+    if (!s) return '-';
+    return s
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .join(', ');
   }
 
   load(): void {
@@ -65,7 +122,20 @@ export class AdminCouponsComponent {
   }
 
   openCreate(): void {
-    this.form = { code: '', description: '', discountAmount: null, discountPercent: null, usageLimit: null, startsAt: null, endsAt: null, active: true };
+    this.form = {
+      code: '',
+      description: '',
+      discountAmount: null,
+      discountPercent: null,
+      minOrderAmount: null,
+      maxDiscountAmount: null,
+      shippingDiscountAmount: null,
+      allowedSegments: null,
+      usageLimit: null,
+      startsAt: null,
+      endsAt: null,
+      active: true
+    };
     this.createOpen = true;
   }
 
@@ -78,6 +148,16 @@ export class AdminCouponsComponent {
       this.error = 'Vui lòng nhập mã Code.';
       return;
     }
+
+    const hasDiscount =
+      (this.form.discountAmount != null && this.form.discountAmount > 0) ||
+      (this.form.discountPercent != null && this.form.discountPercent > 0) ||
+      (this.form.shippingDiscountAmount != null && this.form.shippingDiscountAmount > 0);
+    if (!hasDiscount) {
+      this.error = 'Vui lòng nhập giảm % / giảm tiền / giảm phí ship.';
+      return;
+    }
+
     this.createLoading = true;
     this.error = '';
     this.adminData.createCoupon({
@@ -85,6 +165,10 @@ export class AdminCouponsComponent {
       description: this.form.description?.trim() || undefined,
       discountAmount: this.form.discountAmount ?? null,
       discountPercent: this.form.discountPercent ?? null,
+      minOrderAmount: this.form.minOrderAmount ?? null,
+      maxDiscountAmount: this.form.maxDiscountAmount ?? null,
+      shippingDiscountAmount: this.form.shippingDiscountAmount ?? null,
+      allowedSegments: this.form.allowedSegments?.trim() || null,
       usageLimit: this.form.usageLimit ?? null,
       startsAt: this.form.startsAt ?? null,
       endsAt: this.form.endsAt ?? null,
@@ -113,6 +197,10 @@ export class AdminCouponsComponent {
       description: row.description || '',
       discountAmount: row.discountAmount ?? null,
       discountPercent: row.discountPercent ?? null,
+      minOrderAmount: row.minOrderAmount ?? null,
+      maxDiscountAmount: row.maxDiscountAmount ?? null,
+      shippingDiscountAmount: row.shippingDiscountAmount ?? null,
+      allowedSegments: row.allowedSegments ?? null,
       usageLimit: row.usageLimit ?? null,
       startsAt: row.startsAt ?? null,
       endsAt: row.endsAt ?? null,
@@ -131,6 +219,16 @@ export class AdminCouponsComponent {
       this.error = 'Vui lòng nhập mã Code.';
       return;
     }
+
+    const hasDiscount =
+      (this.editForm.discountAmount != null && this.editForm.discountAmount > 0) ||
+      (this.editForm.discountPercent != null && this.editForm.discountPercent > 0) ||
+      (this.editForm.shippingDiscountAmount != null && this.editForm.shippingDiscountAmount > 0);
+    if (!hasDiscount) {
+      this.error = 'Vui lòng nhập giảm % / giảm tiền / giảm phí ship.';
+      return;
+    }
+
     this.editLoading = true;
     this.error = '';
     this.adminData.updateCoupon(this.editForm.id, {
@@ -138,6 +236,10 @@ export class AdminCouponsComponent {
       description: this.editForm.description?.trim() || undefined,
       discountAmount: this.editForm.discountAmount ?? null,
       discountPercent: this.editForm.discountPercent ?? null,
+      minOrderAmount: this.editForm.minOrderAmount ?? null,
+      maxDiscountAmount: this.editForm.maxDiscountAmount ?? null,
+      shippingDiscountAmount: this.editForm.shippingDiscountAmount ?? null,
+      allowedSegments: this.editForm.allowedSegments?.trim() || null,
       usageLimit: this.editForm.usageLimit ?? null,
       startsAt: this.editForm.startsAt ?? null,
       endsAt: this.editForm.endsAt ?? null,

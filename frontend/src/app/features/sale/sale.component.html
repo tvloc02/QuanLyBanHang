@@ -1,0 +1,56 @@
+<main class="sale-page">
+  <div class="container">
+    <div class="head">
+      <div class="title">Sale</div>
+      <div class="sub">Sản phẩm đang giảm giá từ hệ thống</div>
+      <div class="actions">
+        <button type="button" class="ghost" (click)="load()" [disabled]="loading">Làm mới</button>
+        <a class="ghost" routerLink="/">← Về trang chủ</a>
+      </div>
+    </div>
+
+    <div class="status" *ngIf="loading">
+      <div class="spinner"></div>
+      <span>Đang tải sản phẩm Sale...</span>
+    </div>
+
+    <div class="status error" *ngIf="!loading && error">
+      {{ error }}
+    </div>
+
+    <div class="empty" *ngIf="!loading && !error && products.length === 0">
+      <div class="empty-title">Chưa có sản phẩm Sale</div>
+      <div class="empty-text">Hãy cấu hình giảm giá cho sản phẩm (oldPrice/discountPercent) trong admin.</div>
+    </div>
+
+    <div class="grid" *ngIf="!loading && !error && products.length > 0">
+      <div class="card" *ngFor="let p of products">
+        <button type="button" class="img" (click)="goToProduct(p)">
+          <img [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+          <span class="tag" *ngIf="p.badge">{{ p.badge }}</span>
+          <span class="disc" *ngIf="getDiscountLabel(p)">{{ getDiscountLabel(p) }}</span>
+        </button>
+
+        <div class="body">
+          <button type="button" class="name" (click)="goToProduct(p)">{{ p.name }}</button>
+          <div class="meta">
+            <span *ngIf="p.brand">{{ p.brand }}</span>
+            <span class="sep" *ngIf="p.brand && p.soldCount">•</span>
+            <span *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
+          </div>
+          <div class="price">
+            <span class="now">{{ formatMoney(p.price) }}đ</span>
+            <span class="old" *ngIf="p.oldPrice">{{ formatMoney(p.oldPrice) }}đ</span>
+          </div>
+
+          <div class="cta">
+            <button type="button" class="btn ghost" (click)="addToCart(p)">Thêm giỏ</button>
+            <button type="button" class="btn primary" (click)="buyNow(p)">Mua ngay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-footer />
+</main>

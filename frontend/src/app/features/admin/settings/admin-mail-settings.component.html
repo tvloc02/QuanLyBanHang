@@ -1,0 +1,88 @@
+<div class="page">
+  <div class="page-head">
+    <div class="title">Cấu hình mail</div>
+    <div class="head-actions">
+      <button class="btn" type="button" (click)="load()" [disabled]="loading || saving">
+        {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="card">
+    <div class="card-title">SMTP</div>
+
+    <div class="meta" *ngIf="settings">
+      <div class="meta-row">
+        <span class="k">Trạng thái</span>
+        <span class="v">{{ settings.enabled ? 'Đang bật' : 'Đang tắt' }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Mật khẩu</span>
+        <span class="v">{{ settings.hasPassword ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
+      </div>
+      <div class="meta-row" *ngIf="settings.updatedAt">
+        <span class="k">Cập nhật</span>
+        <span class="v">{{ settings.updatedAt }}</span>
+      </div>
+    </div>
+
+    <div class="form">
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Bật gửi mail</label>
+          <select class="input" [(ngModel)]="form.enabled">
+            <option [ngValue]="true">Bật</option>
+            <option [ngValue]="false">Tắt</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">TLS</label>
+          <select class="input" [(ngModel)]="form.useTls">
+            <option [ngValue]="true">Bật TLS</option>
+            <option [ngValue]="false">Không TLS</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">SMTP Host</label>
+          <input class="input" [(ngModel)]="form.smtpHost" placeholder="smtp.gmail.com" />
+        </div>
+        <div class="field">
+          <label class="label">SMTP Port</label>
+          <input class="input" type="number" [(ngModel)]="form.smtpPort" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">SMTP Username</label>
+          <input class="input" [(ngModel)]="form.smtpUsername" placeholder="example@gmail.com" />
+        </div>
+        <div class="field">
+          <label class="label">SMTP Password</label>
+          <input class="input" type="password" [(ngModel)]="form.smtpPassword" placeholder="Nhập để cập nhật" />
+          <label class="chk"><input type="checkbox" [(ngModel)]="form.clearPassword" /> Xóa mật khẩu</label>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">From Email</label>
+          <input class="input" [(ngModel)]="form.fromEmail" placeholder="no-reply@yourdomain.com" />
+        </div>
+        <div class="field">
+          <label class="label">From Name</label>
+          <input class="input" [(ngModel)]="form.fromName" placeholder="FashionHub" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</button>
+      </div>
+    </div>
+  </div>
+</div>

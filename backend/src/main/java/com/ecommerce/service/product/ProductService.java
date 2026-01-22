@@ -2,11 +2,19 @@ package com.ecommerce.service.product;
 
 import com.ecommerce.dto.request.ProductSearchRequest;
 import com.ecommerce.dto.request.ProductUpsertRequest;
+import com.ecommerce.dto.request.ProductVariantSizeStockRequest;
+import com.ecommerce.dto.request.ProductVariantUpsertRequest;
 import com.ecommerce.dto.response.ProductDto;
 import com.ecommerce.dto.response.ProductResponse;
+import com.ecommerce.dto.response.ProductVariantResponse;
+import com.ecommerce.dto.response.ProductVariantSizeStockResponse;
 import com.ecommerce.dto.response.ProductSearchResponse;
 import com.ecommerce.exception.ResourceNotFoundException;
+import com.ecommerce.model.entity.Category;
 import com.ecommerce.model.entity.Product;
+import com.ecommerce.model.entity.ProductVariant;
+import com.ecommerce.model.entity.ProductVariantSizeStock;
+import com.ecommerce.repository.CategoryRepository;
 import com.ecommerce.repository.ProductRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,15 +23,22 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class ProductService {
 
     private final ProductRepository productRepository;
 
-    public ProductService(ProductRepository productRepository) {
+    private final CategoryRepository categoryRepository;
+
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public List<ProductResponse> list() {
@@ -74,8 +89,14 @@ public class ProductService {
             // Use custom query with filters and sort
             Sort sort = buildSort(req.getSort());
             Pageable sortedPageable = PageRequest.of(page, limit, sort);
+            Long categoryId = null;
+            if (req.getCategory() != null && !req.getCategory().isBlank()) {
+                categoryId = categoryRepository.findBySlug(req.getCategory()).map(Category::getId).orElse(null);
+            }
+
             result = productRepository.searchByFilters(
                 req.getCategory(),
+                categoryId,
                 req.getMinPrice() != null ? BigDecimal.valueOf(req.getMinPrice()) : null,
                 req.getMaxPrice() != null ? BigDecimal.valueOf(req.getMaxPrice()) : null,
                 req.getSizes(),
@@ -130,6 +151,18 @@ public class ProductService {
         product.setStock(req.getStock());
         product.setCategoryId(req.getCategoryId());
 
+        // Multi-category support
+        if (req.getCategoryIds() != null) {
+            Set<Long> cleaned = new LinkedHashSet<>();
+            for (Long x : req.getCategoryIds()) {
+                if (x != null) cleaned.add(x);
+            }
+            product.setCategoryIds(new ArrayList<>(cleaned));
+            if (product.getCategoryId() == null && !product.getCategoryIds().isEmpty()) {
+                product.setCategoryId(product.getCategoryIds().get(0));
+            }
+        }
+
         product.setCategory(req.getCategory());
         product.setBrand(req.getBrand());
         product.setBadge(req.getBadge());
@@ -152,6 +185,95 @@ public class ProductService {
         if (req.getActive() != null) {
             product.setActive(req.getActive());
         }
+
+        // Variants support: derive colors/sizes/stock/images/price from variants
+        if (req.getVariants() != null && !req.getVariants().isEmpty()) {
+            List<ProductVariant> newVariants = new ArrayList<>();
+            Set<String> colors = new LinkedHashSet<>();
+            Set<String> sizes = new LinkedHashSet<>();
+            List<String> derivedImages = new ArrayList<>();
+
+            int totalStock = 0;
+            BigDecimal minPrice = null;
+            BigDecimal maxOldPrice = null;
+
+            for (ProductVariantUpsertRequest v : req.getVariants()) {
+                if (v == null) continue;
+                if (v.getColor() == null || v.getColor().isBlank()) continue;
+                if (v.getPrice() == null) continue;
+
+                ProductVariant pv = new ProductVariant();
+                pv.setProduct(product);
+                pv.setColor(v.getColor().trim());
+                pv.setPrice(v.getPrice());
+                pv.setOldPrice(v.getOldPrice());
+                if (v.getImages() != null) {
+                    List<String> imgs = v.getImages().stream()
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isBlank())
+                        .toList();
+                    pv.setImages(new ArrayList<>(imgs));
+                }
+                if (v.getStocks() != null) {
+                    List<ProductVariantSizeStock> st = new ArrayList<>();
+                    for (ProductVariantSizeStockRequest s : v.getStocks()) {
+                        if (s == null) continue;
+                        if (s.getSize() == null || s.getSize().isBlank()) continue;
+                        Integer qty = s.getStock();
+                        if (qty == null || qty < 0) continue;
+                        st.add(new ProductVariantSizeStock(s.getSize().trim(), qty));
+                        sizes.add(s.getSize().trim());
+                        totalStock += qty;
+                    }
+                    pv.setStocks(st);
+                }
+
+                colors.add(pv.getColor());
+                if (pv.getImages() != null) {
+                    derivedImages.addAll(pv.getImages());
+                }
+
+                if (minPrice == null || pv.getPrice().compareTo(minPrice) < 0) {
+                    minPrice = pv.getPrice();
+                }
+                if (pv.getOldPrice() != null) {
+                    if (maxOldPrice == null || pv.getOldPrice().compareTo(maxOldPrice) > 0) {
+                        maxOldPrice = pv.getOldPrice();
+                    }
+                }
+
+                if (v.getActive() != null) {
+                    pv.setActive(v.getActive());
+                }
+
+                newVariants.add(pv);
+            }
+
+            product.getVariants().clear();
+            product.getVariants().addAll(newVariants);
+
+            product.setColors(new ArrayList<>(colors));
+            product.setSizes(new ArrayList<>(sizes));
+            product.setStock(totalStock);
+
+            if (minPrice != null) {
+                product.setPrice(minPrice);
+            }
+            if (req.getOldPrice() == null && maxOldPrice != null) {
+                product.setOldPrice(maxOldPrice);
+            }
+
+            if ((req.getImages() == null || req.getImages().isEmpty()) && !derivedImages.isEmpty()) {
+                product.setImages(derivedImages);
+            }
+
+            if ((req.getImageUrl() == null || req.getImageUrl().isBlank())) {
+                if (product.getImages() != null && !product.getImages().isEmpty()) {
+                    product.setImageUrl(product.getImages().get(0));
+                }
+            }
+        }
     }
 
     private static ProductResponse toResponse(Product p) {
@@ -165,6 +287,7 @@ public class ProductService {
         res.setOldPrice(p.getOldPrice());
         res.setStock(p.getStock());
         res.setCategoryId(p.getCategoryId());
+        res.setCategoryIds(p.getCategoryIds());
         res.setCategory(p.getCategory());
         res.setBrand(p.getBrand());
         res.setImageUrl(p.getImageUrl());
@@ -180,6 +303,32 @@ public class ProductService {
         } else if (p.getImageUrl() != null) {
             res.setImages(java.util.List.of(p.getImageUrl()));
         }
+
+        if (p.getVariants() != null && !p.getVariants().isEmpty()) {
+            List<ProductVariantResponse> vs = new ArrayList<>();
+            for (ProductVariant v : p.getVariants()) {
+                if (v == null) continue;
+                ProductVariantResponse vr = new ProductVariantResponse();
+                vr.setId(v.getId());
+                vr.setColor(v.getColor());
+                vr.setPrice(v.getPrice());
+                vr.setOldPrice(v.getOldPrice());
+                vr.setImages(v.getImages() != null ? v.getImages() : java.util.List.of());
+                vr.setActive(v.getActive());
+
+                List<ProductVariantSizeStockResponse> st = new ArrayList<>();
+                if (v.getStocks() != null) {
+                    for (ProductVariantSizeStock s : v.getStocks()) {
+                        if (s == null) continue;
+                        st.add(new ProductVariantSizeStockResponse(s.getSize(), s.getStock()));
+                    }
+                }
+                vr.setStocks(st);
+                vs.add(vr);
+            }
+            res.setVariants(vs);
+        }
+
         res.setActive(p.getActive());
         return res;
     }

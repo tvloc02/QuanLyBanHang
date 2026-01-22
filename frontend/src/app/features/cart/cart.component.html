@@ -1,20 +1,8 @@
 <main class="cart-page">
   <div class="container">
-    <div class="steps">
-      <div class="step active">
-        <span class="dot"></span>
-        <span class="label">GIỎ HÀNG</span>
-      </div>
-      <div class="divider"></div>
-      <div class="step">
-        <span class="dot"></span>
-        <span class="label">ĐẶT HÀNG</span>
-      </div>
-      <div class="divider"></div>
-      <div class="step">
-        <span class="dot"></span>
-        <span class="label">HOÀN THÀNH ĐƠN HÀNG</span>
-      </div>
+    <div class="cart-head">
+      <div class="cart-head__title">Giỏ hàng</div>
+      <div class="cart-head__sub">Kiểm tra sản phẩm trước khi tiến hành thanh toán</div>
     </div>
 
     <div class="empty" *ngIf="items.length === 0">
@@ -26,26 +14,50 @@
 
     <div class="cart" *ngIf="items.length > 0">
       <div class="cart-left">
-        <div class="cart-title">Giỏ hàng ({{ cartCount }})</div>
+        <div class="cart-title">Sản phẩm ({{ cartCount }})</div>
 
-        <div class="item" *ngFor="let it of items">
-          <div class="thumb">
-            <img [src]="it.imageUrl || 'https://via.placeholder.com/120x120?text=Product'" [alt]="it.name" />
+        <div class="cart-table">
+          <div class="cart-row cart-row--head">
+            <div class="c-product">Sản phẩm</div>
+            <div class="c-price">Đơn giá</div>
+            <div class="c-qty">Số lượng</div>
+            <div class="c-total">Thành tiền</div>
+            <div class="c-action"></div>
           </div>
-          <div class="info">
-            <div class="name">{{ it.name }}</div>
-            <div class="meta" *ngIf="it.size || it.color">
-              <span *ngIf="it.size">Size: {{ it.size }}</span>
-              <span *ngIf="it.color">Màu: {{ it.color }}</span>
+
+          <div class="cart-row" *ngFor="let it of items">
+            <div class="c-product">
+              <div class="product">
+                <div class="thumb">
+                  <img [src]="it.imageUrl || 'https://via.placeholder.com/120x120?text=Product'" [alt]="it.name" />
+                </div>
+                <div class="info">
+                  <div class="name">{{ it.name }}</div>
+                  <div class="meta" *ngIf="it.size || it.color">
+                    <span *ngIf="it.size">Size: {{ it.size }}</span>
+                    <span *ngIf="it.color">Màu: {{ it.color }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="row">
+
+            <div class="c-price">
               <div class="price">{{ formatMoney(it.price) }}đ</div>
+            </div>
+
+            <div class="c-qty">
               <div class="qty">
                 <button type="button" (click)="dec(it)" aria-label="Giảm">−</button>
                 <div class="num">{{ it.quantity }}</div>
                 <button type="button" (click)="inc(it)" aria-label="Tăng">+</button>
               </div>
+            </div>
+
+            <div class="c-total">
               <div class="line">{{ formatMoney(it.price * it.quantity) }}đ</div>
+            </div>
+
+            <div class="c-action">
               <button type="button" class="remove" (click)="remove(it)">Xóa</button>
             </div>
           </div>
@@ -70,7 +82,7 @@
           <span>Tổng cộng</span>
           <b>{{ formatMoney(subtotal) }}đ</b>
         </div>
-        <button type="button" class="primary" (click)="checkout()">THANH TOÁN</button>
+        <button type="button" class="primary" (click)="checkout()">TIẾN HÀNH THANH TOÁN</button>
       </aside>
     </div>
   </div>

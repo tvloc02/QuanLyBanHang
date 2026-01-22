@@ -25,6 +25,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAny(Exception ex) {
-        return ResponseEntity.internalServerError().body(ApiResponse.fail("Internal server error"));
+        ex.printStackTrace();
+
+        String cls = ex.getClass() != null ? ex.getClass().getSimpleName() : "Exception";
+        String msg = ex.getMessage();
+        String text = (msg == null || msg.isBlank()) ? cls : (cls + ": " + msg);
+
+        Throwable cause = ex.getCause();
+        if (cause != null) {
+            String ccls = cause.getClass() != null ? cause.getClass().getSimpleName() : "Throwable";
+            String cmsg = cause.getMessage();
+            String ctext = (cmsg == null || cmsg.isBlank()) ? ccls : (ccls + ": " + cmsg);
+            text = text + " | cause=" + ctext;
+        }
+
+        return ResponseEntity.internalServerError().body(ApiResponse.fail(text));
     }
 }

@@ -24,6 +24,8 @@ public class ProductResponse {
 
     private Long categoryId;
 
+    private List<Long> categoryIds = new ArrayList<>();
+
     private String category;
 
     private String brand;
@@ -43,6 +45,8 @@ public class ProductResponse {
     private List<String> colors = new ArrayList<>();
 
     private List<String> images = new ArrayList<>();
+
+    private List<ProductVariantResponse> variants = new ArrayList<>();
 
     private Boolean active;
 
@@ -118,6 +122,14 @@ public class ProductResponse {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public List<Long> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(List<Long> categoryIds) {
+        this.categoryIds = categoryIds;
     }
 
     public String getCategory() {
@@ -198,6 +210,14 @@ public class ProductResponse {
 
     public void setImages(List<String> images) {
         this.images = images;
+    }
+
+    public List<ProductVariantResponse> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantResponse> variants) {
+        this.variants = variants;
     }
 
     public Boolean getActive() {

@@ -125,6 +125,14 @@
           </div>
         </div>
 
+        <div class="save-profile" *ngIf="isAuthenticated()">
+          <label class="save-profile__label">
+            <input type="checkbox" [(ngModel)]="saveToProfile" />
+            <span>Lưu thông tin này vào tài khoản</span>
+          </label>
+          <a class="save-profile__link" routerLink="/profile">Sửa trong hồ sơ</a>
+        </div>
+
         <div class="panel-title" style="margin-top: 16px;">Thanh toán</div>
         <div class="pay">
           <label class="pay-item">

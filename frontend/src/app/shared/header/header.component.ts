@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, HostListener, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 interface ApiResponse<T> {
@@ -13,8 +14,12 @@ interface ApiResponse<T> {
 interface CategoryResponse {
   id: number;
   name: string;
+  slug: string;
+  parentId?: number | null;
+  icon?: string | null;
   description?: string;
   active?: boolean;
+  children?: CategoryResponse[];
 }
 
 @Component({
@@ -29,6 +34,8 @@ export class HeaderComponent implements OnInit {
 
   categories: Array<{ label: string; slug: string }> = [];
 
+  categoryTree: CategoryResponse[] = [];
+
   searchQuery = '';
   showSuggest = false;
   suggest: Array<{ label: string; slug: string }> = [];
@@ -36,9 +43,15 @@ export class HeaderComponent implements OnInit {
 
   cartCount = 0;
 
+  openMegaRootId: number | null = null;
+  userMenuOpen = false;
+
+  private closeMegaTimer: any | null = null;
+
   constructor(
     private readonly http: HttpClient,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -46,39 +59,59 @@ export class HeaderComponent implements OnInit {
     this.loadCategories();
   }
 
+  resolveCategoryIcon(key?: string | null): string {
+    const k = (key || '').trim();
+    return k ? k : 'tag';
+  }
+
   private loadCategories(): void {
-    const url = `${environment.apiBaseUrl}/api/categories`;
+    const url = `${environment.apiBaseUrl}/api/categories/tree`;
     this.http.get<ApiResponse<CategoryResponse[]>>(url).subscribe({
       next: (res) => {
         const rows = res?.data;
         if (!Array.isArray(rows)) {
+          this.categoryTree = [];
           this.categories = [];
           return;
         }
 
-        this.categories = rows
-          .filter((c) => !!c?.name)
-          .map((c) => {
-            const slug = String(c.name).trim();
-            return {
-              slug,
-              label: this.labelFromSlug(slug)
-            };
-          });
+        const tree = this.sortTree(rows);
+        this.categoryTree = tree;
+        this.categories = this.flattenTree(tree);
       },
       error: () => {
+        this.categoryTree = [];
         this.categories = [];
       }
     });
   }
 
-  private labelFromSlug(slug: string): string {
-    const s = slug.replace(/[-_]+/g, ' ').trim();
-    return s
-      .split(' ')
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
+  private flattenTree(tree: CategoryResponse[]): Array<{ label: string; slug: string }> {
+    const out: Array<{ label: string; slug: string }> = [];
+    const walk = (nodes: CategoryResponse[]) => {
+      for (const n of nodes) {
+        if (n?.slug && n?.name) {
+          out.push({ slug: n.slug, label: n.name });
+        }
+        const kids = Array.isArray(n?.children) ? n.children : [];
+        if (kids.length) walk(kids);
+      }
+    };
+    walk(tree);
+    return out;
+  }
+
+  private sortTree(tree: CategoryResponse[]): CategoryResponse[] {
+    const copy = Array.isArray(tree) ? [...tree] : [];
+    copy.sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
+    for (const n of copy) {
+      if (Array.isArray(n?.children) && n.children.length) {
+        n.children = this.sortTree(n.children);
+      } else {
+        n.children = [];
+      }
+    }
+    return copy;
   }
 
   private slugify(input: string): string {
@@ -147,6 +180,97 @@ export class HeaderComponent implements OnInit {
     this.router.navigate(['/category', slug]);
   }
 
+  isAuthenticated(): boolean {
+    return this.auth.isAuthenticated();
+  }
+
+  toggleUserMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.userMenuOpen = !this.userMenuOpen;
+    this.openMegaRootId = null;
+  }
+
+  logout(): void {
+    this.userMenuOpen = false;
+    this.auth.logout();
+    this.router.navigateByUrl('/');
+  }
+
+  onRootCategoryClick(root: CategoryResponse, event: MouseEvent): void {
+    const hasChildren = Array.isArray(root?.children) && root.children.length > 0;
+    if (!hasChildren) return;
+
+    // Desktop hover devices: mega panel opens on hover, click should navigate normally.
+    if (this.isHoverCapable()) {
+      this.openMegaRootId = null;
+      return;
+    }
+
+    if (this.openMegaRootId !== root.id) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.openMegaRootId = root.id;
+      this.userMenuOpen = false;
+      this.showSuggest = false;
+      return;
+    }
+
+    // second click: allow navigation, close mega menu
+    this.openMegaRootId = null;
+  }
+
+  onRootHover(root: CategoryResponse): void {
+    if (!this.isHoverCapable()) return;
+    const hasChildren = Array.isArray(root?.children) && root.children.length > 0;
+    if (!hasChildren) {
+      this.openMegaRootId = null;
+      return;
+    }
+    this.cancelCloseMega();
+    this.openMegaRootId = root.id;
+    this.userMenuOpen = false;
+    this.showSuggest = false;
+  }
+
+  onNavAreaEnter(): void {
+    this.cancelCloseMega();
+  }
+
+  onNavAreaLeave(): void {
+    if (!this.isHoverCapable()) return;
+    this.scheduleCloseMega();
+  }
+
+  private scheduleCloseMega(): void {
+    this.cancelCloseMega();
+    this.closeMegaTimer = setTimeout(() => {
+      this.openMegaRootId = null;
+      this.closeMegaTimer = null;
+    }, 160);
+  }
+
+  private cancelCloseMega(): void {
+    if (this.closeMegaTimer != null) {
+      clearTimeout(this.closeMegaTimer);
+      this.closeMegaTimer = null;
+    }
+  }
+
+  private isHoverCapable(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    try {
+      return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    } catch {
+      return false;
+    }
+  }
+
+  getOpenRoot(): CategoryResponse | null {
+    const id = this.openMegaRootId;
+    if (id == null) return null;
+    return this.categoryTree.find((x) => x?.id === id) || null;
+  }
+
   submitSearch(): void {
     const q = this.searchQuery.trim();
     if (!q) return;
@@ -177,5 +301,16 @@ export class HeaderComponent implements OnInit {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.showSuggest = false;
+    this.userMenuOpen = false;
+    this.openMegaRootId = null;
+    this.cancelCloseMega();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.showSuggest = false;
+    this.userMenuOpen = false;
+    this.openMegaRootId = null;
+    this.cancelCloseMega();
   }
 }

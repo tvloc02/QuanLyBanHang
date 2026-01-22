@@ -1,0 +1,64 @@
+<div class="page">
+  <div class="page-head">
+    <div class="title">Cấu hình hệ thống</div>
+    <div class="head-actions">
+      <button class="btn" type="button" (click)="load()" [disabled]="loading || saving">
+        {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="card">
+    <div class="card-title">Cấu hình AI / Chatbot</div>
+
+    <div class="meta" *ngIf="ai">
+      <div class="meta-row">
+        <span class="k">Gemini</span>
+        <span class="v">{{ ai.hasGeminiApiKey ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">ChatGPT (OpenAI)</span>
+        <span class="v">{{ ai.hasOpenaiApiKey ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
+      </div>
+      <div class="meta-row" *ngIf="ai.updatedAt">
+        <span class="k">Cập nhật</span>
+        <span class="v">{{ ai.updatedAt }}</span>
+      </div>
+    </div>
+
+    <div class="form">
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Provider mặc định</label>
+          <select class="input" [(ngModel)]="form.defaultProvider">
+            <option value="gemini">Gemini</option>
+            <option value="openai">ChatGPT (OpenAI)</option>
+          </select>
+        </div>
+        <div class="hint">
+          <div class="small muted">Admin nhập key ở đây. User chỉ việc sử dụng.</div>
+          <div class="small muted">Để trống key = giữ nguyên. Tick "Xóa" = xóa key.</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Gemini API Key</label>
+          <input class="input" type="password" [(ngModel)]="form.geminiApiKey" placeholder="Nhập key để cập nhật" />
+          <label class="chk"><input type="checkbox" [(ngModel)]="form.clearGemini" /> Xóa key Gemini</label>
+        </div>
+        <div class="field">
+          <label class="label">OpenAI API Key</label>
+          <input class="input" type="password" [(ngModel)]="form.openaiApiKey" placeholder="Nhập key để cập nhật" />
+          <label class="chk"><input type="checkbox" [(ngModel)]="form.clearOpenai" /> Xóa key OpenAI</label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</button>
+      </div>
+    </div>
+  </div>
+</div>

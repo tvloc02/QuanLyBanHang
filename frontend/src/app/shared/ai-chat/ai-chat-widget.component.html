@@ -1,0 +1,51 @@
+<div class="ai-chat" #wrap>
+  <button type="button" class="ai-chat__fab" (click)="toggle()" aria-label="Chat AI">
+    <span class="ai-chat__fab-dot" *ngIf="!open"></span>
+    <span class="ai-chat__fab-text">AI</span>
+  </button>
+
+  <div class="ai-chat__panel" *ngIf="open" (click)="$event.stopPropagation()">
+    <div class="ai-chat__head">
+      <div class="ai-chat__title">Chat AI</div>
+      <button type="button" class="ai-chat__close" (click)="close()" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="ai-chat__body" #list>
+      <div class="ai-chat__empty" *ngIf="messages.length === 0">
+        Hãy nhập câu hỏi để bắt đầu.
+      </div>
+
+      <div class="ai-chat__msg" *ngFor="let m of messages" [class.is-user]="m.role === 'user'" [class.is-ai]="m.role === 'ai'">
+        <div class="ai-chat__bubble">{{ m.text }}</div>
+      </div>
+
+      <div class="ai-chat__msg is-ai" *ngIf="sending">
+        <div class="ai-chat__bubble">Đang trả lời...</div>
+      </div>
+
+      <div class="ai-chat__error" *ngIf="error">{{ error }}</div>
+    </div>
+
+    <div class="ai-chat__foot">
+      <div class="ai-chat__quota" *ngIf="isGuestLimited()">
+        <ng-container *ngIf="!quotaLoading; else quotaLoadingTpl">
+          <span *ngIf="quotaRemaining != null">Khách: còn {{ quotaRemaining }}/{{ quotaLimit }} lượt hôm nay</span>
+          <span *ngIf="quotaRemaining == null">Khách: đang kiểm tra lượt...</span>
+        </ng-container>
+        <ng-template #quotaLoadingTpl>
+          <span>Khách: đang kiểm tra lượt...</span>
+        </ng-template>
+      </div>
+
+      <textarea
+        class="ai-chat__input"
+        rows="1"
+        [disabled]="!canSend()"
+        [(ngModel)]="input"
+        placeholder="Nhập câu hỏi..."
+        (keydown)="onInputKeydown($any($event))"
+      ></textarea>
+      <button type="button" class="ai-chat__send" [disabled]="!canSend()" (click)="send()">Gửi</button>
+    </div>
+  </div>
+</div>

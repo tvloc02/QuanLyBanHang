@@ -44,6 +44,43 @@ export class AdminUsersComponent {
     this.load();
   }
 
+  exportCsv(): void {
+    const headers = ['ID', 'Họ tên', 'Email', 'Username', 'SĐT', 'Vai trò', 'Trạng thái', 'Ngày tạo'];
+    const escape = (v: unknown) => {
+      const s = (v ?? '').toString();
+      return '"' + s.replaceAll('"', '""') + '"';
+    };
+    const lines = [headers.map(escape).join(',')];
+    for (const r of this.rows) {
+      lines.push(
+        [
+          r.id,
+          r.fullName || '',
+          r.email || '',
+          r.username || '',
+          r.phone || '',
+          this.formatRoles(r.roles),
+          r.enabled === false ? 'Khóa' : 'Hoạt động',
+          r.createdAt || ''
+        ]
+          .map(escape)
+          .join(',')
+      );
+    }
+
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.download = `users_${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   formatRoles(roles?: string[]): string {
     if (!roles || roles.length === 0) return '-';
     return roles.map(r => this.roleLabel(r)).join(', ');
@@ -156,7 +193,7 @@ export class AdminUsersComponent {
           this.error = res?.message || 'Reset mật khẩu thất bại.';
           return;
         }
-        // Có thể hiển thị thông báo thành công nếu cần
+        alert('Đã reset mật khẩu. Mật khẩu được đặt về: 12345678');
       },
       error: () => {
         this.error = 'Không thể reset mật khẩu. Vui lòng thử lại.';

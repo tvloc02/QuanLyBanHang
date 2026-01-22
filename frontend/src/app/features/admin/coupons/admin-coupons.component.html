@@ -1,12 +1,181 @@
 <div class="page">
   <div class="page-head">
     <div class="title">Mã giảm giá</div>
-    <button class="btn" type="button" (click)="load()" [disabled]="loading">
-      {{ loading ? 'Đang tải...' : 'Làm mới' }}
-    </button>
+    <div class="head-actions">
+      <button class="btn" type="button" (click)="openCreate()" [disabled]="loading">Thêm mã</button>
+      <button class="btn" type="button" (click)="load()" [disabled]="loading">
+        {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+    </div>
   </div>
 
   <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <!-- Modal tạo mã giảm giá -->
+  <div class="overlay" *ngIf="createOpen">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Thêm mã giảm giá">
+      <div class="modal-head">
+        <div class="modal-title">Thêm mã giảm giá</div>
+        <button class="icon" type="button" (click)="cancelCreate()">✕</button>
+      </div>
+      <div class="form" style="padding:16px">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Code</label>
+            <input class="input" [(ngModel)]="form.code" placeholder="VD: SALE10" />
+          </div>
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" [(ngModel)]="form.active">
+              <option [ngValue]="true">Bật</option>
+              <option [ngValue]="false">Tắt</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid1">
+          <div class="field">
+            <label class="label">Mô tả</label>
+            <input class="input" [(ngModel)]="form.description" placeholder="Mô tả ngắn" />
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="field">
+            <label class="label">Giảm %</label>
+            <input class="input" type="number" [(ngModel)]="form.discountPercent" placeholder="VD: 10" />
+          </div>
+          <div class="field">
+            <label class="label">Giảm tiền</label>
+            <input class="input" type="number" [(ngModel)]="form.discountAmount" placeholder="VD: 50000" />
+          </div>
+          <div class="field">
+            <label class="label">Giảm phí ship</label>
+            <input class="input" type="number" [(ngModel)]="form.shippingDiscountAmount" placeholder="VD: 30000" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Tổng tiền tối thiểu</label>
+            <input class="input" type="number" [(ngModel)]="form.minOrderAmount" placeholder="VD: 200000" />
+          </div>
+          <div class="field">
+            <label class="label">Giảm tối đa</label>
+            <input class="input" type="number" [(ngModel)]="form.maxDiscountAmount" placeholder="VD: 100000" />
+          </div>
+        </div>
+
+        <div class="grid1">
+          <div class="field">
+            <label class="label">Phân khúc áp dụng (CSV)</label>
+            <input class="input" [(ngModel)]="form.allowedSegments" placeholder="VD: TIEM_NANG,THAN_THIET,BAC,VANG,KIM_CUONG" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Giới hạn dùng</label>
+            <input class="input" type="number" [(ngModel)]="form.usageLimit" placeholder="VD: 100" />
+          </div>
+          <div class="field">
+            <label class="label">Thời gian</label>
+            <div class="inline2">
+              <input class="input" type="datetime-local" [(ngModel)]="form.startsAt" />
+              <input class="input" type="datetime-local" [(ngModel)]="form.endsAt" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="cancelCreate()">Hủy</button>
+          <button class="btn" type="button" (click)="submitCreate()" [disabled]="createLoading">{{ createLoading ? 'Đang lưu...' : 'Tạo mã' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal sửa mã giảm giá -->
+  <div class="overlay" *ngIf="editOpen">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Sửa mã giảm giá">
+      <div class="modal-head">
+        <div class="modal-title">Sửa mã giảm giá</div>
+        <button class="icon" type="button" (click)="cancelEdit()">✕</button>
+      </div>
+      <div class="form" style="padding:16px">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Code</label>
+            <input class="input" [(ngModel)]="editForm.code" placeholder="VD: SALE10" />
+          </div>
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" [(ngModel)]="editForm.active">
+              <option [ngValue]="true">Bật</option>
+              <option [ngValue]="false">Tắt</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid1">
+          <div class="field">
+            <label class="label">Mô tả</label>
+            <input class="input" [(ngModel)]="editForm.description" placeholder="Mô tả ngắn" />
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="field">
+            <label class="label">Giảm %</label>
+            <input class="input" type="number" [(ngModel)]="editForm.discountPercent" placeholder="VD: 10" />
+          </div>
+          <div class="field">
+            <label class="label">Giảm tiền</label>
+            <input class="input" type="number" [(ngModel)]="editForm.discountAmount" placeholder="VD: 50000" />
+          </div>
+          <div class="field">
+            <label class="label">Giảm phí ship</label>
+            <input class="input" type="number" [(ngModel)]="editForm.shippingDiscountAmount" placeholder="VD: 30000" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Tổng tiền tối thiểu</label>
+            <input class="input" type="number" [(ngModel)]="editForm.minOrderAmount" placeholder="VD: 200000" />
+          </div>
+          <div class="field">
+            <label class="label">Giảm tối đa</label>
+            <input class="input" type="number" [(ngModel)]="editForm.maxDiscountAmount" placeholder="VD: 100000" />
+          </div>
+        </div>
+
+        <div class="grid1">
+          <div class="field">
+            <label class="label">Phân khúc áp dụng (CSV)</label>
+            <input class="input" [(ngModel)]="editForm.allowedSegments" placeholder="VD: TIEM_NANG,THAN_THIET,BAC,VANG,KIM_CUONG" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Giới hạn dùng</label>
+            <input class="input" type="number" [(ngModel)]="editForm.usageLimit" placeholder="VD: 100" />
+          </div>
+          <div class="field">
+            <label class="label">Thời gian</label>
+            <div class="inline2">
+              <input class="input" type="datetime-local" [(ngModel)]="editForm.startsAt" />
+              <input class="input" type="datetime-local" [(ngModel)]="editForm.endsAt" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="cancelEdit()">Hủy</button>
+          <button class="btn" type="button" (click)="submitEdit()" [disabled]="editLoading">{{ editLoading ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="card">
     <table class="tbl">
@@ -15,23 +184,38 @@
           <th style="width: 90px">ID</th>
           <th style="width: 160px">Code</th>
           <th>Mô tả</th>
-          <th style="width: 120px" class="right">%/Giảm</th>
+          <th style="width: 120px" class="right">Giảm</th>
+          <th style="width: 120px" class="right">Min đơn</th>
+          <th style="width: 120px" class="right">Max giảm</th>
+          <th style="width: 120px" class="right">Giảm ship</th>
+          <th style="width: 180px">Phân khúc</th>
           <th style="width: 120px" class="right">Đã dùng</th>
           <th style="width: 120px">Trạng thái</th>
+          <th style="width: 160px">Thao tác</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngIf="!loading && rows.length === 0">
-          <td colspan="6" class="empty">Chưa có mã giảm giá.</td>
+          <td colspan="11" class="empty">Chưa có mã giảm giá.</td>
         </tr>
         <tr *ngFor="let r of rows">
           <td>#{{ r.id }}</td>
           <td class="strong">{{ r.code }}</td>
           <td class="muted">{{ r.description || '-' }}</td>
-          <td class="right">{{ r.discountPercent ?? (r.discountAmount ?? 0) }}</td>
+          <td class="right">{{ displayDiscount(r) }}</td>
+          <td class="right">{{ formatVnd(r.minOrderAmount ?? 0) }}</td>
+          <td class="right">{{ formatVnd(r.maxDiscountAmount ?? 0) }}</td>
+          <td class="right">{{ formatVnd(r.shippingDiscountAmount ?? 0) }}</td>
+          <td class="muted">{{ displaySegments(r.allowedSegments) }}</td>
           <td class="right">{{ r.usedCount ?? 0 }}/{{ r.usageLimit ?? '-' }}</td>
           <td>
             <span class="badge" [class.off]="r.active === false">{{ r.active === false ? 'Tắt' : 'Bật' }}</span>
+          </td>
+          <td>
+            <div class="row-actions">
+              <button class="btn icon-only ghost" type="button" (click)="onEdit(r)" [disabled]="loading">Sửa</button>
+              <button class="btn icon-only danger" type="button" (click)="onDelete(r)" [disabled]="loading">Xóa</button>
+            </div>
           </td>
         </tr>
       </tbody>

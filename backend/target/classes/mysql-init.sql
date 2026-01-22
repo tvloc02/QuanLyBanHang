@@ -1,5 +1,0 @@
-CREATE DATABASE IF NOT EXISTS fashionhub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-CREATE USER IF NOT EXISTS 'tvloc02'@'localhost' IDENTIFIED BY '123456';
-GRANT ALL PRIVILEGES ON fashionhub.* TO 'tvloc02'@'localhost';
-FLUSH PRIVILEGES;

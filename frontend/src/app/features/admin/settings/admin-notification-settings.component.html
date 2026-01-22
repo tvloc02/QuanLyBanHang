@@ -1,0 +1,61 @@
+<div class="page">
+  <div class="page-head">
+    <div class="title">Thông báo</div>
+    <div class="head-actions">
+      <button class="btn" type="button" (click)="load()" [disabled]="loading || saving">
+        {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="card">
+    <div class="card-title">Cấu hình thông báo</div>
+
+    <div class="meta" *ngIf="settings">
+      <div class="meta-row">
+        <span class="k">Trạng thái</span>
+        <span class="v">{{ settings.enabled ? 'Đang bật' : 'Đang tắt' }}</span>
+      </div>
+      <div class="meta-row" *ngIf="settings.updatedAt">
+        <span class="k">Cập nhật</span>
+        <span class="v">{{ settings.updatedAt }}</span>
+      </div>
+    </div>
+
+    <div class="form">
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Bật thông báo</label>
+          <select class="input" [(ngModel)]="form.enabled">
+            <option [ngValue]="true">Bật</option>
+            <option [ngValue]="false">Tắt</option>
+          </select>
+        </div>
+        <div class="hint">
+          <div class="small muted">Các tuỳ chọn bên dưới áp dụng cho hệ thống.</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="chk"><input type="checkbox" [(ngModel)]="form.notifyNewOrder" /> Thông báo khi có đơn hàng mới</label>
+        </div>
+        <div class="field">
+          <label class="chk"><input type="checkbox" [(ngModel)]="form.notifyOrderStatus" /> Thông báo khi thay đổi trạng thái đơn</label>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="chk"><input type="checkbox" [(ngModel)]="form.notifyLowStock" /> Cảnh báo tồn kho thấp</label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</button>
+      </div>
+    </div>
+  </div>
+</div>

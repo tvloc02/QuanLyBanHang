@@ -72,8 +72,31 @@
 
         <div class="grid2">
           <div class="field">
-            <label class="label">Category (slug) *</label>
-            <input class="input" formControlName="category" placeholder="ao-khoac-gio" />
+            <label class="label">Danh mục cấp 3 *</label>
+            <div class="cat-box">
+              <div class="cat-box__head">
+                <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilter" placeholder="Tìm danh mục..." />
+                <button class="btn ghost" type="button" (click)="clearSelectedCategories()">Xóa chọn</button>
+              </div>
+
+              <div class="cat-box__selected" *ngIf="selectedCategoryLeafs.length > 0">
+                <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
+              </div>
+
+              <div class="cat-box__list">
+                <label class="cat-item" *ngFor="let cat of filteredLeafCategories">
+                  <input type="checkbox" [checked]="selectedCategoryIds.has(cat.id)" (change)="toggleCategory(cat)" />
+                  <span class="cat-item__name">{{ cat.name }}</span>
+                  <span class="cat-item__slug">/{{ cat.slug }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="hint">
+              Đã chọn: <code>{{ selectedCategoryLeafs.length }}</code> danh mục
+            </div>
+
+            <input class="input" formControlName="category" placeholder="slug danh mục (tự set theo danh mục đầu tiên)" />
           </div>
 
           <div class="field">
@@ -130,6 +153,59 @@
           <div class="field">
             <label class="label">Colors (CSV)</label>
             <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
+          </div>
+        </div>
+
+        <div class="variant-toolbar">
+          <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Tạo biến thể theo màu</button>
+          <button class="btn ghost" type="button" (click)="copyPriceFromFirstVariant()" [disabled]="variants.length < 2">Copy giá từ màu đầu</button>
+          <div class="variant-toolbar__meta">Tổng tồn: <code>{{ form.value.stock }}</code></div>
+        </div>
+
+        <div class="variants" formArrayName="variants" *ngIf="variants.length > 0">
+          <div class="variant" *ngFor="let vg of variants.controls; let i = index" [formGroupName]="i">
+            <div class="variant__head">
+              <div class="variant__title">Màu: <code>{{ vg.get('color')?.value }}</code></div>
+              <div class="variant__toggles">
+                <label class="switch">
+                  <span>Hiện</span>
+                  <input type="checkbox" formControlName="active" />
+                </label>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Giá (màu)</label>
+                <input class="input" type="number" formControlName="price" />
+              </div>
+              <div class="field">
+                <label class="label">Giá cũ</label>
+                <input class="input" type="number" formControlName="oldPrice" />
+              </div>
+            </div>
+
+            <div class="field" formArrayName="images">
+              <label class="label">Ảnh theo màu</label>
+              <div class="images">
+                <div class="img-row" *ngFor="let ic of variantImages(i).controls; let j = index">
+                  <input class="input" [formControlName]="j" placeholder="https://..." />
+                  <input type="file" accept="image/*" (change)="onVariantFileSelect(i, j, $event)" style="margin-left:8px" />
+                  <button class="btn ghost" type="button" (click)="removeVariantImage(i, j)" style="margin-left:8px">Xóa</button>
+                </div>
+                <button class="btn ghost" type="button" (click)="addVariantImage(i)">+ Thêm ảnh</button>
+              </div>
+            </div>
+
+            <div class="field" formArrayName="stocks">
+              <label class="label">Tồn kho theo size</label>
+              <div class="stock-grid">
+                <div class="stock-row" *ngFor="let sc of variantStocks(i).controls; let k = index" [formGroupName]="k">
+                  <div class="stock-size">{{ sc.get('size')?.value }}</div>
+                  <input class="input" type="number" formControlName="stock" (input)="recalculateTotalStock()" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

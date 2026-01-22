@@ -11,7 +11,7 @@
     <div class="actions">
       <button class="icon-btn" type="button" aria-label="Thông báo">🔔</button>
 
-      <div class="user-wrap" (mouseleave)="closeUserMenu()">
+      <div class="user-wrap" #userWrap>
         <button class="user" type="button" (click)="toggleUserMenu()">
           <span class="avatar">A</span>
           <div class="meta">
@@ -74,6 +74,10 @@
           <a routerLink="/admin/users" routerLinkActive="active" class="item">
             <span class="ic">🧑‍💼</span>
             <span>Người dùng</span>
+          </a>
+          <a routerLink="/admin/coupons" routerLinkActive="active" class="item">
+            <span class="ic">🎟️</span>
+            <span>Cấu hình mã giảm giá</span>
           </a>
           <a routerLink="/admin/settings" routerLinkActive="active" class="item">
             <span class="ic">⚙️</span>

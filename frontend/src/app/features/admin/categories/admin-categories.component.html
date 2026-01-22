@@ -15,28 +15,78 @@
     <table class="tbl">
       <thead>
         <tr>
-          <th style="width: 90px">ID</th>
-          <th>Tên</th>
-          <th>Mô tả</th>
-          <th style="width: 120px">Trạng thái</th>
-          <th style="width: 160px">Thao tác</th>
+          <th class="col-id" style="width: 90px">ID</th>
+          <th class="col-name">Tên</th>
+          <th class="col-lv2" style="width: 120px">Danh mục 2</th>
+          <th class="col-lv3" style="width: 120px">Danh mục 3</th>
+          <th class="col-slug" style="width: 220px">Slug</th>
+          <th class="col-desc">Mô tả</th>
+          <th class="col-status" style="width: 120px">Trạng thái</th>
+          <th class="col-actions" style="width: 180px">Thao tác</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngIf="!loading && rows.length === 0">
-          <td colspan="5" class="empty">Chưa có danh mục.</td>
+        <tr *ngIf="!loading && viewRows.length === 0">
+          <td colspan="8" class="empty">Chưa có danh mục.</td>
         </tr>
-        <tr *ngFor="let r of rows">
-          <td>#{{ r.id }}</td>
-          <td class="strong">{{ r.name }}</td>
-          <td class="muted">{{ r.description || '-' }}</td>
-          <td>
-            <span class="badge" [class.off]="r.active === false">{{ r.active === false ? 'Ẩn' : 'Đang bật' }}</span>
+        <tr *ngFor="let r of viewRows">
+          <td class="col-id">#{{ r.node.id }}</td>
+          <td class="col-name strong">
+            <span class="cat-name">
+              <span class="cat-icon" *ngIf="r.node.icon" [ngClass]="'cat-icon--' + r.node.icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" [ngSwitch]="r.node.icon">
+                  <path *ngSwitchCase="'home'" d="M12 3l9 8h-3v9H6v-9H3l9-8Z" />
+                  <path *ngSwitchCase="'grid'" d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z" />
+                  <path *ngSwitchCase="'folder'" d="M3 6h7l2 2h9v12H3V6Zm2 4v8h14v-8H5Z" />
+                  <path *ngSwitchCase="'box'" d="M4 7l8-4 8 4v10l-8 4-8-4V7Zm8-2.2L6.2 7 12 9.8 17.8 7 12 4.8Zm0 7L6 9v6.6l6 3V11.8Zm2 0v6.8l6-3V9l-6 2.8Z" />
+                  <path *ngSwitchCase="'tag'" d="M3 12l9 9 9-9-9-9H3v9Zm5-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                  <path *ngSwitchCase="'sparkle'" d="M12 2l1.2 5.1L18 9l-4.8 1.9L12 16l-1.2-5.1L6 9l4.8-1.9L12 2Zm8 10 0.7 2.8L23 16l-2.3 1.2L20 20l-0.7-2.8L17 16l2.3-1.2L20 12Z" />
+                  <path *ngSwitchCase="'gift'" d="M20 7h-2.2A3 3 0 0 0 12 5.3 3 3 0 0 0 6.2 7H4v4h16V7Zm-9-2a1.5 1.5 0 1 1-3 0c0-.8.7-1.5 1.5-1.5S11 4.2 11 5Zm5 0a1.5 1.5 0 1 1-3 0c0-.8.7-1.5 1.5-1.5S16 4.2 16 5Zm4 8H4v9h7v-7h2v7h7v-9Z" />
+                  <path *ngSwitchCase="'star'" d="M12 2l3.1 6.3 7 1-5.1 5 1.2 7-6.2-3.3-6.2 3.3 1.2-7L1.9 9.3l7-1L12 2Z" />
+                  <path *ngSwitchCase="'heart'" d="M12 21s-7-4.6-9.5-8.7C0.6 9.2 2.3 5.9 5.7 5.1c1.9-.5 3.8.2 5 1.6 1.2-1.4 3.1-2.1 5-1.6 3.4.8 5.1 4.1 3.2 7.2C19 16.4 12 21 12 21Z" />
+                  <path *ngSwitchCase="'truck'" d="M3 7h11v9H3V7Zm11 3h4l3 3v3h-7v-6Zm-9 9a2 2 0 1 0 4 0H5Zm10 0a2 2 0 1 0 4 0h-4Z" />
+                  <path *ngSwitchCase="'phone'" d="M7 3h10v18H7V3Zm2 3h6v1H9V6Zm0 12h6v2H9v-2Z" />
+                  <path *ngSwitchCase="'user'" d="M12 12.2a4.6 4.6 0 1 1 0-9.2a4.6 4.6 0 0 1 0 9.2ZM4 20.5a8 8 0 0 1 16 0a1 1 0 1 1-2 0a6 6 0 0 0-12 0a1 1 0 1 1-2 0Z" />
+                  <path *ngSwitchCase="'settings'" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1.7c-.1.4-.2.8-.4 1.2l1.3 1.8-1.4 1.4-1.8-1.3c-.4.2-.8.3-1.2.4L16 21h-2l-.7-2.1c-.4-.1-.8-.2-1.2-.4L10.3 20 8.9 18.6l1.3-1.8c-.2-.4-.3-.8-.4-1.2L7 14v-2l2.1-.7c.1-.4.2-.8.4-1.2L8.2 8.3 9.6 6.9l1.8 1.3c.4-.2.8-.3 1.2-.4L14 3h2l.7 2.1c.4.1.8.2 1.2.4l1.8-1.3 1.4 1.4-1.3 1.8c.2.4.3.8.4 1.2L21 10v2Z" />
+                  <path *ngSwitchCase="'shirt'" d="M12 3l4 2 2-1 3 4-3 2v11H6V10L3 8l3-4 2 1 4-2Z" />
+                  <path *ngSwitchCase="'pants'" d="M8 3h8l1 19h-4l-1-9-1 9H7L8 3Z" />
+                  <path *ngSwitchCase="'dress'" d="M12 2l3 6-2 2 3 12H8l3-12-2-2 3-6Z" />
+                  <path *ngSwitchCase="'shoe'" d="M3 16h6l3-3 6 3h3v4H3v-4Zm9-6 2 2 5 2H7l5-6Z" />
+                  <path *ngSwitchCase="'bag'" d="M7 7V6a5 5 0 0 1 10 0v1h3v15H4V7h3Zm2 0h6V6a3 3 0 0 0-6 0v1Z" />
+                  <path *ngSwitchCase="'watch'" d="M9 2h6l1 3v14l-1 3H9l-1-3V5l1-3Zm3 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2v2l2 1" />
+                  <path *ngSwitchCase="'hat'" d="M12 3c4 0 7 3 7 7v2H5v-2c0-4 3-7 7-7Zm-9 12h18v2H3v-2Z" />
+                  <path *ngSwitchCase="'sale'" d="M4 4h10l6 6-10 10-6-6V4Zm4 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm2 9 7-7" />
+                  <path *ngSwitchCase="'new'" d="M6 18V6h2l8 8V6h2v12h-2l-8-8v8H6Z" />
+                  <path *ngSwitchDefault d="M3 12l9 9 9-9-9-9H3v9Zm5-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                </svg>
+              </span>
+              <span>{{ r.node.name }}</span>
+            </span>
           </td>
-          <td>
+          <td class="col-lv2 muted">{{ lv2Count(r.node.id) }}</td>
+          <td class="col-lv3 muted">{{ lv3Count(r.node.id) }}</td>
+          <td class="col-slug muted">{{ r.node.slug || '-' }}</td>
+          <td class="col-desc muted">{{ r.node.description || '-' }}</td>
+          <td class="col-status">
+            <span class="badge" [class.off]="r.node.active === false">{{ r.node.active === false ? 'Ẩn' : 'Đang bật' }}</span>
+          </td>
+          <td class="col-actions">
             <div class="row-actions">
-              <button class="btn small" type="button" (click)="onEdit(r)">Cấu hình</button>
-              <button class="btn small danger" type="button" (click)="onDelete(r)" [disabled]="loading">Xóa</button>
+              <button class="icon-action" type="button" (click)="onEdit(r.node)" aria-label="Cấu hình">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.05.05a2.06 2.06 0 0 1 0 2.92 2.06 2.06 0 0 1-2.92 0l-.05-.05A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .31 1.7 1.7 0 0 0-.87 1.47V21a2.06 2.06 0 0 1-4.12 0v-.08A1.7 1.7 0 0 0 8 19.4a1.7 1.7 0 0 0-1.87.34l-.05.05a2.06 2.06 0 0 1-2.92 0 2.06 2.06 0 0 1 0-2.92l.05-.05A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.31-1 1.7 1.7 0 0 0-1.47-.87H2.8a2.06 2.06 0 0 1 0-4.12h.08A1.7 1.7 0 0 0 4.6 8a1.7 1.7 0 0 0-.34-1.87l-.05-.05a2.06 2.06 0 0 1 0-2.92 2.06 2.06 0 0 1 2.92 0l.05.05A1.7 1.7 0 0 0 8 4.6a1.7 1.7 0 0 0 1-.31 1.7 1.7 0 0 0 .87-1.47V2.8a2.06 2.06 0 0 1 4.12 0v.08A1.7 1.7 0 0 0 16 4.6a1.7 1.7 0 0 0 1.87-.34l.05-.05a2.06 2.06 0 0 1 2.92 0 2.06 2.06 0 0 1 0 2.92l-.05.05A1.7 1.7 0 0 0 19.4 9c.2.31.31.67.31 1.04 0 .37-.11.73-.31 1.04Z" />
+                </svg>
+              </button>
+              <button class="icon-action danger" type="button" (click)="onDelete(r.node)" [disabled]="loading" aria-label="Xóa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                </svg>
+              </button>
             </div>
           </td>
         </tr>
@@ -48,14 +98,33 @@
   <div class="overlay" *ngIf="createOpen">
     <div class="modal" role="dialog" aria-modal="true" aria-label="Tạo danh mục">
       <div class="modal-head">
-        <div class="modal-title">Tạo danh mục</div>
+        <div class="modal-title">{{ createMode === 'root' ? 'Tạo danh mục lớn' : 'Tạo danh mục con' }}</div>
         <button class="icon" type="button" (click)="cancelCreate()">✕</button>
       </div>
       <div class="form" style="padding:16px">
         <div class="grid2">
           <div class="field">
             <label class="label">Tên danh mục</label>
-            <input class="input" [(ngModel)]="form.name" placeholder="Ví dụ: Áo sơ mi" />
+            <input class="input" [ngModel]="form.name" (ngModelChange)="onCreateNameChange($event)" placeholder="Ví dụ: Áo sơ mi" />
+          </div>
+          <div class="field">
+            <label class="label">Slug (tùy chọn)</label>
+            <input class="input" [ngModel]="form.slug" (ngModelChange)="form.slug = $event; createSlugEdited = true" placeholder="vi-du: ao-so-mi" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Icon</label>
+            <select class="input" [(ngModel)]="form.icon">
+              <option *ngFor="let it of iconOptions" [ngValue]="it.key">{{ it.label }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field" *ngIf="createMode === 'child'">
+            <label class="label">Danh mục cha</label>
+            <div class="input readonly">{{ createParentLabel }}</div>
           </div>
           <div class="field">
             <label class="label">Trạng thái</label>
@@ -65,6 +134,43 @@
             </select>
           </div>
         </div>
+
+        <!-- Editor tạo cây cấp 2/3 ngay trong popup (chỉ khi tạo danh mục lớn) -->
+        <div class="tree-editor" *ngIf="createMode === 'root'">
+          <div class="tree-editor__head">
+            <div class="tree-editor__title">Danh mục cấp 2 &amp; cấp 3</div>
+            <button class="btn small" type="button" (click)="addLv2()">+ Cấp 2</button>
+          </div>
+
+          <div class="tree-editor__empty" *ngIf="lv2Forms.length === 0">Chưa thêm danh mục cấp 2.</div>
+
+          <div class="lv2" *ngFor="let lv2 of lv2Forms; let i = index">
+            <div class="lv2__row">
+              <div class="lv2__left">
+                <input class="input" placeholder="Tên danh mục cấp 2" [ngModel]="lv2.name" (ngModelChange)="onLv2NameChange(i, $event)" />
+                <input class="input" placeholder="Slug" [ngModel]="lv2.slug" (ngModelChange)="onLv2SlugChange(i, $event)" />
+              </div>
+              <div class="lv2__actions">
+                <button class="btn small" type="button" (click)="addLv3(i)">+ Cấp 3</button>
+                <button class="btn small danger" type="button" (click)="removeLv2(i)">Xóa</button>
+              </div>
+            </div>
+
+            <div class="lv3" *ngFor="let lv3 of lv2.lv3; let j = index">
+              <div class="lv3__row">
+                <div class="lv3__left">
+                  <span class="lv3__prefix">└</span>
+                  <input class="input" placeholder="Tên danh mục cấp 3" [ngModel]="lv3.name" (ngModelChange)="onLv3NameChange(i, j, $event)" />
+                  <input class="input" placeholder="Slug" [ngModel]="lv3.slug" (ngModelChange)="onLv3SlugChange(i, j, $event)" />
+                </div>
+                <div class="lv3__actions">
+                  <button class="btn small danger" type="button" (click)="removeLv3(i, j)">Xóa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="field">
           <label class="label">Mô tả</label>
           <textarea class="textarea" rows="3" [(ngModel)]="form.description" placeholder="Mô tả ngắn..."></textarea>
@@ -81,15 +187,21 @@
   <div class="overlay" *ngIf="editOpen">
     <div class="modal" role="dialog" aria-modal="true" aria-label="Cấu hình danh mục">
       <div class="modal-head">
-        <div class="modal-title">Cấu hình danh mục</div>
+        <div class="modal-title">Cấu hình danh mục lớn</div>
         <button class="icon" type="button" (click)="cancelEdit()">✕</button>
       </div>
       <div class="form" style="padding:16px">
         <div class="grid2">
           <div class="field">
             <label class="label">Tên danh mục</label>
-            <input class="input" [(ngModel)]="editForm.name" />
+            <input class="input" [ngModel]="editForm.name" (ngModelChange)="onEditNameChange($event)" />
           </div>
+          <div class="field">
+            <label class="label">Slug (tùy chọn)</label>
+            <input class="input" [ngModel]="editForm.slug" (ngModelChange)="editForm.slug = $event; editSlugEdited = true" />
+          </div>
+        </div>
+        <div class="grid2">
           <div class="field">
             <label class="label">Trạng thái</label>
             <select class="input" [(ngModel)]="editForm.active">
@@ -97,7 +209,50 @@
               <option [ngValue]="false">Ẩn</option>
             </select>
           </div>
+          <div class="field">
+            <label class="label">Icon</label>
+            <select class="input" [(ngModel)]="editForm.icon">
+              <option *ngFor="let it of iconOptions" [ngValue]="it.key">{{ it.label }}</option>
+            </select>
+          </div>
         </div>
+
+        <!-- Editor cấu hình cây cấp 2/3 -->
+        <div class="tree-editor">
+          <div class="tree-editor__head">
+            <div class="tree-editor__title">Danh mục cấp 2 &amp; cấp 3</div>
+            <button class="btn small" type="button" (click)="addEditLv2()">+ Cấp 2</button>
+          </div>
+
+          <div class="tree-editor__empty" *ngIf="editLv2Forms.length === 0">Chưa có danh mục cấp 2.</div>
+
+          <div class="lv2" *ngFor="let lv2 of editLv2Forms; let i = index">
+            <div class="lv2__row" *ngIf="!lv2.deleted">
+              <div class="lv2__left">
+                <input class="input" placeholder="Tên danh mục cấp 2" [ngModel]="lv2.name" (ngModelChange)="onEditLv2NameChange(i, $event)" />
+                <input class="input" placeholder="Slug" [ngModel]="lv2.slug" (ngModelChange)="onEditLv2SlugChange(i, $event)" />
+              </div>
+              <div class="lv2__actions">
+                <button class="btn small" type="button" (click)="addEditLv3(i)">+ Cấp 3</button>
+                <button class="btn small danger" type="button" (click)="removeEditLv2(i)">Xóa</button>
+              </div>
+            </div>
+
+            <div class="lv3" *ngFor="let lv3 of lv2.lv3; let j = index">
+              <div class="lv3__row" *ngIf="!lv2.deleted && !lv3.deleted">
+                <div class="lv3__left">
+                  <span class="lv3__prefix">└</span>
+                  <input class="input" placeholder="Tên danh mục cấp 3" [ngModel]="lv3.name" (ngModelChange)="onEditLv3NameChange(i, j, $event)" />
+                  <input class="input" placeholder="Slug" [ngModel]="lv3.slug" (ngModelChange)="onEditLv3SlugChange(i, j, $event)" />
+                </div>
+                <div class="lv3__actions">
+                  <button class="btn small danger" type="button" (click)="removeEditLv3(i, j)">Xóa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="field">
           <label class="label">Mô tả</label>
           <textarea class="textarea" rows="3" [(ngModel)]="editForm.description" placeholder="Mô tả ngắn..."></textarea>

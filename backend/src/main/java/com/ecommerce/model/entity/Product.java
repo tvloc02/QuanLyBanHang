@@ -35,6 +35,11 @@ public class Product {
 
     private Long categoryId;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_category_ids", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "category_id")
+    private List<Long> categoryIds = new ArrayList<>();
+
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -70,6 +75,9 @@ public class Product {
     @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "image_url")
     private List<String> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<ProductVariant> variants = new ArrayList<>();
 
     private Boolean active = true;
 
@@ -107,6 +115,9 @@ public class Product {
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 
+    public List<Long> getCategoryIds() { return categoryIds; }
+    public void setCategoryIds(List<Long> categoryIds) { this.categoryIds = categoryIds; }
+
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
@@ -136,6 +147,9 @@ public class Product {
 
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
+
+    public List<ProductVariant> getVariants() { return variants; }
+    public void setVariants(List<ProductVariant> variants) { this.variants = variants; }
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }

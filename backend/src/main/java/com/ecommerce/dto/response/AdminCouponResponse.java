@@ -15,6 +15,14 @@ public class AdminCouponResponse {
 
     private Integer discountPercent;
 
+    private BigDecimal minOrderAmount;
+
+    private BigDecimal maxDiscountAmount;
+
+    private BigDecimal shippingDiscountAmount;
+
+    private String allowedSegments;
+
     private Integer usageLimit;
 
     private Integer usedCount;
@@ -33,6 +41,10 @@ public class AdminCouponResponse {
         String description,
         BigDecimal discountAmount,
         Integer discountPercent,
+        BigDecimal minOrderAmount,
+        BigDecimal maxDiscountAmount,
+        BigDecimal shippingDiscountAmount,
+        String allowedSegments,
         Integer usageLimit,
         Integer usedCount,
         Instant startsAt,
@@ -44,6 +56,10 @@ public class AdminCouponResponse {
         this.description = description;
         this.discountAmount = discountAmount;
         this.discountPercent = discountPercent;
+        this.minOrderAmount = minOrderAmount;
+        this.maxDiscountAmount = maxDiscountAmount;
+        this.shippingDiscountAmount = shippingDiscountAmount;
+        this.allowedSegments = allowedSegments;
         this.usageLimit = usageLimit;
         this.usedCount = usedCount;
         this.startsAt = startsAt;
@@ -89,6 +105,38 @@ public class AdminCouponResponse {
 
     public void setDiscountPercent(Integer discountPercent) {
         this.discountPercent = discountPercent;
+    }
+
+    public BigDecimal getMinOrderAmount() {
+        return minOrderAmount;
+    }
+
+    public void setMinOrderAmount(BigDecimal minOrderAmount) {
+        this.minOrderAmount = minOrderAmount;
+    }
+
+    public BigDecimal getMaxDiscountAmount() {
+        return maxDiscountAmount;
+    }
+
+    public void setMaxDiscountAmount(BigDecimal maxDiscountAmount) {
+        this.maxDiscountAmount = maxDiscountAmount;
+    }
+
+    public BigDecimal getShippingDiscountAmount() {
+        return shippingDiscountAmount;
+    }
+
+    public void setShippingDiscountAmount(BigDecimal shippingDiscountAmount) {
+        this.shippingDiscountAmount = shippingDiscountAmount;
+    }
+
+    public String getAllowedSegments() {
+        return allowedSegments;
+    }
+
+    public void setAllowedSegments(String allowedSegments) {
+        this.allowedSegments = allowedSegments;
     }
 
     public Integer getUsageLimit() {

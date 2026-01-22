@@ -18,24 +18,40 @@ export class AdminCustomersComponent {
     this.load();
   }
 
-  private isCustomer(u: AdminUserResponse): boolean {
-    const roles = (u.roles || []).map((r) => (r || '').toUpperCase());
-    // Xem là khách hàng khi KHÔNG có role ADMIN/STAFF
-    return !roles.includes('ADMIN') && !roles.includes('STAFF');
+  segmentLabel(seg?: string | null): string {
+    const s = (seg || '').toUpperCase();
+    switch (s) {
+      case 'KIM_CUONG':
+        return 'Kim cương';
+      case 'VANG':
+        return 'Vàng';
+      case 'BAC':
+        return 'Bạc';
+      case 'THAN_THIET':
+        return 'Thân thiết';
+      case 'TIEM_NANG':
+        return 'Tiềm năng';
+      default:
+        return '-';
+    }
+  }
+
+  formatVnd(v?: number | null): string {
+    const n = typeof v === 'number' && isFinite(v) ? v : 0;
+    return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
   }
 
   load(): void {
     this.error = '';
     this.loading = true;
-    this.adminData.getUsers().subscribe({
+    this.adminData.getCustomers().subscribe({
       next: (res) => {
         this.loading = false;
         if (!res?.success) {
           this.error = res?.message || 'Không thể tải danh sách khách hàng.';
           return;
         }
-        const all = Array.isArray(res.data) ? res.data : [];
-        this.rows = all.filter((u) => this.isCustomer(u));
+        this.rows = Array.isArray(res.data) ? res.data : [];
       },
       error: () => {
         this.loading = false;

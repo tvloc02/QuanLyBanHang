@@ -5,11 +5,15 @@
 
 .tl-footer {
   color: #111;
-  background: #fff;
+  background: #f6f7f9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
 }
 
 .tl-footer__top {
-  padding: 26px 0 18px;
+  padding: 28px 0 20px;
+  background: #f6f7f9;
 }
 
 .tl-footer__grid {
@@ -21,8 +25,8 @@
 
 .tl-footer__title {
   font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
@@ -38,7 +42,7 @@
 }
 
 .tl-footer__list li {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.7;
   color: #333;
   margin: 6px 0;
@@ -46,10 +50,16 @@
 
 .tl-footer__list a {
   color: #333;
+  text-decoration: none;
 }
 
 .tl-footer__list a:hover {
   text-decoration: underline;
+  color: #111;
+}
+
+.tl-footer__list a:active {
+  opacity: 0.85;
 }
 
 .tl-footer__newsletter {
@@ -227,11 +237,13 @@
 }
 
 .tl-footer__divider {
-  border-top: 1px solid #efefef;
+  height: 1px;
+  background: rgba(17, 24, 39, 0.14);
 }
 
 .tl-footer__middle {
-  padding: 16px 0 18px;
+  padding: 18px 0 20px;
+  background: #ffffff;
 }
 
 .tl-footer__middle-grid {

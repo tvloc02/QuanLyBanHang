@@ -1,0 +1,66 @@
+<main class="profile-page">
+  <div class="container">
+    <a routerLink="/" class="back">← Về trang chủ</a>
+
+    <div class="head">
+      <h1 class="title">Thông tin tài khoản</h1>
+      <button class="btn" type="button" (click)="load()" [disabled]="loading || saving">Tải lại</button>
+    </div>
+
+    <div class="card">
+      <div class="meta" *ngIf="me">
+        <div class="meta-row">
+          <div class="k">Email</div>
+          <div class="v">{{ me.email || '-' }}</div>
+        </div>
+        <div class="meta-row">
+          <div class="k">Tên đăng nhập</div>
+          <div class="v">{{ me.username || '-' }}</div>
+        </div>
+      </div>
+
+      <form class="form" [formGroup]="form" (ngSubmit)="save()">
+        <div class="grid">
+          <div class="field">
+            <div class="label">Họ tên</div>
+            <input class="input" formControlName="fullName" placeholder="Nhập họ tên" />
+            <div class="hint" *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid">Bắt buộc</div>
+          </div>
+
+          <div class="field">
+            <div class="label">Số điện thoại</div>
+            <input class="input" formControlName="phone" placeholder="Nhập số điện thoại" />
+            <div class="hint" *ngIf="form.controls.phone.touched && form.controls.phone.invalid">Bắt buộc</div>
+          </div>
+
+          <div class="field">
+            <div class="label">Tỉnh/Thành phố</div>
+            <input class="input" formControlName="province" placeholder="VD: Hà Nội" />
+          </div>
+
+          <div class="field">
+            <div class="label">Quận/Huyện</div>
+            <input class="input" formControlName="district" placeholder="VD: Quận 1" />
+          </div>
+
+          <div class="field">
+            <div class="label">Phường/Xã</div>
+            <input class="input" formControlName="ward" placeholder="VD: Phường Bến Nghé" />
+          </div>
+
+          <div class="field full">
+            <div class="label">Địa chỉ chi tiết</div>
+            <input class="input" formControlName="addressDetail" placeholder="Số nhà, tên đường, ..." />
+          </div>
+        </div>
+
+        <div class="error" *ngIf="error">{{ error }}</div>
+        <div class="success" *ngIf="success">{{ success }}</div>
+
+        <div class="actions">
+          <button class="primary" type="submit" [disabled]="loading || saving">Lưu thông tin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>

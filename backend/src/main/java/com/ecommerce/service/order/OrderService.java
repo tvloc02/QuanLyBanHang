@@ -79,7 +79,7 @@ public class OrderService {
         Order saved = orderRepository.save(order);
 
         if (req.getCouponCode() != null && !req.getCouponCode().isBlank()) {
-            BigDecimal discount = couponService.applyToOrder(req.getUserId(), req.getCouponCode(), subtotal, saved.getId());
+            BigDecimal discount = couponService.applyToOrder(req.getUserId(), req.getCouponCode(), subtotal, shippingFee, saved.getId());
             saved.setCouponCode(req.getCouponCode());
             saved.setDiscount(discount);
             BigDecimal total = subtotal.subtract(discount).add(shippingFee);

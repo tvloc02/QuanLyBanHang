@@ -1,10 +1,34 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, HostListener, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { HOME_CONFIG, HomeSectionId } from './home.config';
+import { HOME_CONFIG, HomeCardProduct, HomeSectionId } from './home.config';
 import { environment } from '../../../environments/environment';
 import { FooterComponent } from '../../shared/footer/footer.component';
+import { Observable, map } from 'rxjs';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+interface ProductSearchResponse {
+  data: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    price: number;
+    oldPrice?: number;
+    imageUrl?: string;
+    badge?: string;
+    discountPercent?: number;
+  }>;
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+}
 
 @Component({
   selector: 'app-home',
@@ -13,8 +37,14 @@ import { FooterComponent } from '../../shared/footer/footer.component';
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })
-export class HomeComponent implements AfterViewInit {
+export class HomeComponent implements AfterViewInit, OnInit {
   readonly cfg = HOME_CONFIG;
+
+  featuredProducts: HomeCardProduct[] = [];
+  hotProducts: HomeCardProduct[] = [];
+  exclusiveProducts: HomeCardProduct[] = [];
+
+  loadingProducts = false;
 
   private readonly claimedVoucherCodes = new Set<string>();
 
@@ -37,9 +67,13 @@ export class HomeComponent implements AfterViewInit {
   quickTilesActivePage = 0;
   quickTilesPages: number[] = [0];
 
-  constructor(private router: Router, private http: HttpClient) {
+  constructor(private router: Router, private http: HttpClient, private cdr: ChangeDetectorRef) {
     this.applyTheme();
     this.loadClaimedVouchers();
+  }
+
+  ngOnInit(): void {
+    this.loadHomeProducts();
   }
 
   onSearchInput(value: string): void {
@@ -134,6 +168,89 @@ export class HomeComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.updateQuickTilesPaging();
+    this.cdr.detectChanges();
+  }
+
+  private loadHomeProducts(): void {
+    this.loadingProducts = true;
+
+    // Featured: best selling
+    this.fetchProducts('bestselling', 12).subscribe({
+      next: (items) => {
+        this.featuredProducts = items.slice(0, 8);
+        this.loadingProducts = false;
+      },
+      error: () => {
+        this.featuredProducts = [];
+        this.loadingProducts = false;
+      }
+    });
+
+    // Hot: newest
+    this.fetchProducts('newest', 12).subscribe({
+      next: (items) => {
+        this.hotProducts = items.slice(0, 8);
+      },
+      error: () => {
+        this.hotProducts = [];
+      }
+    });
+
+    // Exclusive: pick from on-sale products (fallback to newest)
+    this.fetchProducts('newest', 80).subscribe({
+      next: (items) => {
+        const onSale = items.filter((x) => this.isOnSaleCard(x));
+        this.exclusiveProducts = (onSale.length ? onSale : items).slice(0, 8);
+      },
+      error: () => {
+        this.exclusiveProducts = [];
+      }
+    });
+  }
+
+  private fetchProducts(sort: string, limit: number): Observable<HomeCardProduct[]> {
+    const url = `${environment.apiBaseUrl}/api/products/search?sort=${encodeURIComponent(sort)}&page=0&limit=${encodeURIComponent(String(limit))}`;
+    return this.http.get<ApiResponse<ProductSearchResponse>>(url).pipe(
+      map((res) => {
+        const rows = res?.data?.data;
+        const items = Array.isArray(rows) ? rows : [];
+        return items.map((x) => this.toCard(x));
+      })
+    );
+  }
+
+  private toCard(x: any): HomeCardProduct {
+    const slug = String(x?.slug || '');
+    const price = Number(x?.price || 0);
+    const oldPrice = x?.oldPrice !== undefined ? Number(x.oldPrice) : undefined;
+    const discountPercent = x?.discountPercent !== undefined ? Number(x.discountPercent) : undefined;
+    const badge = x?.badge ? String(x.badge) : undefined;
+    const imageUrl = x?.imageUrl ? String(x.imageUrl) : 'https://via.placeholder.com/900x900?text=Product';
+
+    const tag = badge || (this.isOnSaleRaw({ price, oldPrice, discountPercent }) ? 'SALE' : undefined);
+    const priceText = `${this.formatMoney(price)}đ`;
+
+    return {
+      title: String(x?.name || 'Sản phẩm'),
+      imageUrl,
+      tag,
+      priceText,
+      route: slug ? `/product/${slug}` : '/'
+    };
+  }
+
+  private isOnSaleRaw(v: { price: number; oldPrice?: number; discountPercent?: number }): boolean {
+    if (v.discountPercent && v.discountPercent > 0) return true;
+    if (v.oldPrice && v.oldPrice > v.price) return true;
+    return false;
+  }
+
+  private isOnSaleCard(p: HomeCardProduct): boolean {
+    return String(p?.tag || '').toLowerCase() === 'sale' || String(p?.tag || '').toUpperCase() === 'SALE';
+  }
+
+  formatMoney(v: number): string {
+    return new Intl.NumberFormat('vi-VN').format(Math.round(v));
   }
 
   private applyTheme(): void {

@@ -1,5 +1,6 @@
 package com.ecommerce.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -31,6 +32,8 @@ public class ProductUpsertRequest {
 
     private Long categoryId;
 
+    private List<Long> categoryIds = new ArrayList<>();
+
     @NotBlank
     private String category;
 
@@ -52,6 +55,9 @@ public class ProductUpsertRequest {
     private List<String> colors = new ArrayList<>();
 
     private List<String> images = new ArrayList<>();
+
+    @Valid
+    private List<ProductVariantUpsertRequest> variants = new ArrayList<>();
 
     private Boolean active;
 
@@ -119,6 +125,14 @@ public class ProductUpsertRequest {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public List<Long> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(List<Long> categoryIds) {
+        this.categoryIds = categoryIds;
     }
 
     public String getCategory() {
@@ -199,6 +213,14 @@ public class ProductUpsertRequest {
 
     public void setImages(List<String> images) {
         this.images = images;
+    }
+
+    public List<ProductVariantUpsertRequest> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantUpsertRequest> variants) {
+        this.variants = variants;
     }
 
     public Boolean getActive() {

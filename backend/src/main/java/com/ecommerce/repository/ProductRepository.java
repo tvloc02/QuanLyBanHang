@@ -18,13 +18,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryId(Long categoryId);
 
     @Query("SELECT DISTINCT p FROM Product p WHERE " +
-           "(:category IS NULL OR p.category = :category) AND " +
+           "(:category IS NULL OR p.category = :category OR (:categoryId IS NOT NULL AND :categoryId member of p.categoryIds)) AND " +
            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
            "(:sizes IS NULL OR EXISTS (SELECT s FROM p.sizes s WHERE s IN :sizes)) AND " +
            "(:colors IS NULL OR EXISTS (SELECT c FROM p.colors c WHERE c IN :colors)) AND " +
            "p.active = true")
     Page<Product> searchByFilters(@Param("category") String category,
+                                @Param("categoryId") Long categoryId,
                                 @Param("minPrice") BigDecimal minPrice,
                                 @Param("maxPrice") BigDecimal maxPrice,
                                 @Param("sizes") List<String> sizes,

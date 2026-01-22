@@ -5,7 +5,9 @@
  import com.ecommerce.dto.response.CouponDto;
  import com.ecommerce.dto.response.CouponPreviewResponse;
  import com.ecommerce.dto.response.UserCouponDto;
+ import com.ecommerce.exception.ForbiddenException;
  import com.ecommerce.model.enums.UserCouponStatus;
+ import com.ecommerce.security.SecurityUtils;
  import com.ecommerce.service.payment.CouponService;
  import jakarta.validation.Valid;
  import java.util.List;
@@ -38,6 +40,13 @@
              @PathVariable String code,
              @RequestParam Long userId
      ) {
+         Long currentUserId = SecurityUtils.currentUserId();
+         if (currentUserId == null) {
+             throw new ForbiddenException("Unauthorized");
+         }
+         if (!SecurityUtils.isInternalUser() && userId != null && !currentUserId.equals(userId)) {
+             throw new ForbiddenException("Forbidden");
+         }
          return ResponseEntity.ok(ApiResponse.ok(couponService.claim(userId, code)));
      }
 
@@ -46,12 +55,30 @@
              @RequestParam Long userId,
              @RequestParam(required = false) UserCouponStatus status
      ) {
+         Long currentUserId = SecurityUtils.currentUserId();
+         if (currentUserId == null) {
+             throw new ForbiddenException("Unauthorized");
+         }
+
+         if (!SecurityUtils.isInternalUser() && userId != null && !currentUserId.equals(userId)) {
+             throw new ForbiddenException("Forbidden");
+         }
          return ResponseEntity.ok(ApiResponse.ok(couponService.listUserCoupons(userId, status)));
      }
 
-     @PostMapping("/preview")
-     public ResponseEntity<ApiResponse<CouponPreviewResponse>> preview(@Valid @RequestBody CouponPreviewRequest req) {
-         CouponPreviewResponse res = couponService.preview(req.getUserId(), req.getCouponCode(), req.getSubtotal());
-         return ResponseEntity.ok(ApiResponse.ok(res));
-     }
+    @PostMapping("/preview")
+    public ResponseEntity<ApiResponse<CouponPreviewResponse>> preview(@Valid @RequestBody CouponPreviewRequest req) {
+        Long currentUserId = SecurityUtils.currentUserId();
+        if (currentUserId == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
+        if (req == null) {
+            throw new ForbiddenException("Forbidden");
+        }
+        if (!SecurityUtils.isInternalUser() && req.getUserId() != null && !currentUserId.equals(req.getUserId())) {
+            throw new ForbiddenException("Forbidden");
+        }
+        CouponPreviewResponse res = couponService.preview(req.getUserId(), req.getCouponCode(), req.getSubtotal());
+        return ResponseEntity.ok(ApiResponse.ok(res));
+    }
  }

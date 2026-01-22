@@ -263,6 +263,26 @@
   background: var(--fh-bg);
 }
 
+.cart-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 18px;
+}
+
+.cart-head__title {
+  font-size: 22px;
+  font-weight: 1000;
+  letter-spacing: 0.2px;
+  color: var(--fh-text);
+}
+
+.cart-head__sub {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fh-muted);
+}
+
 .steps {
   display: flex;
   align-items: center;
@@ -363,24 +383,55 @@
   color: var(--fh-text);
 }
 
-.item {
-  display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 12px;
-  padding: 12px 0;
-  border-top: 1px solid var(--fh-border);
+
+.cart-table {
+  border: 1px solid var(--fh-border);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
-.item:first-of-type {
+.cart-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 120px 140px 140px 70px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-top: 1px solid var(--fh-border);
+  background: #fff;
+}
+
+.cart-row:first-of-type {
   border-top: 0;
 }
 
+.cart-row--head {
+  background: rgba(17, 24, 39, 0.03);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 1000;
+  color: rgba(17, 24, 39, 0.7);
+}
+
+.cart-row--head .c-action {
+  justify-self: end;
+}
+
+.product {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
 .thumb img {
-  width: 96px;
-  height: 96px;
-  border-radius: 12px;
+  width: 84px;
+  height: 84px;
+  border-radius: 14px;
   object-fit: cover;
   border: 1px solid var(--fh-border);
+  background: #fff;
 }
 
 .name {
@@ -396,13 +447,6 @@
   display: flex;
   gap: 12px;
   margin-bottom: 10px;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 120px 140px 120px auto;
-  gap: 10px;
-  align-items: center;
 }
 
 .price {
@@ -498,14 +542,47 @@
   .summary {
     order: -1;
   }
-  .row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
   .line {
     text-align: left;
   }
   .remove {
     justify-self: start;
+  }
+
+  .cart-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cart-row--head {
+    display: none;
+  }
+
+  .c-price,
+  .c-qty,
+  .c-total,
+  .c-action {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .c-price::before {
+    content: 'Đơn giá';
+    color: var(--fh-muted);
+    font-weight: 800;
+  }
+
+  .c-qty::before {
+    content: 'Số lượng';
+    color: var(--fh-muted);
+    font-weight: 800;
+  }
+
+  .c-total::before {
+    content: 'Thành tiền';
+    color: var(--fh-muted);
+    font-weight: 800;
   }
 }

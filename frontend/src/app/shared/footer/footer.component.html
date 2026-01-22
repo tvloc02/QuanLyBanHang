@@ -5,42 +5,52 @@
         <section class="tl-footer__col">
           <div class="tl-footer__title">VỀ FASHIONHUB</div>
           <ul class="tl-footer__list">
-            <li><a href="#">Chúng tôi là ai</a></li>
-            <li><a href="#">Cam kết của chúng tôi</a></li>
-            <li><a href="#">Tin tuyển dụng</a></li>
-            <li><a href="#">Hệ thống cửa hàng</a></li>
+            <li><a routerLink="/pages/chung-toi-la-ai">Chúng tôi là ai</a></li>
+            <li><a routerLink="/pages/cam-ket">Cam kết của chúng tôi</a></li>
+            <li><a routerLink="/pages/tuyen-dung">Tin tuyển dụng</a></li>
+            <li><a routerLink="/pages/he-thong-cua-hang">Hệ thống cửa hàng</a></li>
           </ul>
         </section>
 
         <section class="tl-footer__col">
           <div class="tl-footer__title">HỖ TRỢ KHÁCH HÀNG</div>
           <ul class="tl-footer__list">
-            <li><a href="#">Hướng dẫn đặt hàng</a></li>
-            <li><a href="#">Phương thức thanh toán</a></li>
-            <li><a href="#">Chính sách sinh nhật thành viên</a></li>
-            <li><a href="#">Chính sách tích - tiêu điểm</a></li>
-            <li><a href="#">Chính sách hoàn tiền</a></li>
+            <li><a routerLink="/pages/huong-dan-dat-hang">Hướng dẫn đặt hàng</a></li>
+            <li><a routerLink="/pages/phuong-thuc-thanh-toan">Phương thức thanh toán</a></li>
+            <li><a routerLink="/pages/chinh-sach-sinh-nhat">Chính sách sinh nhật thành viên</a></li>
+            <li><a routerLink="/pages/chinh-sach-tich-diem">Chính sách tích - tiêu điểm</a></li>
+            <li><a routerLink="/pages/chinh-sach-hoan-tien">Chính sách hoàn tiền</a></li>
           </ul>
         </section>
 
         <section class="tl-footer__col">
           <div class="tl-footer__title">CHÍNH SÁCH</div>
           <ul class="tl-footer__list">
-            <li><a href="#">Chính sách vận chuyển</a></li>
-            <li><a href="#">Chính sách kiểm hàng</a></li>
-            <li><a href="#">Chính sách đổi trả</a></li>
-            <li><a href="#">Điều kiện &amp; điều khoản</a></li>
-            <li><a href="#">Chính sách bảo mật</a></li>
+            <li><a routerLink="/pages/chinh-sach-van-chuyen">Chính sách vận chuyển</a></li>
+            <li><a routerLink="/pages/chinh-sach-kiem-hang">Chính sách kiểm hàng</a></li>
+            <li><a routerLink="/pages/chinh-sach-doi-tra">Chính sách đổi trả</a></li>
+            <li><a routerLink="/pages/dieu-kien-dieu-khoan">Điều kiện &amp; điều khoản</a></li>
+            <li><a routerLink="/pages/chinh-sach-bao-mat">Chính sách bảo mật</a></li>
           </ul>
         </section>
 
         <section class="tl-footer__col">
           <div class="tl-footer__title">LIÊN HỆ</div>
           <ul class="tl-footer__list">
-            <li> Tư vấn mua online: 024 7308 2882</li>
-            <li> Khiếu nại và bảo hành: 024 7300 6999</li>
-            <li> Email: cskh&#64;fashionhub.vn</li>
+            <li>
+              Tư vấn mua online:
+              <a href="tel:02473082882">024 7308 2882</a>
+            </li>
+            <li>
+              Khiếu nại và bảo hành:
+              <a href="tel:02473006999">024 7300 6999</a>
+            </li>
+            <li>
+              Email:
+              <a href="mailto:cskh@fashionhub.vn">cskh&#64;fashionhub.vn</a>
+            </li>
             <li> Giờ làm việc: 8:30 - 22:00 hằng ngày</li>
+            <li><a routerLink="/pages/lien-he">Xem chi tiết liên hệ</a></li>
           </ul>
         </section>
 
@@ -59,8 +69,8 @@
           <div class="tl-footer__app">
             <div class="tl-footer__qr" aria-label="QR"></div>
             <div class="tl-footer__stores">
-              <a class="tl-footer__store tl-footer__store--apple" href="#" aria-label="App Store">Available on the App Store</a>
-              <a class="tl-footer__store tl-footer__store--google" href="#" aria-label="Google Play">GET IT ON Google Play</a>
+              <a class="tl-footer__store tl-footer__store--apple" routerLink="/pages/app-store" aria-label="App Store">Available on the App Store</a>
+              <a class="tl-footer__store tl-footer__store--google" routerLink="/pages/google-play" aria-label="Google Play">GET IT ON Google Play</a>
             </div>
           </div>
 
@@ -77,11 +87,11 @@
       <div class="tl-footer__social">
         <div class="tl-footer__social-title">Kết nối với FASHIONHUB</div>
         <div class="tl-footer__social-icons">
-          <a class="tl-footer__icon" href="#" aria-label="TikTok">t</a>
-          <a class="tl-footer__icon" href="#" aria-label="Facebook">f</a>
-          <a class="tl-footer__icon" href="#" aria-label="Zalo">z</a>
-          <a class="tl-footer__icon" href="#" aria-label="YouTube">▶</a>
-          <a class="tl-footer__news" href="#">FashionHub News</a>
+          <a class="tl-footer__icon" routerLink="/pages/tiktok" aria-label="TikTok">t</a>
+          <a class="tl-footer__icon" routerLink="/pages/facebook" aria-label="Facebook">f</a>
+          <a class="tl-footer__icon" routerLink="/pages/zalo" aria-label="Zalo">z</a>
+          <a class="tl-footer__icon" routerLink="/pages/youtube" aria-label="YouTube">▶</a>
+          <a class="tl-footer__news" routerLink="/pages/fashionhub-news">FashionHub News</a>
         </div>
       </div>
     </div>

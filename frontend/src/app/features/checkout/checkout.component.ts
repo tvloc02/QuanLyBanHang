@@ -5,6 +5,8 @@ import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { HOME_CONFIG } from '../home/home.config';
 import { FooterComponent } from '../../shared/footer/footer.component';
+import { AuthService } from '../../core/services/auth.service';
+import { UserDataService } from '../../core/services/user-data.service';
 
 interface WardNode {
   name: string;
@@ -55,6 +57,8 @@ export class CheckoutComponent implements OnInit {
   addressDetail = '';
   note = '';
 
+  saveToProfile = true;
+
   paymentMethod: 'cod' | 'bank' = 'cod';
 
   placed = false;
@@ -72,12 +76,48 @@ export class CheckoutComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private auth: AuthService,
+    private userData: UserDataService
   ) {}
 
   ngOnInit(): void {
     this.loadCart();
     this.loadAddressData();
+    this.prefillFromProfile();
+  }
+
+  isAuthenticated(): boolean {
+    return this.auth.isAuthenticated();
+  }
+
+  private prefillFromProfile(): void {
+    if (!this.auth.isAuthenticated()) return;
+    this.userData.getMe().subscribe({
+      next: (res) => {
+        const d = res?.data;
+        if (!d) return;
+
+        if (!this.fullName.trim() && d.fullName) this.fullName = d.fullName;
+        if (!this.phone.trim() && d.phone) this.phone = d.phone;
+
+        if (!this.province.trim() && d.province) {
+          this.province = d.province;
+          this.provinceQuery = d.province;
+        }
+        if (!this.district.trim() && d.district) {
+          this.district = d.district;
+          this.districtQuery = d.district;
+        }
+        if (!this.ward.trim() && d.ward) {
+          this.ward = d.ward;
+          this.wardQuery = d.ward;
+        }
+        if (!this.addressDetail.trim() && d.addressDetail) this.addressDetail = d.addressDetail;
+      },
+      error: () => {
+      }
+    });
   }
 
   @HostListener('document:click')
@@ -319,6 +359,24 @@ export class CheckoutComponent implements OnInit {
     ) {
       this.error = 'Vui lòng nhập đầy đủ thông tin giao hàng.';
       return;
+    }
+
+    if (this.auth.isAuthenticated() && this.saveToProfile) {
+      this.userData
+        .updateMe({
+          fullName: this.fullName.trim(),
+          phone: this.phone.trim(),
+          province: this.province.trim(),
+          district: this.district.trim(),
+          ward: this.ward.trim(),
+          addressDetail: this.addressDetail.trim()
+        })
+        .subscribe({
+          next: () => {
+          },
+          error: () => {
+          }
+        });
     }
 
     localStorage.removeItem('cart');

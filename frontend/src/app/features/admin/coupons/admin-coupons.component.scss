@@ -1,5 +1,11 @@
 @import '../orders/admin-orders.component.scss';
 
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .strong {
   font-weight: 1000;
 }
@@ -11,4 +17,54 @@
 .badge.off {
   border-color: rgba(193, 18, 31, 0.18);
   background: rgba(193, 18, 31, 0.08);
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.inline2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn.icon-only {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+}
+
+.btn.icon-only.ghost {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #111827;
+}
+
+.btn.icon-only.ghost:hover {
+  background: rgba(17, 24, 39, 0.04);
+}
+
+.btn.icon-only.danger {
+  background: #fff;
+  border: 1px solid rgba(193, 18, 31, 0.15);
+  color: rgba(193, 18, 31, 1);
+}
+
+.btn.icon-only.danger:hover {
+  background: rgba(193, 18, 31, 0.06);
+}
+
+@media (max-width: 900px) {
+  .grid3 {
+    grid-template-columns: 1fr;
+  }
 }

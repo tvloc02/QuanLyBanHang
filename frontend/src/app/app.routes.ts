@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
 import { adminGuard } from './core/guards/admin.guard';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -36,12 +37,25 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cart/cart.component').then((m) => m.CartComponent)
       },
       {
+        path: 'sale',
+        loadComponent: () => import('./features/sale/sale.component').then((m) => m.SaleComponent)
+      },
+      {
         path: 'category/:slug',
         loadComponent: () => import('./features/category/category-detail.component').then((m) => m.CategoryDetailComponent)
       },
       {
         path: 'news',
         loadComponent: () => import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent)
+      },
+      {
+        path: 'profile',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/profile/profile.component').then((m) => m.ProfileComponent)
+      },
+      {
+        path: 'pages/:slug',
+        loadComponent: () => import('./features/pages/static-page.component').then((m) => m.StaticPageComponent)
       }
     ]
   },
@@ -56,7 +70,24 @@ export const routes: Routes = [
       },
       {
         path: 'products',
-        loadComponent: () => import('./features/admin/admin-products.component').then((m) => m.AdminProductsComponent)
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./features/admin/products/admin-products-list.component').then((m) => m.AdminProductsListComponent)
+          },
+          {
+            path: 'new',
+            loadComponent: () => import('./features/admin/products/admin-product-form.component').then((m) => m.AdminProductFormComponent)
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () => import('./features/admin/products/admin-product-form.component').then((m) => m.AdminProductFormComponent)
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./features/admin/products/admin-product-detail.component').then((m) => m.AdminProductDetailComponent)
+          }
+        ]
       },
       {
         path: 'orders',
@@ -81,6 +112,23 @@ export const routes: Routes = [
       {
         path: 'reviews',
         loadComponent: () => import('./features/admin/reviews/admin-reviews.component').then((m) => m.AdminReviewsComponent)
+      },
+      {
+        path: 'settings',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./features/admin/settings/admin-settings.component').then((m) => m.AdminSettingsComponent)
+          },
+          {
+            path: 'mail',
+            loadComponent: () => import('./features/admin/settings/admin-mail-settings.component').then((m) => m.AdminMailSettingsComponent)
+          },
+          {
+            path: 'notifications',
+            loadComponent: () => import('./features/admin/settings/admin-notification-settings.component').then((m) => m.AdminNotificationSettingsComponent)
+          }
+        ]
       }
     ]
   },

@@ -4,6 +4,7 @@ import com.ecommerce.model.entity.User;
 import com.ecommerce.model.enums.UserRole;
 import com.ecommerce.repository.UserRepository;
 import java.time.Instant;
+import java.util.HashSet;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,20 +18,26 @@ public class DevDataSeeder {
     @Bean
     public CommandLineRunner seedAdminUser(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            if (userRepository.findByUsername("admin").isPresent()) {
-                return;
-            }
-
             Instant now = Instant.now();
 
-            User admin = new User();
+            User admin = userRepository.findByUsername("admin").orElseGet(User::new);
             admin.setUsername("admin");
-            admin.setEmail("admin@fashionhub.local");
-            admin.setFullName("Admin");
+            if (admin.getEmail() == null || admin.getEmail().isBlank()) {
+                admin.setEmail("admin@fashionhub.local");
+            }
+            if (admin.getFullName() == null || admin.getFullName().isBlank()) {
+                admin.setFullName("Admin");
+            }
+
             admin.setPassword(passwordEncoder.encode("123456"));
-            admin.getRoles().add(UserRole.ADMIN);
+            HashSet<UserRole> roles = new HashSet<>();
+            roles.add(UserRole.ADMIN);
+            admin.setRoles(roles);
             admin.setEnabled(true);
-            admin.setCreatedAt(now);
+
+            if (admin.getCreatedAt() == null) {
+                admin.setCreatedAt(now);
+            }
             admin.setUpdatedAt(now);
 
             userRepository.save(admin);

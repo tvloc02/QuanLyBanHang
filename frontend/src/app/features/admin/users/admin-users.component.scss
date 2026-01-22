@@ -19,6 +19,24 @@
   text-align: center;
 }
 
+.tbl th,
+.tbl td {
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.tbl th:last-child,
+.tbl td:last-child {
+  border-right: 0;
+}
+
+tbody tr:nth-child(even) td {
+  background: rgba(245, 247, 251, 0.5);
+}
+
+tbody tr:hover td {
+  background: rgba(37, 99, 235, 0.06);
+}
+
 /* Hạn chế co cột quá nhỏ trên màn nhỏ */
 .tbl {
   table-layout: fixed;
@@ -30,8 +48,28 @@
 .tbl th:nth-child(4) { min-width: 120px; }
 .tbl th:nth-child(5) { min-width: 120px; }
 .tbl th:nth-child(6) { min-width: 120px; }
-.tbl th:nth-child(7) { min-width: 110px; }
-.tbl th:nth-child(8) { min-width: 120px; }
+.tbl th:nth-child(7) { min-width: 160px; }
+.tbl th:nth-child(8) { min-width: 110px; }
+.tbl th:nth-child(9) { min-width: 160px; }
+
+.pw-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pw-mask {
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: rgba(17, 24, 39, 0.86);
+}
+
+.pw-hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(107, 114, 128, 1);
+}
 
 /* Giữ nội dung gọn gàng với ellipsis */
 .tbl td,
@@ -83,7 +121,7 @@
 @media (max-width: 1200px) {
   .tbl th:nth-child(2) { min-width: 160px; }
   .tbl th:nth-child(3) { min-width: 180px; }
-  .tbl th:nth-child(8) { min-width: 160px; }
+  .tbl th:nth-child(9) { min-width: 160px; }
 }
 
 /* Ẩn Email, Username ở màn vừa để đỡ chật */
@@ -102,6 +140,10 @@
   .tbl td:nth-child(5),
   .tbl th:nth-child(6),
   .tbl td:nth-child(6) {
+    display: none;
+  }
+  .tbl th:nth-child(7),
+  .tbl td:nth-child(7) {
     display: none;
   }
   .btn.icon-only {

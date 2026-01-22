@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, Component } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -12,354 +12,456 @@ declare const google: any;
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="auth-shell">
-      <div class="auth-modal">
-        <div class="auth-head">
-          <a routerLink="/" class="back">← Về trang chủ</a>
-          <div class="brand">FashionHub</div>
+    <div class="auth-container">
+      <div class="background-overlay"></div>
+      
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="brand-section">
+            <h1 class="brand-name">FASHION<span>HUB</span></h1>
+            <p class="brand-tagline">Nâng tầm phong cách của bạn</p>
+          </div>
+          <a routerLink="/" class="back-home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Trang chủ
+          </a>
         </div>
 
-        <div class="auth-col">
-          <div class="title">Đăng nhập</div>
-          <div class="sub">Đăng nhập để tích voucher và đặt hàng nhanh hơn.</div>
+        <div class="auth-body">
+          <h2 class="form-title">Chào mừng trở lại</h2>
+          <p class="form-subtitle">Đăng nhập để trải nghiệm dịch vụ tốt nhất</p>
 
-          <div class="field">
-            <div class="label">SĐT / Email / Tên đăng nhập</div>
-            <div class="input-wrap">
-              <span class="icon" aria-hidden="true">👤</span>
-              <input
-                class="input"
-                type="text"
-                [(ngModel)]="usernameOrEmail"
-                placeholder="Nhập SĐT, email hoặc tên đăng nhập"
+          <div class="form-group">
+            <label>Tài khoản</label>
+            <div class="input-container">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input 
+                type="text" 
+                [(ngModel)]="usernameOrEmail" 
+                placeholder="Email hoặc tên đăng nhập"
+                (keyup.enter)="save()"
               />
             </div>
           </div>
 
-          <div class="field">
-            <div class="label">Mật khẩu</div>
-            <div class="input-wrap">
-              <span class="icon" aria-hidden="true">🔒</span>
-              <input
-                class="input"
-                [type]="showPassword ? 'text' : 'password'"
-                [(ngModel)]="password"
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <div class="input-container">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input 
+                [type]="showPassword() ? 'text' : 'password'" 
+                [(ngModel)]="password" 
                 placeholder="Nhập mật khẩu"
+                (keyup.enter)="save()"
               />
-              <button type="button" class="icon-btn" (click)="showPassword = !showPassword" aria-label="Toggle password">
-                {{ showPassword ? 'Ẩn' : 'Hiện' }}
+              <button type="button" class="toggle-password" (click)="togglePass()">
+                {{ showPassword() ? 'Ẩn' : 'Hiện' }}
               </button>
             </div>
           </div>
 
-          <div class="row">
-            <label class="remember">
-              <input type="checkbox" />
-              <span>Ghi nhớ</span>
+          <div class="form-options">
+            <label class="checkbox-container">
+              <input type="checkbox">
+              <span class="checkmark"></span>
+              Ghi nhớ đăng nhập
             </label>
-            <a routerLink="/register" class="link">Quên mật khẩu?</a>
+            <a href="javascript:void(0)" class="forgot-password">Quên mật khẩu?</a>
           </div>
 
-          <div class="alert" *ngIf="error">{{ error }}</div>
+          <div class="error-message" *ngIf="error()">
+            {{ error() }}
+          </div>
 
-          <button type="button" class="btn" (click)="save()" [disabled]="loading">
-            {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+          <button class="login-button" (click)="save()" [disabled]="loading()">
+            <span *ngIf="!loading()">Đăng Nhập</span>
+            <span *ngIf="loading()" class="loader"></span>
           </button>
 
-          <div class="divider"><span>Hoặc</span></div>
+          <div class="divider">
+            <span>Hoặc đăng nhập với</span>
+          </div>
 
-          <div id="googleBtn"></div>
+          <div class="social-grid">
+            <div id="googleBtn" class="google-btn-wrapper"></div>
+            
+            <button class="facebook-btn" (click)="loginWithFacebook()">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              Facebook
+            </button>
+          </div>
 
-          <a class="ghost" routerLink="/register">Tạo tài khoản mới</a>
+          <div class="auth-footer">
+            Chưa có tài khoản? <a routerLink="/register">Đăng ký ngay</a>
+          </div>
         </div>
       </div>
     </div>
   `,
-  styles: [
-    `
-      .auth-shell {
-        position: relative;
-        min-height: calc(100vh - 144px);
-        display: grid;
-        place-items: center;
-        padding: 18px 16px;
-        background: var(--fh-bg);
-        overflow: hidden;
-      }
+  styles: [`
+    :host {
+      --primary: #c1121f;
+      --primary-hover: #a4101a;
+      --facebook: #1877f2;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --bg-card: #ffffff;
+      display: block;
+    }
 
-      .auth-shell::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image: url('https://via.placeholder.com/1600x900?text=FashionHub+Background');
-        background-size: cover;
-        background-position: center;
-        transform: scale(1.03);
-        filter: saturate(1.05) contrast(1.02);
-        opacity: 0.22;
-      }
+    .auth-container {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f3f4f6;
+    }
 
-      .auth-shell::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.98));
-      }
+    .background-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop');
+      background-size: cover;
+      background-position: center;
+      filter: brightness(0.4);
+      z-index: 0;
+    }
 
-      .auth-modal {
-        position: relative;
-        z-index: 1;
-        width: min(420px, 100%);
-        background: rgba(255, 255, 255, 0.86);
-        backdrop-filter: blur(10px);
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
-        border: 1px solid rgba(0, 0, 0, 0.06);
-      }
-      .auth-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 16px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-        background: rgba(255, 255, 255, 0.6);
-      }
+    .auth-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-card);
+      border-radius: 48px;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-      .brand {
-        font-weight: 1000;
-        letter-spacing: 0.8px;
-        color: var(--fh-primary);
-        font-size: 13px;
-        text-transform: uppercase;
-      }
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.98) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
 
-      .auth-col {
-        padding: 18px 18px 18px;
-      }
+    .auth-header {
+      padding: 32px 48px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
 
-      .back {
-        display: inline-flex;
-        gap: 8px;
-        align-items: center;
-        color: var(--fh-primary);
-        text-decoration: none;
-        font-weight: 900;
-        font-size: 12px;
-      }
+    .brand-name {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin: 0;
+      color: var(--text-main);
+    }
 
-      .title {
-        font-weight: 1000;
-        font-size: 19px;
-        margin: 0 0 6px;
-        letter-spacing: 0.2px;
-        color: #111;
-      }
-      .sub {
-        color: #6b7280;
-        font-size: 12px;
-        line-height: 1.55;
-        margin-bottom: 14px;
-      }
+    .brand-name span {
+      color: var(--primary);
+    }
 
-      .field {
-        margin-bottom: 12px;
-      }
-      .label {
-        font-size: 10px;
-        font-weight: 1000;
-        letter-spacing: 0.6px;
-        margin-bottom: 7px;
-        color: rgba(17, 24, 39, 0.9);
-        text-transform: uppercase;
-      }
+    .brand-tagline {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
 
-      .input-wrap {
-        position: relative;
-        display: grid;
-        grid-template-columns: 40px 1fr auto;
-        align-items: center;
-        border: 1px solid rgba(17, 24, 39, 0.14);
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.75);
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
-        transition: border-color 160ms ease, box-shadow 160ms ease;
-      }
+    .back-home {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
 
-      .input-wrap:focus-within {
-        border-color: rgba(193, 18, 31, 0.55);
-        box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.12);
-      }
+    .back-home svg {
+      width: 16px;
+      height: 16px;
+    }
 
-      .icon {
-        width: 40px;
-        height: 40px;
-        display: grid;
-        place-items: center;
-        opacity: 0.8;
-        font-size: 14px;
-        border-right: 1px solid rgba(0, 0, 0, 0.06);
-      }
+    .auth-body {
+      padding: 16px 48px 48px;
+    }
 
-      .input {
-        width: 100%;
-        height: 40px;
-        border: 0;
-        background: transparent;
-        padding: 0 12px;
-        outline: none;
-        font-weight: 700;
-        color: #111;
-      }
+    .form-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 0 0 2px;
+    }
 
-      .icon-btn {
-        height: 34px;
-        margin-right: 6px;
-        border-radius: 10px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        background: rgba(255, 255, 255, 0.85);
-        cursor: pointer;
-        padding: 0 10px;
-        font-weight: 900;
-        font-size: 11px;
-        color: rgba(17, 24, 39, 0.85);
-      }
+    .form-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
 
-      .icon-btn:hover {
-        filter: brightness(0.98);
-      }
+    .form-group {
+      margin-bottom: 12px;
+    }
 
-      .hint {
-        margin-top: 7px;
-        font-size: 11px;
-        color: rgba(107, 114, 128, 1);
-        line-height: 1.4;
-      }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 5px;
+    }
 
-      .row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin: 10px 0 14px;
-      }
-      .remember {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12px;
-        color: rgba(17, 24, 39, 0.9);
-        font-weight: 700;
-      }
-      .remember input {
-        width: 15px;
-        height: 15px;
-      }
-      .link {
-        color: var(--fh-primary);
-        text-decoration: none;
-        font-weight: 1000;
-        font-size: 12px;
-      }
+    .input-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
 
-      .btn {
-        width: 100%;
-        height: 42px;
-        border: 0;
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(193, 18, 31, 1), rgba(160, 11, 20, 1));
-        color: var(--fh-primary-contrast);
-        font-weight: 1000;
-        cursor: pointer;
-        letter-spacing: 0.3px;
-        box-shadow: 0 10px 20px rgba(193, 18, 31, 0.22);
-      }
-      .btn:hover {
-        filter: brightness(0.98);
-      }
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      color: var(--text-muted);
+      display: flex;
+    }
 
-      .alert {
-        margin: 8px 0 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(193, 18, 31, 0.18);
-        background: rgba(193, 18, 31, 0.08);
-        color: rgba(193, 18, 31, 1);
-        font-weight: 900;
-        font-size: 12px;
-      }
+    .input-icon svg {
+      width: 18px;
+      height: 18px;
+    }
 
-      .divider {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        gap: 12px;
-        align-items: center;
-        margin: 14px 0;
-        color: rgba(107, 114, 128, 1);
-        font-size: 11px;
-        font-weight: 900;
-      }
-      .divider::before,
-      .divider::after {
-        content: '';
-        height: 1px;
-        background: rgba(0, 0, 0, 0.08);
-      }
+    .input-container input {
+      width: 100%;
+      height: 50px;
+      padding: 0 48px;
+      background: #f9fafb;
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      font-size: 15px;
+      color: var(--text-main);
+      transition: all 0.2s;
+    }
 
-      .ghost {
-        width: 100%;
-        height: 42px;
-        border-radius: 12px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid rgba(193, 18, 31, 0.28);
-        background: rgba(255, 255, 255, 0.7);
-        color: rgba(193, 18, 31, 1);
-        font-weight: 1000;
-        text-decoration: none;
-      }
+    .input-container input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.1);
+    }
 
-      .ghost:hover {
-        background: rgba(193, 18, 31, 0.06);
-      }
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      background: none;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 6px;
+    }
 
-      @media (max-width: 420px) {
-        .auth-col {
-          padding: 18px 16px 18px;
-        }
-      }
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
 
-      @media (max-width: 640px) {
-        .auth-shell {
-          min-height: calc(100vh - 120px);
-        }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .forgot-password {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .login-button {
+      width: 100%;
+      height: 54px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 18px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 20px -5px rgba(193, 18, 31, 0.4);
+      margin-bottom: 14px;
+    }
+
+    .login-button:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .loader {
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 10px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    .divider {
+      margin: 14px 0;
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .divider span {
+      padding: 0 12px;
+    }
+
+    .social-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .google-btn-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .facebook-btn {
+      width: 100%;
+      height: 48px;
+      background: var(--facebook);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .facebook-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .auth-footer {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .auth-footer a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (max-width: 640px) {
+      .auth-card {
+        border-radius: 0;
+        max-width: none;
+        height: 100vh;
       }
-    `
-  ]
+      .auth-container {
+        padding: 0;
+      }
+      .background-overlay {
+        display: none;
+      }
+      .auth-header, .auth-body {
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+    }
+  `]
 })
 export class LoginComponent implements AfterViewInit {
   usernameOrEmail = '';
   password = '';
-  showPassword = false;
-  loading = false;
-  error = '';
+  showPassword = signal(false);
+  loading = signal(false);
+  error = signal('');
 
-  constructor(
-    private router: Router,
-    private http: HttpClient,
-    private auth: AuthService
-  ) {}
+  private router = inject(Router);
+  private auth = inject(AuthService);
+  private http = inject(HttpClient);
 
   ngAfterViewInit(): void {
     this.initGoogle();
   }
 
+  togglePass(): void {
+    this.showPassword.update(v => !v);
+  }
+
   private initGoogle(): void {
-    const clientId = (environment as any).googleClientId as string | undefined;
-    if (!clientId) return;
-    if (typeof google === 'undefined' || !google?.accounts?.id) return;
+    const clientId = (environment as any).googleClientId as string;
+    if (!clientId || typeof google === 'undefined' || !google?.accounts?.id) return;
 
     try {
       google.accounts.id.initialize({
@@ -369,10 +471,10 @@ export class LoginComponent implements AfterViewInit {
       google.accounts.id.renderButton(document.getElementById('googleBtn'), {
         theme: 'outline',
         size: 'large',
-        width: 360
+        shape: 'pill',
+        width: 484
       });
     } catch {
-      // ignore
     }
   }
 
@@ -390,27 +492,31 @@ export class LoginComponent implements AfterViewInit {
           this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
         },
         error: () => {
-          // ignore
+          this.error.set('Hệ thống đăng nhập qua Google đang bảo trì.');
         }
       });
   }
 
-  save(): void {
-    this.error = '';
-    const usernameOrEmail = (this.usernameOrEmail || '').trim();
-    const password = (this.password || '').trim();
+  loginWithFacebook(): void {
+    this.error.set('Tính năng Facebook hiện đang được cập nhật.');
+  }
 
-    if (!usernameOrEmail || !password) {
-      this.error = 'Vui lòng nhập tài khoản và mật khẩu.';
+  save(): void {
+    this.error.set('');
+    const u = (this.usernameOrEmail || '').trim();
+    const p = (this.password || '').trim();
+
+    if (!u || !p) {
+      this.error.set('Vui lòng điền đầy đủ thông tin đăng nhập.');
       return;
     }
 
-    this.loading = true;
-    this.auth.login(usernameOrEmail, password).subscribe({
-      next: (res) => {
-        this.loading = false;
+    this.loading.set(true);
+    this.auth.login(u, p).subscribe({
+      next: (res: any) => {
+        this.loading.set(false);
         if (!res?.success) {
-          this.error = res?.message || 'Đăng nhập thất bại.';
+          this.error.set(res?.message || 'Tài khoản hoặc mật khẩu không chính xác.');
           return;
         }
         const data = res?.data;
@@ -418,9 +524,9 @@ export class LoginComponent implements AfterViewInit {
         const roles = Array.isArray(data?.roles) ? data.roles : [];
         this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
       },
-      error: (err) => {
-        this.loading = false;
-        this.error = err?.error?.message || 'Đăng nhập thất bại. Hãy kiểm tra backend.';
+      error: (err: any) => {
+        this.loading.set(false);
+        this.error.set(err?.error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại kết nối.');
       }
     });
   }
