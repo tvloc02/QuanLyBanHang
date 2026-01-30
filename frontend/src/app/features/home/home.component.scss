@@ -6,9 +6,9 @@
 .topbar {
   background: var(--fh-primary);
   color: var(--fh-primary-contrast);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
 }
 
 .topbar-text {
@@ -34,8 +34,8 @@
 }
 
 .brand {
-  font-weight: 900;
-  letter-spacing: 1px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   cursor: pointer;
 }
 
@@ -173,7 +173,7 @@
   background: var(--fh-primary);
   color: var(--fh-primary-contrast);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 800;
   display: grid;
   place-items: center;
   border: 2px solid #fff;
@@ -267,7 +267,7 @@
   display: grid;
   place-items: center;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 800;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.14);
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
@@ -284,6 +284,10 @@
 
 .page {
   scroll-snap-type: y proximity;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .section {
@@ -294,8 +298,9 @@
 .section-title {
   margin: 0 0 26px;
   text-align: center;
-  font-size: 22px;
-  letter-spacing: 0.5px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: var(--fh-primary);
 }
 
@@ -316,15 +321,17 @@
 
 .hero-title {
   color: #fff;
-  font-size: 44px;
-  font-weight: 900;
-  line-height: 1.05;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.12;
 }
 
 .hero-sub {
   color: rgba(255, 255, 255, 0.92);
   margin-top: 10px;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .hero-cta {
@@ -335,6 +342,7 @@
   background: #fff;
   color: #111;
   font-weight: 800;
+  letter-spacing: 0.2px;
 }
 
 .hero-media {
@@ -358,12 +366,13 @@
 .voucher {
   background: var(--fh-surface);
   border: 1px solid var(--fh-border);
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 16px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
   align-items: center;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.04);
 }
 
 .voucher-title {
@@ -376,6 +385,7 @@
   color: var(--fh-muted);
   font-size: 13px;
   margin-top: 6px;
+  line-height: 1.45;
 }
 
 .voucher-btn {
@@ -385,7 +395,7 @@
   color: var(--fh-primary-contrast);
   padding: 10px 12px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .circle-row {
@@ -573,12 +583,12 @@
 }
 
 .group-title {
-  font-weight: 900;
-  font-size: 16px;
+  font-weight: 800;
+  font-size: 15px;
   margin-bottom: 12px;
   color: var(--fh-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: 0.2px;
 }
 
 .group-items {
@@ -748,13 +758,13 @@
 
 .card-title {
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .card-price {
   margin-top: 6px;
   color: var(--fh-primary);
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .news-grid {
@@ -781,7 +791,7 @@
 }
 
 .news-title {
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .news-desc {
@@ -805,7 +815,7 @@
 
 .footer-quote-title {
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .footer-quote-text {

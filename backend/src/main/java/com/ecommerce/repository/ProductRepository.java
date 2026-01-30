@@ -50,5 +50,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "p.createdAt DESC")
     Page<Product> findAllWithSort(@Param("sort") String sort, Pageable pageable);
 
+    Optional<Product> findTopBySkuStartingWithOrderBySkuDesc(String prefix);
+
     Optional<Product> findBySlug(String slug);
 }

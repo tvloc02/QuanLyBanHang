@@ -12,7 +12,7 @@
 }
 
 .title {
-  font-weight: 1000;
+  font-weight: 800;
   color: rgba(17, 24, 39, 0.92);
   font-size: 18px;
 }
@@ -23,7 +23,7 @@
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(245, 247, 251, 1);
-  font-weight: 1000;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -39,7 +39,7 @@
   border: 1px solid rgba(193, 18, 31, 0.18);
   background: rgba(193, 18, 31, 0.08);
   color: rgba(193, 18, 31, 1);
-  font-weight: 900;
+  font-weight: 800;
   font-size: 12px;
 }
 
@@ -70,7 +70,7 @@ td {
 
 th {
   background: rgba(245, 247, 251, 1);
-  font-weight: 1000;
+  font-weight: 800;
   color: rgba(107, 114, 128, 1);
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -93,7 +93,7 @@ th {
   border-radius: 999px;
   border: 1px solid rgba(37, 99, 235, 0.18);
   background: rgba(37, 99, 235, 0.08);
-  font-weight: 1000;
+  font-weight: 800;
   font-size: 12px;
 }
 
@@ -101,7 +101,7 @@ th {
   text-align: center;
   padding: 18px;
   color: rgba(107, 114, 128, 1);
-  font-weight: 900;
+  font-weight: 700;
 }
 
 /* ========== Modal styles dùng chung cho Admin (được import ở Categories/Users) ========== */

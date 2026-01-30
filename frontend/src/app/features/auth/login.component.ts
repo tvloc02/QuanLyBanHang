@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
+import { ToastService } from '../../shared/toast/toast.service';
 
 declare const google: any;
 
@@ -83,10 +84,6 @@ declare const google: any;
             <a href="javascript:void(0)" class="forgot-password">Quên mật khẩu?</a>
           </div>
 
-          <div class="error-message" *ngIf="error()">
-            {{ error() }}
-          </div>
-
           <button class="login-button" (click)="save()" [disabled]="loading()">
             <span *ngIf="!loading()">Đăng Nhập</span>
             <span *ngIf="loading()" class="loader"></span>
@@ -97,14 +94,22 @@ declare const google: any;
           </div>
 
           <div class="social-grid">
-            <div id="googleBtn" class="google-btn-wrapper"></div>
-            
             <button class="facebook-btn" (click)="loginWithFacebook()">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
               Facebook
             </button>
+
+            <ng-container *ngIf="googleClientId && !googleRenderFailed(); else googleDisabled">
+              <div id="googleBtn" class="google-btn-wrapper"></div>
+            </ng-container>
+
+            <ng-template #googleDisabled>
+              <button class="google-fallback-btn" type="button" (click)="googleNotConfigured()">
+                Đăng nhập bằng Google
+              </button>
+            </ng-template>
           </div>
 
           <div class="auth-footer">
@@ -341,17 +346,6 @@ declare const google: any;
       to { transform: rotate(360deg); }
     }
 
-    .error-message {
-      background: #fee2e2;
-      color: #dc2626;
-      padding: 10px;
-      border-radius: 14px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 14px;
-      text-align: center;
-    }
-
     .divider {
       margin: 14px 0;
       display: flex;
@@ -375,16 +369,16 @@ declare const google: any;
     }
 
     .social-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
       margin-bottom: 20px;
     }
 
     .google-btn-wrapper {
       width: 100%;
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
     }
 
     .facebook-btn {
@@ -421,6 +415,18 @@ declare const google: any;
       font-weight: 700;
     }
 
+    .google-fallback-btn {
+      width: 100%;
+      height: 48px;
+      background: #fff;
+      color: #111;
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
     @media (max-width: 640px) {
       .auth-card {
         border-radius: 0;
@@ -432,6 +438,12 @@ declare const google: any;
       }
       .background-overlay {
         display: none;
+      }
+      .social-grid {
+        grid-template-columns: 1fr;
+      }
+      .google-btn-wrapper {
+        justify-content: center;
       }
       .auth-header, .auth-body {
         padding-left: 24px;
@@ -445,14 +457,22 @@ export class LoginComponent implements AfterViewInit {
   password = '';
   showPassword = signal(false);
   loading = signal(false);
-  error = signal('');
+
+  googleClientId = (environment as any).googleClientId as string;
+
+  googleRenderFailed = signal(false);
+
+  private googleInitRetries = 0;
 
   private router = inject(Router);
   private auth = inject(AuthService);
   private http = inject(HttpClient);
+  private toast = inject(ToastService);
 
   ngAfterViewInit(): void {
-    this.initGoogle();
+    setTimeout(() => {
+      this.initGoogle();
+    }, 0);
   }
 
   togglePass(): void {
@@ -460,22 +480,50 @@ export class LoginComponent implements AfterViewInit {
   }
 
   private initGoogle(): void {
-    const clientId = (environment as any).googleClientId as string;
-    if (!clientId || typeof google === 'undefined' || !google?.accounts?.id) return;
+    const clientId = this.googleClientId;
+    if (!clientId) return;
+
+    if (this.googleRenderFailed()) return;
+
+    const g = (window as any).google;
+    if (!g?.accounts?.id) {
+      if (this.googleInitRetries < 20) {
+        this.googleInitRetries++;
+        setTimeout(() => this.initGoogle(), 200);
+      }
+      if (this.googleInitRetries >= 20) {
+        this.googleRenderFailed.set(true);
+      }
+      return;
+    }
 
     try {
-      google.accounts.id.initialize({
+      const googleBtnEl = document.getElementById('googleBtn');
+      if (!googleBtnEl) {
+        this.googleRenderFailed.set(true);
+        return;
+      }
+
+      const width = this.getGoogleBtnWidth(googleBtnEl);
+      g.accounts.id.initialize({
         client_id: clientId,
         callback: (resp: any) => this.onGoogleCredential(resp)
       });
-      google.accounts.id.renderButton(document.getElementById('googleBtn'), {
+      g.accounts.id.renderButton(googleBtnEl, {
         theme: 'outline',
         size: 'large',
         shape: 'pill',
-        width: 484
+        width
       });
     } catch {
+      this.googleRenderFailed.set(true);
     }
+  }
+
+  private getGoogleBtnWidth(el: HTMLElement | null): number {
+    const w = el?.getBoundingClientRect?.().width;
+    if (typeof w === 'number' && isFinite(w) && w > 0) return Math.floor(w);
+    return 240;
   }
 
   private onGoogleCredential(resp: any): void {
@@ -492,22 +540,25 @@ export class LoginComponent implements AfterViewInit {
           this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
         },
         error: () => {
-          this.error.set('Hệ thống đăng nhập qua Google đang bảo trì.');
+          this.toast.error('Hệ thống đăng nhập qua Google đang bảo trì.');
         }
       });
   }
 
   loginWithFacebook(): void {
-    this.error.set('Tính năng Facebook hiện đang được cập nhật.');
+    this.toast.info('Tính năng Facebook hiện đang được cập nhật.');
+  }
+
+  googleNotConfigured(): void {
+    this.toast.error('Chưa cấu hình Google Client ID nên chưa thể đăng nhập bằng Google.');
   }
 
   save(): void {
-    this.error.set('');
     const u = (this.usernameOrEmail || '').trim();
     const p = (this.password || '').trim();
 
     if (!u || !p) {
-      this.error.set('Vui lòng điền đầy đủ thông tin đăng nhập.');
+      this.toast.error('Vui lòng điền đầy đủ thông tin đăng nhập.');
       return;
     }
 
@@ -516,7 +567,7 @@ export class LoginComponent implements AfterViewInit {
       next: (res: any) => {
         this.loading.set(false);
         if (!res?.success) {
-          this.error.set(res?.message || 'Tài khoản hoặc mật khẩu không chính xác.');
+          this.toast.error(res?.message || 'Tài khoản hoặc mật khẩu không chính xác.');
           return;
         }
         const data = res?.data;
@@ -526,7 +577,7 @@ export class LoginComponent implements AfterViewInit {
       },
       error: (err: any) => {
         this.loading.set(false);
-        this.error.set(err?.error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại kết nối.');
+        this.toast.error(err?.error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại kết nối.');
       }
     });
   }

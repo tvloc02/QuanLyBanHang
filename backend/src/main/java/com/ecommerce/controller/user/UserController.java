@@ -43,40 +43,45 @@
          if (userId == null) {
              throw new BadRequestException("Unauthorized");
          }
-         User u = userRepository.findById(userId)
-             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-         u.setFullName(normalize(request.getFullName()));
-         u.setPhone(normalize(request.getPhone()));
-         u.setProvince(normalize(request.getProvince()));
-         u.setDistrict(normalize(request.getDistrict()));
-         u.setWard(normalize(request.getWard()));
-         u.setAddressDetail(normalize(request.getAddressDetail()));
-         u.setUpdatedAt(Instant.now());
+        User u = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-         u = userRepository.save(u);
-         return ResponseEntity.ok(ApiResponse.ok(toMe(u)));
-     }
+        u.setFullName(normalize(request.getFullName()));
+        u.setPhone(normalize(request.getPhone()));
+        u.setProvince(normalize(request.getProvince()));
+        u.setDistrict(normalize(request.getDistrict()));
+        u.setWard(normalize(request.getWard()));
+        u.setAddressDetail(normalize(request.getAddressDetail()));
+        u.setLatitude(request.getLatitude());
+        u.setLongitude(request.getLongitude());
+        u.setUpdatedAt(Instant.now());
 
-     private static String normalize(String s) {
-         if (s == null) return null;
-         String t = s.trim();
-         return t.isEmpty() ? null : t;
-     }
+        u = userRepository.save(u);
+        return ResponseEntity.ok(ApiResponse.ok(toMe(u)));
+      }
 
-     private static UserMeResponse toMe(User u) {
-         UserMeResponse out = new UserMeResponse();
-         out.setId(u.getId());
-         out.setFullName(u.getFullName());
-         out.setEmail(u.getEmail());
-         out.setUsername(u.getUsername());
-         out.setPhone(u.getPhone());
-         out.setProvince(u.getProvince());
-         out.setDistrict(u.getDistrict());
-         out.setWard(u.getWard());
-         out.setAddressDetail(u.getAddressDetail());
-         out.setCreatedAt(u.getCreatedAt());
-         out.setUpdatedAt(u.getUpdatedAt());
-         return out;
-     }
- }
+      private static String normalize(String s) {
+          if (s == null) return null;
+          String t = s.trim();
+          return t.isEmpty() ? null : t;
+      }
+
+      private static UserMeResponse toMe(User u) {
+          UserMeResponse out = new UserMeResponse();
+          out.setId(u.getId());
+          out.setFullName(u.getFullName());
+          out.setEmail(u.getEmail());
+          out.setUsername(u.getUsername());
+          out.setPhone(u.getPhone());
+          out.setProvince(u.getProvince());
+          out.setDistrict(u.getDistrict());
+          out.setWard(u.getWard());
+          out.setAddressDetail(u.getAddressDetail());
+          out.setLatitude(u.getLatitude());
+          out.setLongitude(u.getLongitude());
+          out.setCreatedAt(u.getCreatedAt());
+          out.setUpdatedAt(u.getUpdatedAt());
+          return out;
+      }
+  }

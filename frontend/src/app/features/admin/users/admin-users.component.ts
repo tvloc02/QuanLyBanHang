@@ -14,6 +14,11 @@ export class AdminUsersComponent {
   loading = false;
   error = '';
   rows: AdminUserResponse[] = [];
+
+  q = '';
+  roleFilter: 'ALL' | 'ADMIN' | 'STAFF' | 'CUSTOMER' = 'ALL';
+  statusFilter: 'ALL' | 'ACTIVE' | 'LOCKED' = 'ALL';
+
   createOpen = false;
   createLoading = false;
   viewOpen = false;
@@ -44,6 +49,49 @@ export class AdminUsersComponent {
     this.load();
   }
 
+  get totalCount(): number {
+    return this.rows.length;
+  }
+
+  get activeCount(): number {
+    return this.rows.filter((x) => x.enabled !== false).length;
+  }
+
+  get lockedCount(): number {
+    return this.rows.filter((x) => x.enabled === false).length;
+  }
+
+  get filteredRows(): AdminUserResponse[] {
+    const q = (this.q || '').trim().toLowerCase();
+    return (this.rows || []).filter((r) => {
+      if (!r) return false;
+
+      if (this.roleFilter !== 'ALL') {
+        const role = this.primaryRole(r);
+        if (role !== this.roleFilter) return false;
+      }
+
+      if (this.statusFilter !== 'ALL') {
+        const enabled = r.enabled !== false;
+        if (this.statusFilter === 'ACTIVE' && !enabled) return false;
+        if (this.statusFilter === 'LOCKED' && enabled) return false;
+      }
+
+      if (!q) return true;
+      const hay = [
+        r.id,
+        r.fullName || '',
+        r.email || '',
+        r.username || '',
+        r.phone || '',
+        this.formatRoles(r.roles)
+      ]
+        .map((x) => (x ?? '').toString().toLowerCase())
+        .join(' ');
+      return hay.includes(q);
+    });
+  }
+
   exportCsv(): void {
     const headers = ['ID', 'Họ tên', 'Email', 'Username', 'SĐT', 'Vai trò', 'Trạng thái', 'Ngày tạo'];
     const escape = (v: unknown) => {
@@ -51,7 +99,7 @@ export class AdminUsersComponent {
       return '"' + s.replaceAll('"', '""') + '"';
     };
     const lines = [headers.map(escape).join(',')];
-    for (const r of this.rows) {
+    for (const r of this.filteredRows) {
       lines.push(
         [
           r.id,
@@ -98,6 +146,13 @@ export class AdminUsersComponent {
       default:
         return role || '-';
     }
+  }
+
+  primaryRole(row: AdminUserResponse): 'ADMIN' | 'STAFF' | 'CUSTOMER' {
+    const roles = row?.roles || [];
+    if (roles.includes('ADMIN')) return 'ADMIN';
+    if (roles.includes('STAFF')) return 'STAFF';
+    return 'CUSTOMER';
   }
 
   load(): void {
@@ -180,7 +235,24 @@ export class AdminUsersComponent {
   }
 
   onDelete(row: AdminUserResponse): void {
-    console.log('delete user', row);
+    if (!row?.id) return;
+    const name = row.fullName || row.username || row.email || `#${row.id}`;
+    const ok = confirm(`Xóa người dùng ${name}? Thao tác này không thể hoàn tác.`);
+    if (!ok) return;
+
+    this.error = '';
+    this.adminData.deleteUser(row.id).subscribe({
+      next: (res) => {
+        if (!res?.success) {
+          this.error = res?.message || 'Xóa người dùng thất bại.';
+          return;
+        }
+        this.load();
+      },
+      error: () => {
+        this.error = 'Không thể xóa người dùng. Vui lòng thử lại.';
+      }
+    });
   }
 
   onResetPassword(row: AdminUserResponse): void {

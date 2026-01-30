@@ -71,11 +71,38 @@
     </div>
   </section>
 
+  <section id="cart-saving" class="section" *ngIf="cartSavingLinks.length > 0 || cartSavingProducts.length > 0">
+    <div class="container">
+      <h2 class="section-title">{{ cartSavingTitle }}</h2>
+
+      <div class="cart-saving-grid" *ngIf="cartSavingLinks.length > 0">
+        <a class="saving-link" *ngFor="let l of cartSavingLinks" [routerLink]="l.route">
+          <div class="saving-main">
+            <div class="saving-title">{{ l.title }}</div>
+            <div class="saving-desc" *ngIf="l.description">{{ l.description }}</div>
+          </div>
+          <div class="saving-cta">{{ l.buttonText || 'Xem ngay' }}</div>
+        </a>
+      </div>
+
+      <div class="card-grid" *ngIf="cartSavingProducts.length > 0">
+        <a class="card" *ngFor="let p of cartSavingProducts" [routerLink]="p.route">
+          <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
+          <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
+          <div class="card-body">
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-price" *ngIf="p.priceText">{{ p.priceText }}</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <section id="vouchers" class="section">
     <div class="container">
-      <h2 class="section-title">{{ cfg.vouchersTitle }}</h2>
+      <h2 class="section-title">{{ vouchersTitle }}</h2>
       <div class="voucher-grid">
-        <div class="voucher" *ngFor="let v of cfg.vouchers">
+        <div class="voucher" *ngFor="let v of vouchers">
           <div class="voucher-main">
             <div class="voucher-title">{{ v.title }}</div>
             <div class="voucher-code">Mã: <b>{{ v.code }}</b></div>
@@ -197,9 +224,9 @@
 
   <section id="news" class="section">
     <div class="container">
-      <h2 class="section-title">{{ cfg.newsTitle }}</h2>
+      <h2 class="section-title">{{ newsTitle }}</h2>
       <div class="news-grid">
-        <a class="news" *ngFor="let n of cfg.news" [routerLink]="n.route">
+        <a class="news" *ngFor="let n of newsItems" [routerLink]="n.route">
           <img class="news-img" [src]="n.imageUrl" [alt]="n.title" />
           <div class="news-body">
             <div class="news-title">{{ n.title }}</div>

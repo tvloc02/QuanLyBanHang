@@ -1,12 +1,13 @@
 <div class="page">
   <div class="page-head">
-    <div class="title">Đơn hàng</div>
+    <div class="title">{{ viewTitle }}</div>
     <button class="btn" type="button" (click)="load()" [disabled]="loading">
       {{ loading ? 'Đang tải...' : 'Làm mới' }}
     </button>
   </div>
 
   <div class="alert" *ngIf="error">{{ error }}</div>
+  <div class="alert" *ngIf="!error && viewNote">{{ viewNote }}</div>
 
   <div class="card">
     <table class="tbl">

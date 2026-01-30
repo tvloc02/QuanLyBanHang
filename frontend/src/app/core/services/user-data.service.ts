@@ -18,6 +18,8 @@ export interface UserMeResponse {
   district?: string | null;
   ward?: string | null;
   addressDetail?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -29,6 +31,8 @@ export interface UserMeUpdateRequest {
   district?: string | null;
   ward?: string | null;
   addressDetail?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })

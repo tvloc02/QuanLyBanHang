@@ -20,19 +20,19 @@
  @Entity
  @Table(name = "users")
  public class User {
- 
+
      @Id
      @GeneratedValue(strategy = GenerationType.IDENTITY)
      private Long id;
- 
+
      private String fullName;
- 
+
      @Column(unique = true)
      private String email;
- 
+
      @Column(unique = true)
      private String username;
- 
+
      private String password;
 
      private String phone;
@@ -44,6 +44,10 @@
      private String ward;
 
      private String addressDetail;
+
+     private Double latitude;
+
+     private Double longitude;
 
      @ElementCollection(fetch = FetchType.EAGER)
      @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
@@ -138,6 +142,22 @@
 
      public void setAddressDetail(String addressDetail) {
          this.addressDetail = addressDetail;
+     }
+
+     public Double getLatitude() {
+         return latitude;
+     }
+
+     public void setLatitude(Double latitude) {
+         this.latitude = latitude;
+     }
+
+     public Double getLongitude() {
+         return longitude;
+     }
+
+     public void setLongitude(Double longitude) {
+         this.longitude = longitude;
      }
 
      public Set<UserRole> getRoles() {

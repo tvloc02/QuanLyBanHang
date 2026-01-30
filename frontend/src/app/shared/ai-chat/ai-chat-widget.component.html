@@ -1,8 +1,14 @@
 <div class="ai-chat" #wrap>
-  <button type="button" class="ai-chat__fab" (click)="toggle()" aria-label="Chat AI">
-    <span class="ai-chat__fab-dot" *ngIf="!open"></span>
-    <span class="ai-chat__fab-text">AI</span>
-  </button>
+  <div class="ai-chat__fabs">
+    <button type="button" class="ai-chat__fab is-support" (click)="toggleSupport()" aria-label="Chat với nhân viên">
+      <span class="ai-chat__fab-text">💬</span>
+    </button>
+
+    <button type="button" class="ai-chat__fab" (click)="toggle()" aria-label="Chat AI">
+      <span class="ai-chat__fab-dot" *ngIf="!open"></span>
+      <span class="ai-chat__fab-text">AI</span>
+    </button>
+  </div>
 
   <div class="ai-chat__panel" *ngIf="open" (click)="$event.stopPropagation()">
     <div class="ai-chat__head">
@@ -46,6 +52,41 @@
         (keydown)="onInputKeydown($any($event))"
       ></textarea>
       <button type="button" class="ai-chat__send" [disabled]="!canSend()" (click)="send()">Gửi</button>
+    </div>
+  </div>
+
+  <div class="ai-chat__panel" *ngIf="supportOpen" (click)="$event.stopPropagation()">
+    <div class="ai-chat__head">
+      <div class="ai-chat__title">Chat với nhân viên</div>
+      <button type="button" class="ai-chat__close" (click)="closeSupport()" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="ai-chat__body" #supportList>
+      <div class="ai-chat__empty" *ngIf="supportMessages.length === 0">
+        Hãy nhập tin nhắn để nhân viên hỗ trợ.
+      </div>
+
+      <div class="ai-chat__msg" *ngFor="let m of supportMessages" [class.is-user]="m.sender === 'CUSTOMER'" [class.is-ai]="m.sender === 'STAFF'">
+        <div class="ai-chat__bubble">{{ m.text }}</div>
+      </div>
+
+      <div class="ai-chat__msg is-ai" *ngIf="supportSending">
+        <div class="ai-chat__bubble">Đang gửi...</div>
+      </div>
+
+      <div class="ai-chat__error" *ngIf="supportError">{{ supportError }}</div>
+    </div>
+
+    <div class="ai-chat__foot">
+      <textarea
+        class="ai-chat__input"
+        rows="1"
+        [disabled]="supportSending"
+        [(ngModel)]="supportInput"
+        placeholder="Nhập tin nhắn cho nhân viên..."
+        (keydown)="onSupportInputKeydown($any($event))"
+      ></textarea>
+      <button type="button" class="ai-chat__send" [disabled]="supportSending" (click)="sendSupport()">Gửi</button>
     </div>
   </div>
 </div>

@@ -43,6 +43,7 @@
          if (userId == null) {
              throw new BadRequestException("Unauthorized");
          }
+
          User u = userRepository.findById(userId)
              .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -52,6 +53,8 @@
          u.setDistrict(normalize(request.getDistrict()));
          u.setWard(normalize(request.getWard()));
          u.setAddressDetail(normalize(request.getAddressDetail()));
+         u.setLatitude(request.getLatitude());
+         u.setLongitude(request.getLongitude());
          u.setUpdatedAt(Instant.now());
 
          u = userRepository.save(u);
@@ -75,6 +78,8 @@
          out.setDistrict(u.getDistrict());
          out.setWard(u.getWard());
          out.setAddressDetail(u.getAddressDetail());
+         out.setLatitude(u.getLatitude());
+         out.setLongitude(u.getLongitude());
          out.setCreatedAt(u.getCreatedAt());
          out.setUpdatedAt(u.getUpdatedAt());
          return out;

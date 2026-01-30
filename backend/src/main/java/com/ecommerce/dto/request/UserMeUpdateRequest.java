@@ -14,6 +14,10 @@ public class UserMeUpdateRequest {
 
     private String addressDetail;
 
+    private Double latitude;
+
+    private Double longitude;
+
     public UserMeUpdateRequest() {}
 
     public String getFullName() {
@@ -62,5 +66,21 @@ public class UserMeUpdateRequest {
 
     public void setAddressDetail(String addressDetail) {
         this.addressDetail = addressDetail;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 }

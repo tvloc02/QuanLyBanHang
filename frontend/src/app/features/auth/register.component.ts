@@ -4,6 +4,7 @@ import { AfterViewInit, Component, ChangeDetectionStrategy, signal, inject } fro
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { of } from 'rxjs';
+import { ToastService } from '../../shared/toast/toast.service';
 
 /**
  * Mock environment and service for Canvas preview.
@@ -120,10 +121,6 @@ class AuthService {
             </div>
           </div>
 
-          <div class="error-message" *ngIf="error()">
-            {{ error() }}
-          </div>
-
           <button class="register-button" (click)="submit()" [disabled]="loading()">
             <span *ngIf="!loading()">Đăng Ký Ngay</span>
             <span *ngIf="loading()" class="loader"></span>
@@ -189,9 +186,9 @@ class AuthService {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 540px; /* Tăng chiều rộng để thoải mái hơn */
+      max-width: 580px; /* Tăng chiều rộng để thoải mái hơn */
       background: var(--bg-card);
-      border-radius: 28px;
+      border-radius: 48px;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
       overflow: hidden;
       animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -203,7 +200,7 @@ class AuthService {
     }
 
     .auth-header {
-      padding: 24px 32px 0;
+      padding: 32px 48px 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -239,7 +236,7 @@ class AuthService {
     .back-home svg { width: 20px; height: 20px; }
 
     .auth-body {
-      padding: 16px 32px 32px;
+      padding: 16px 48px 48px;
     }
 
     .form-title {
@@ -410,11 +407,17 @@ class AuthService {
       cursor: pointer;
     }
 
+    .facebook-btn svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
     .google-wrapper {
       width: 100%;
       height: 42px;
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
       overflow: hidden;
     }
 
@@ -434,10 +437,19 @@ class AuthService {
       .auth-card { border-radius: 0; max-width: none; height: 100vh; }
       .auth-container { padding: 0; }
       .background-overlay { display: none; }
+
+      .social-row {
+        grid-template-columns: 1fr;
+      }
+
+      .google-wrapper {
+        justify-content: center;
+      }
     }
   `]
 })
 export class RegisterComponent implements AfterViewInit {
+
   firstName = '';
   lastName = '';
   phone = '';
@@ -447,10 +459,10 @@ export class RegisterComponent implements AfterViewInit {
   gender = 'Nam';
   showPassword = signal(false);
   loading = signal(false);
-  error = signal('');
 
   private router = inject(Router);
   private http = inject(HttpClient);
+  private toast = inject(ToastService);
 
   ngAfterViewInit(): void {
     /** * Đảm bảo kiểm tra google tồn tại trước khi khởi tạo 
@@ -468,15 +480,17 @@ export class RegisterComponent implements AfterViewInit {
     }
 
     try {
+      const googleBtnEl = document.getElementById('googleBtn');
+      const width = this.getGoogleBtnWidth(googleBtnEl?.parentElement as HTMLElement | null);
       g.accounts.id.initialize({
         client_id: environment.googleClientId,
         callback: (resp: any) => console.log('Google Resp:', resp)
       });
-      g.accounts.id.renderButton(document.getElementById('googleBtn'), {
+      g.accounts.id.renderButton(googleBtnEl, {
         theme: 'outline',
         size: 'large',
-        shape: 'rectangular',
-        width: 220, // Kích thước phù hợp cho 2 cột
+        shape: 'pill',
+        width,
         text: 'signup_with'
       });
     } catch (e) {
@@ -484,23 +498,29 @@ export class RegisterComponent implements AfterViewInit {
     }
   }
 
+  private getGoogleBtnWidth(el: HTMLElement | null): number {
+    const w = el?.getBoundingClientRect?.().width;
+    if (typeof w === 'number' && isFinite(w) && w > 0) return Math.floor(w);
+    return 220;
+  }
+
   socialAction(): void {
-    this.error.set('Hệ thống đang được bảo trì.');
+    this.toast.info('Hệ thống đang được bảo trì.');
   }
 
   submit(): void {
-    this.error.set('');
     if (!this.email || !this.password || !this.phone) {
-      this.error.set('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      this.toast.error('Vui lòng điền đầy đủ các thông tin bắt buộc.');
       return;
     }
     if (this.password !== this.confirmPassword) {
-      this.error.set('Mật khẩu xác nhận không trùng khớp.');
+      this.toast.error('Mật khẩu xác nhận không trùng khớp.');
       return;
     }
     this.loading.set(true);
     setTimeout(() => {
       this.loading.set(false);
+      this.toast.success('Đăng ký thành công');
       this.router.navigateByUrl('/login');
     }, 1500);
   }

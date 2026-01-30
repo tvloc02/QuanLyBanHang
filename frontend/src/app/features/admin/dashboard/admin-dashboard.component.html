@@ -51,6 +51,100 @@
     </div>
   </section>
 
+  <section class="charts">
+    <div class="chart">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Doanh thu 7 ngày</div>
+          <div class="chart-sub">Tổng tiền đơn hàng theo ngày</div>
+        </div>
+        <div class="chip">VNĐ</div>
+      </div>
+
+      <div class="chart-body">
+        <div class="svg-wrap">
+          <svg class="svg" viewBox="0 0 700 220" role="img" aria-label="Doanh thu 7 ngày">
+            <g>
+              <line x1="18" y1="202" x2="682" y2="202" stroke="rgba(0,0,0,0.12)" stroke-width="1" />
+              <ng-container *ngFor="let b of revenueBars">
+                <rect
+                  class="bar bar--revenue"
+                  [attr.x]="b.x"
+                  [attr.y]="b.y"
+                  [attr.width]="b.w"
+                  [attr.height]="b.h"
+                  rx="10"
+                ></rect>
+              </ng-container>
+            </g>
+          </svg>
+          <div class="xlabels">
+            <div class="xlab" *ngFor="let p of revenue7d">{{ p.label }}</div>
+          </div>
+          <div class="sum">Tổng 7 ngày: {{ formatInt(revenue7dTotal) }} đ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Số đơn 7 ngày</div>
+          <div class="chart-sub">Số lượng đơn phát sinh theo ngày</div>
+        </div>
+        <div class="chip">Đơn</div>
+      </div>
+
+      <div class="chart-body">
+        <div class="svg-wrap">
+          <svg class="svg" viewBox="0 0 700 220" role="img" aria-label="Số đơn 7 ngày">
+            <g>
+              <line x1="18" y1="202" x2="682" y2="202" stroke="rgba(0,0,0,0.12)" stroke-width="1" />
+              <ng-container *ngFor="let b of ordersBars">
+                <rect
+                  class="bar bar--orders"
+                  [attr.x]="b.x"
+                  [attr.y]="b.y"
+                  [attr.width]="b.w"
+                  [attr.height]="b.h"
+                  rx="10"
+                ></rect>
+              </ng-container>
+            </g>
+          </svg>
+          <div class="xlabels">
+            <div class="xlab" *ngFor="let p of orders7d">{{ p.label }}</div>
+          </div>
+          <div class="sum">Tổng 7 ngày: {{ formatInt(orders7dTotal) }} đơn</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart wide">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Phân bổ trạng thái đơn</div>
+          <div class="chart-sub">Tỷ trọng theo từng trạng thái</div>
+        </div>
+        <div class="chip">{{ stats?.orders ?? 0 }} đơn</div>
+      </div>
+
+      <div class="chart-body">
+        <div class="status-list">
+          <div class="st" *ngFor="let s of statusStats">
+            <div class="st-top">
+              <div class="st-name">{{ s.label }}</div>
+              <div class="st-meta">{{ formatInt(s.count) }} ({{ s.pct }}%)</div>
+            </div>
+            <div class="st-bar">
+              <div class="st-fill" [style.width.%]="s.pct"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="grid">
     <div class="panel">
       <div class="panel-head">

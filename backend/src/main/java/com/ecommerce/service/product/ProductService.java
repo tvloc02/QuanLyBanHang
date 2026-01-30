@@ -23,11 +23,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Service
 public class ProductService {
@@ -39,6 +44,50 @@ public class ProductService {
     public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+    }
+
+    private String generateSku(String name) {
+        String abbr = abbreviateName(name);
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        String datePart = today.format(DateTimeFormatter.ofPattern("ddMMyy"));
+        String prefix = (abbr + datePart).toUpperCase();
+
+        int next = 1;
+        String last = productRepository.findTopBySkuStartingWithOrderBySkuDesc(prefix)
+            .map(Product::getSku)
+            .orElse(null);
+        if (last != null && last.length() >= prefix.length() + 4) {
+            String suffix = last.substring(last.length() - 4);
+            try {
+                int n = Integer.parseInt(suffix);
+                if (n >= 0) next = n + 1;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        return prefix + String.format("%04d", next);
+    }
+
+    private static final Pattern NON_ALNUM = Pattern.compile("[^A-Za-z0-9 ]+");
+    private static final Pattern MULTI_SPACE = Pattern.compile("\\s+");
+
+    private static String abbreviateName(String input) {
+        String s = (input == null ? "" : input).trim();
+        if (s.isEmpty()) return "SP";
+
+        s = Normalizer.normalize(s, Normalizer.Form.NFD);
+        s = s.replaceAll("\\p{M}+", "");
+        s = s.replace('đ', 'd').replace('Đ', 'D');
+        s = NON_ALNUM.matcher(s).replaceAll(" ");
+        s = MULTI_SPACE.matcher(s).replaceAll(" ").trim();
+        if (s.isEmpty()) return "SP";
+
+        StringBuilder sb = new StringBuilder();
+        for (String part : s.split(" ")) {
+            if (part.isBlank()) continue;
+            sb.append(Character.toUpperCase(part.charAt(0)));
+        }
+        return sb.length() > 0 ? sb.toString() : "SP";
     }
 
     public List<ProductResponse> list() {
@@ -60,6 +109,9 @@ public class ProductService {
     public ProductResponse create(ProductUpsertRequest req) {
         Product product = new Product();
         applyUpsert(product, req);
+        if (product.getSku() == null || product.getSku().trim().isEmpty()) {
+            product.setSku(generateSku(product.getName()));
+        }
         Product saved = productRepository.save(product);
         return toResponse(saved);
     }
@@ -142,7 +194,9 @@ public class ProductService {
     }
 
     private static void applyUpsert(Product product, ProductUpsertRequest req) {
-        product.setSku(req.getSku());
+        if (req.getSku() != null && !req.getSku().trim().isEmpty()) {
+            product.setSku(req.getSku().trim());
+        }
         product.setName(req.getName());
         product.setSlug(req.getSlug());
         product.setDescription(req.getDescription());

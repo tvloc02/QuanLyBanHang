@@ -33,12 +33,14 @@ export interface AdminCouponResponse {
   id: number;
   code: string;
   description?: string | null;
+  type?: 'customer_segment' | 'customer_shipping' | 'order_amount' | null;
   discountAmount?: number | null;
   discountPercent?: number | null;
   minOrderAmount?: number | null;
   maxDiscountAmount?: number | null;
   shippingDiscountAmount?: number | null;
   allowedSegments?: string | null;
+  targetAudience?: string | null;
   usageLimit?: number | null;
   usedCount?: number | null;
   startsAt?: string | null;
@@ -95,6 +97,60 @@ export interface AdminNotificationSettingsResponse {
   notifyOrderStatus?: boolean | null;
   notifyLowStock?: boolean | null;
   updatedAt?: string | null;
+}
+
+export type AdminHomeSectionItemType = 'PRODUCT' | 'COUPON' | 'NEWS' | 'LINK';
+
+export interface HomeSectionItemResponse {
+  id?: number | null;
+  sectionKey?: string | null;
+  position?: number | null;
+  enabled?: boolean | null;
+  itemType?: AdminHomeSectionItemType | null;
+  refId?: number | null;
+  title?: string | null;
+  titleColor?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  route?: string | null;
+  code?: string | null;
+  note?: string | null;
+  noteColor?: string | null;
+  buttonText?: string | null;
+  product?: any;
+  coupon?: any;
+}
+
+export interface HomeSectionResponse {
+  sectionKey?: string | null;
+  title?: string | null;
+  enabled?: boolean | null;
+  updatedAt?: string | null;
+  items?: HomeSectionItemResponse[] | null;
+}
+
+export type SupportConversationStatus = 'OPEN' | 'CLOSED';
+
+export interface SupportConversationResponse {
+  id?: number | null;
+  userId?: number | null;
+  guestToken?: string | null;
+  status?: SupportConversationStatus | null;
+  assignedStaffId?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  lastMessageAt?: string | null;
+}
+
+export type SupportMessageSenderType = 'CUSTOMER' | 'STAFF';
+
+export interface SupportMessageResponse {
+  id?: number | null;
+  conversationId?: number | null;
+  senderType?: SupportMessageSenderType | null;
+  senderUserId?: number | null;
+  message?: string | null;
+  createdAt?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -182,6 +238,42 @@ export class AdminDataService {
   updateNotificationSettings(data: { enabled?: boolean; notifyNewOrder?: boolean; notifyOrderStatus?: boolean; notifyLowStock?: boolean }) {
     return this.http.put<ApiResponse<AdminNotificationSettingsResponse>>(
       `${environment.apiBaseUrl}/api/admin/settings/notifications`,
+      data
+    );
+  }
+
+  getHomeSections() {
+    return this.http.get<ApiResponse<HomeSectionResponse[]>>(`${environment.apiBaseUrl}/api/admin/home-sections`);
+  }
+
+  listSupportConversations(status?: 'all') {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.http.get<ApiResponse<SupportConversationResponse[]>>(`${environment.apiBaseUrl}/api/admin/support-chat/conversations${qs}`);
+  }
+
+  listSupportMessages(conversationId: number) {
+    return this.http.get<ApiResponse<SupportMessageResponse[]>>(
+      `${environment.apiBaseUrl}/api/admin/support-chat/conversations/${conversationId}/messages`
+    );
+  }
+
+  sendSupportMessage(conversationId: number, data: { message: string }) {
+    return this.http.post<ApiResponse<SupportMessageResponse>>(
+      `${environment.apiBaseUrl}/api/admin/support-chat/conversations/${conversationId}/messages`,
+      data
+    );
+  }
+
+  closeSupportConversation(conversationId: number) {
+    return this.http.put<ApiResponse<SupportConversationResponse>>(
+      `${environment.apiBaseUrl}/api/admin/support-chat/conversations/${conversationId}/close`,
+      {}
+    );
+  }
+
+  updateHomeSection(sectionKey: string, data: { title?: string | null; enabled?: boolean | null; items?: Array<{ enabled?: boolean | null; itemType?: AdminHomeSectionItemType | null; refId?: number | null; title?: string | null; description?: string | null; imageUrl?: string | null; route?: string | null; code?: string | null; note?: string | null; buttonText?: string | null }> }) {
+    return this.http.put<ApiResponse<HomeSectionResponse>>(
+      `${environment.apiBaseUrl}/api/admin/home-sections/${encodeURIComponent(sectionKey)}`,
       data
     );
   }

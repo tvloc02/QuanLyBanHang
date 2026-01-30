@@ -1,87 +1,129 @@
 <div class="page">
   <div class="page-head">
-    <div class="title">Cấu hình mail</div>
+    <div class="head-left">
+      <div class="title">Cấu hình mail</div>
+      <div class="subtitle">Thiết lập SMTP để hệ thống gửi email (xác nhận đơn hàng, thông báo...)</div>
+    </div>
     <div class="head-actions">
-      <button class="btn" type="button" (click)="load()" [disabled]="loading || saving">
+      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading || saving">
+        <span class="btn-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </span>
         {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+
+      <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">
+        <span class="btn-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        </span>
+        {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
       </button>
     </div>
   </div>
 
   <div class="alert" *ngIf="error">{{ error }}</div>
 
-  <div class="card">
-    <div class="card-title">SMTP</div>
+  <div class="layout">
+    <div class="main">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">SMTP</div>
+            <div class="card-sub">Thông tin máy chủ SMTP và thông tin người gửi</div>
+          </div>
+        </div>
 
-    <div class="meta" *ngIf="settings">
-      <div class="meta-row">
-        <span class="k">Trạng thái</span>
-        <span class="v">{{ settings.enabled ? 'Đang bật' : 'Đang tắt' }}</span>
-      </div>
-      <div class="meta-row">
-        <span class="k">Mật khẩu</span>
-        <span class="v">{{ settings.hasPassword ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
-      </div>
-      <div class="meta-row" *ngIf="settings.updatedAt">
-        <span class="k">Cập nhật</span>
-        <span class="v">{{ settings.updatedAt }}</span>
+        <div class="card-body">
+          <div class="form">
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Bật gửi mail</label>
+                <select class="input" [(ngModel)]="form.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label">TLS</label>
+                <select class="input" [(ngModel)]="form.useTls">
+                  <option [ngValue]="true">Bật TLS</option>
+                  <option [ngValue]="false">Không TLS</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">SMTP Host</label>
+                <input class="input" [(ngModel)]="form.smtpHost" placeholder="smtp.gmail.com" />
+              </div>
+              <div class="field">
+                <label class="label">SMTP Port</label>
+                <input class="input" type="number" [(ngModel)]="form.smtpPort" />
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">SMTP Username</label>
+                <input class="input" [(ngModel)]="form.smtpUsername" placeholder="example@gmail.com" />
+              </div>
+              <div class="field">
+                <label class="label">SMTP Password</label>
+                <input class="input" type="password" [(ngModel)]="form.smtpPassword" placeholder="Chỉ nhập khi muốn đổi" />
+                <label class="chk"><input type="checkbox" [(ngModel)]="form.clearPassword" /> Xóa mật khẩu đang lưu</label>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">From Email</label>
+                <input class="input" [(ngModel)]="form.fromEmail" placeholder="no-reply@yourdomain.com" />
+              </div>
+              <div class="field">
+                <label class="label">From Name</label>
+                <input class="input" [(ngModel)]="form.fromName" placeholder="FashionHub" />
+              </div>
+            </div>
+
+            <div class="hint">Mật khẩu SMTP không được hiển thị lại. Bạn có thể để trống nếu không muốn thay đổi.</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="form">
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Bật gửi mail</label>
-          <select class="input" [(ngModel)]="form.enabled">
-            <option [ngValue]="true">Bật</option>
-            <option [ngValue]="false">Tắt</option>
-          </select>
+    <div class="side">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Trạng thái</div>
+            <div class="card-sub">Tóm tắt cấu hình hiện tại</div>
+          </div>
         </div>
-        <div class="field">
-          <label class="label">TLS</label>
-          <select class="input" [(ngModel)]="form.useTls">
-            <option [ngValue]="true">Bật TLS</option>
-            <option [ngValue]="false">Không TLS</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="grid2">
-        <div class="field">
-          <label class="label">SMTP Host</label>
-          <input class="input" [(ngModel)]="form.smtpHost" placeholder="smtp.gmail.com" />
-        </div>
-        <div class="field">
-          <label class="label">SMTP Port</label>
-          <input class="input" type="number" [(ngModel)]="form.smtpPort" />
-        </div>
-      </div>
+        <div class="card-body">
+          <div class="meta" *ngIf="settings">
+            <div class="meta-row">
+              <span class="k">Gửi mail</span>
+              <span class="badge" [class.off]="!settings.enabled">{{ settings.enabled ? 'Đang bật' : 'Đang tắt' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="k">Mật khẩu</span>
+              <span class="badge" [class.off]="!settings.hasPassword">{{ settings.hasPassword ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
+            </div>
+            <div class="meta-row" *ngIf="settings.updatedAt">
+              <span class="k">Cập nhật</span>
+              <span class="v">{{ settings.updatedAt }}</span>
+            </div>
+          </div>
 
-      <div class="grid2">
-        <div class="field">
-          <label class="label">SMTP Username</label>
-          <input class="input" [(ngModel)]="form.smtpUsername" placeholder="example@gmail.com" />
+          <div class="meta" *ngIf="!settings">
+            <div class="meta-row">
+              <span class="k">Trạng thái</span>
+              <span class="v">Chưa có dữ liệu</span>
+            </div>
+          </div>
         </div>
-        <div class="field">
-          <label class="label">SMTP Password</label>
-          <input class="input" type="password" [(ngModel)]="form.smtpPassword" placeholder="Nhập để cập nhật" />
-          <label class="chk"><input type="checkbox" [(ngModel)]="form.clearPassword" /> Xóa mật khẩu</label>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">From Email</label>
-          <input class="input" [(ngModel)]="form.fromEmail" placeholder="no-reply@yourdomain.com" />
-        </div>
-        <div class="field">
-          <label class="label">From Name</label>
-          <input class="input" [(ngModel)]="form.fromName" placeholder="FashionHub" />
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</button>
       </div>
     </div>
   </div>

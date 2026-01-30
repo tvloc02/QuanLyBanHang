@@ -23,6 +23,8 @@ public class Product {
     @Column(unique = true, nullable = false, length = 255)
     private String slug;
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String description;
 
     @Column(nullable = false)

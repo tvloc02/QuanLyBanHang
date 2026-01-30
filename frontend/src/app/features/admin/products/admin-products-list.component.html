@@ -6,8 +6,9 @@
     </div>
 
     <div class="head-actions">
-      <input class="search" [(ngModel)]="q" placeholder="Tìm theo tên/slug/category/brand..." />
+      <input class="search" [(ngModel)]="q" (ngModelChange)="onQueryChange()" placeholder="Tìm kiếm sản phẩm..." />
       <button class="btn ghost" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
+      <button class="btn ghost" type="button" (click)="exportCsv()" [disabled]="loading || totalRecords === 0">Xuất CSV</button>
       <a class="btn" routerLink="/admin/products/new">+ Thêm sản phẩm</a>
     </div>
   </div>
@@ -16,70 +17,113 @@
   <div class="alert success" *ngIf="success">{{ success }}</div>
 
   <div class="card">
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th style="width: 70px">Ảnh</th>
-          <th>Tên</th>
-          <th style="width: 180px">Danh mục</th>
-          <th style="width: 150px">Brand</th>
-          <th style="width: 120px" class="right">Giá</th>
-          <th style="width: 110px" class="right">Tồn</th>
-          <th style="width: 110px">Trạng thái</th>
-          <th style="width: 170px" class="right">Thao tác</th>
-        </tr>
-      </thead>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width: 60px" class="center">STT</th>
+            <th style="width: 120px" class="center">Mã sản phẩm</th>
+            <th class="center">Tên Sản phẩm</th>
+            <th style="width: 140px" class="center">Danh mục</th>
+            <th style="width: 130px" class="center">Màu sắc</th>
+            <th style="width: 100px" class="center">Kích cỡ</th>
+            <th style="width: 110px" class="center">Số lượng</th>
+            <th style="width: 100px" class="center">Đã bán</th>
+            <th style="width: 110px" class="center">Còn lại</th>
+            <th style="width: 180px" class="center">Thao tác</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        <tr *ngIf="!loading && filteredProducts.length === 0">
-          <td colspan="8" class="empty">Chưa có sản phẩm.</td>
-        </tr>
+        <tbody>
+          <tr *ngIf="!loading && totalRecords === 0">
+            <td colspan="10" class="empty">Chưa có sản phẩm.</td>
+          </tr>
 
-        <tr *ngFor="let p of filteredProducts">
-          <td>
-            <div class="thumb">
-              <img *ngIf="p.imageUrl" [src]="p.imageUrl" alt="thumb" />
-            </div>
-          </td>
+          <tr *ngFor="let p of pagedProducts; let i = index">
+            <td class="center">{{ rowNumber(i) }}</td>
 
-          <td>
-            <div class="pname">{{ p.name }}</div>
-            <div class="pslug">/{{ p.slug }}</div>
-            <div class="meta" *ngIf="(p.colors?.length || 0) > 0 || (p.sizes?.length || 0) > 0">
-              <span *ngIf="(p.colors?.length || 0) > 0">Màu: {{ p.colors?.length }}</span>
-              <span *ngIf="(p.sizes?.length || 0) > 0">Size: {{ p.sizes?.length }}</span>
-            </div>
-          </td>
+            <td>
+              <div class="code">{{ productCode(p) }}</div>
+              <div class="id">#{{ p.id }}</div>
+            </td>
 
-          <td>
-            <div class="cat">{{ p.category }}</div>
-            <div class="cat-sub" *ngIf="(p.categoryIds?.length || 0) > 1">+{{ (p.categoryIds?.length || 0) - 1 }} danh mục</div>
-          </td>
+            <td>
+              <div class="pname">{{ p.name }}</div>
+              <div class="pslug">/{{ p.slug }}</div>
+            </td>
 
-          <td>{{ p.brand }}</td>
+            <td>
+              <div class="cat">{{ p.category }}</div>
+              <div class="cat-sub" *ngIf="(p.categoryIds?.length || 0) > 1">+{{ (p.categoryIds?.length || 0) - 1 }} danh mục</div>
+            </td>
 
-          <td class="right">
-            <div class="money">{{ formatMoney(p.price) }}</div>
-            <div class="old" *ngIf="p.oldPrice">{{ formatMoney(p.oldPrice) }}</div>
-          </td>
+            <td>
+              <div class="list" [title]="(p.colors || []).join(', ')">{{ (p.colors?.length || 0) > 0 ? (p.colors || []).join(', ') : '-' }}</div>
+            </td>
 
-          <td class="right">{{ p.stock }}</td>
+            <td>
+              <div class="list" [title]="(p.sizes || []).join(', ')">{{ (p.sizes?.length || 0) > 0 ? (p.sizes || []).join(', ') : '-' }}</div>
+            </td>
 
-          <td>
-            <span class="badge" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Bật' }}</span>
-          </td>
+            <td class="right">{{ p.stock }}</td>
 
-          <td class="right">
-            <div class="row-actions">
-              <a class="btn sm ghost" [routerLink]="['/admin/products', p.id]">Xem</a>
-              <a class="btn sm" [routerLink]="['/admin/products', p.id, 'edit']">Sửa</a>
-              <button class="btn sm danger" type="button" (click)="remove(p)" [disabled]="deletingId === p.id">
-                {{ deletingId === p.id ? 'Đang xóa...' : 'Xóa' }}
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <td class="right">{{ soldCount(p) }}</td>
+
+            <td class="right">{{ remainingCount(p) }}</td>
+
+            <td class="center">
+              <div class="row-actions">
+                <a class="icon-btn" [routerLink]="['/admin/products', p.id]" title="Xem chi tiết">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </a>
+                <a class="icon-btn edit" [routerLink]="['/admin/products', p.id, 'edit']" title="Chỉnh sửa">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
+                </a>
+                <button class="icon-btn delete" type="button" (click)="remove(p)" [disabled]="deletingId === p.id" title="Xóa">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="page-footer">
+        <div class="left">
+          <select class="page-size" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+            <option *ngFor="let s of pageSizeOptions" [ngValue]="s">{{ s }} / trang</option>
+          </select>
+
+          <div class="total">Tổng số bản ghi: {{ formatInt(totalRecords) }}</div>
+
+          <div class="page-info" *ngIf="pageCount > 1">Trang {{ page }} / {{ pageCount }}</div>
+        </div>
+
+        <div class="pager" *ngIf="pageCount > 1">
+          <button class="pg" type="button" (click)="goToPage(1)" [disabled]="page === 1">«</button>
+          <button class="pg" type="button" (click)="prevPage()" [disabled]="page === 1">‹</button>
+
+          <button
+            class="pg"
+            type="button"
+            *ngFor="let p of pagesToShow()"
+            (click)="goToPage(p)"
+            [class.active]="p === page"
+          >
+            {{ p }}
+          </button>
+
+          <button class="pg" type="button" (click)="nextPage()" [disabled]="page === pageCount">›</button>
+          <button class="pg" type="button" (click)="goToPage(pageCount)" [disabled]="page === pageCount">»</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

@@ -15,17 +15,39 @@ export class AdminCouponsComponent {
   error = '';
   rows: AdminCouponResponse[] = [];
 
+  activeTab: 'customer' | 'order' = 'customer';
+
+  // Danh sách phân khúc khách hàng
+  segments = [
+    { value: 'TIEM_NANG', label: 'Tiềm năng' },
+    { value: 'THAN_THIET', label: 'Thân thiết' },
+    { value: 'BAC', label: 'Bạc' },
+    { value: 'VANG', label: 'Vàng' },
+    { value: 'KIM_CUONG', label: 'Kim cương' }
+  ];
+
+  // Danh sách đối tượng áp dụng
+  audiences = [
+    { value: 'TIEM_NANG', label: 'Tiềm năng' },
+    { value: 'THAN_THIET', label: 'Thân thiết' },
+    { value: 'BAC', label: 'Bạc' },
+    { value: 'VANG', label: 'Vàng' },
+    { value: 'KIM_CUONG', label: 'Kim cương' }
+  ];
+
   createOpen = false;
   createLoading = false;
   form: {
     code: string;
     description?: string;
+    type?: 'customer_segment' | 'customer_shipping' | 'order_amount' | null;
     discountAmount?: number | null;
     discountPercent?: number | null;
     minOrderAmount?: number | null;
     maxDiscountAmount?: number | null;
     shippingDiscountAmount?: number | null;
-    allowedSegments?: string | null;
+    allowedSegments?: string[] | null;
+    targetAudience?: string[] | null;
     usageLimit?: number | null;
     startsAt?: string | null;
     endsAt?: string | null;
@@ -33,12 +55,14 @@ export class AdminCouponsComponent {
   } = {
     code: '',
     description: '',
+    type: 'customer_segment',
     discountAmount: null,
     discountPercent: null,
     minOrderAmount: null,
     maxDiscountAmount: null,
     shippingDiscountAmount: null,
-    allowedSegments: null,
+    allowedSegments: [],
+    targetAudience: [],
     usageLimit: null,
     startsAt: null,
     endsAt: null,
@@ -51,12 +75,14 @@ export class AdminCouponsComponent {
     id?: number;
     code: string;
     description?: string;
+    type?: 'customer_segment' | 'customer_shipping' | 'order_amount' | null;
     discountAmount?: number | null;
     discountPercent?: number | null;
     minOrderAmount?: number | null;
     maxDiscountAmount?: number | null;
     shippingDiscountAmount?: number | null;
-    allowedSegments?: string | null;
+    allowedSegments?: string[] | null;
+    targetAudience?: string[] | null;
     usageLimit?: number | null;
     startsAt?: string | null;
     endsAt?: string | null;
@@ -65,12 +91,14 @@ export class AdminCouponsComponent {
     id: undefined,
     code: '',
     description: '',
+    type: 'customer_segment',
     discountAmount: null,
     discountPercent: null,
     minOrderAmount: null,
     maxDiscountAmount: null,
     shippingDiscountAmount: null,
-    allowedSegments: null,
+    allowedSegments: [],
+    targetAudience: [],
     usageLimit: null,
     startsAt: null,
     endsAt: null,
@@ -80,6 +108,32 @@ export class AdminCouponsComponent {
   constructor(private adminData: AdminDataService) {
     this.load();
   }
+
+  selectTab(tab: 'customer' | 'order'): void {
+    this.activeTab = tab;
+  }
+
+  getTabCount(tab: string): number {
+    let types: string[] = [];
+    if (tab === 'customer') {
+      types = ['customer_segment', 'customer_shipping'];
+    } else if (tab === 'order') {
+      types = ['order_amount'];
+    }
+    return this.rows.filter(r => types.includes(r.type || '')).length;
+  }
+
+  getFilteredRows(): AdminCouponResponse[] {
+    let types: string[] = [];
+    if (this.activeTab === 'customer') {
+      types = ['customer_segment', 'customer_shipping'];
+    } else {
+      types = ['order_amount'];
+    }
+    return this.rows.filter(r => types.includes(r.type || ''));
+  }
+
+
 
   formatVnd(v?: number | null): string {
     const n = typeof v === 'number' && isFinite(v) ? v : 0;
@@ -100,6 +154,30 @@ export class AdminCouponsComponent {
       .map((p) => p.trim())
       .filter(Boolean)
       .join(', ');
+  }
+
+  toggleSegment(value: string, event: any): void {
+    const checked = event.target.checked;
+    if (!this.form.allowedSegments) this.form.allowedSegments = [];
+    if (checked) {
+      if (!this.form.allowedSegments.includes(value)) {
+        this.form.allowedSegments.push(value);
+      }
+    } else {
+      this.form.allowedSegments = this.form.allowedSegments.filter(s => s !== value);
+    }
+  }
+
+  toggleAudience(value: string, event: any): void {
+    const checked = event.target.checked;
+    if (!this.form.targetAudience) this.form.targetAudience = [];
+    if (checked) {
+      if (!this.form.targetAudience.includes(value)) {
+        this.form.targetAudience.push(value);
+      }
+    } else {
+      this.form.targetAudience = this.form.targetAudience.filter(a => a !== value);
+    }
   }
 
   load(): void {
@@ -168,7 +246,7 @@ export class AdminCouponsComponent {
       minOrderAmount: this.form.minOrderAmount ?? null,
       maxDiscountAmount: this.form.maxDiscountAmount ?? null,
       shippingDiscountAmount: this.form.shippingDiscountAmount ?? null,
-      allowedSegments: this.form.allowedSegments?.trim() || null,
+      allowedSegments: this.form.allowedSegments?.length ? this.form.allowedSegments.join(',') : null,
       usageLimit: this.form.usageLimit ?? null,
       startsAt: this.form.startsAt ?? null,
       endsAt: this.form.endsAt ?? null,
@@ -200,7 +278,7 @@ export class AdminCouponsComponent {
       minOrderAmount: row.minOrderAmount ?? null,
       maxDiscountAmount: row.maxDiscountAmount ?? null,
       shippingDiscountAmount: row.shippingDiscountAmount ?? null,
-      allowedSegments: row.allowedSegments ?? null,
+      allowedSegments: row.allowedSegments ? row.allowedSegments.split(',').map(s => s.trim()) : null,
       usageLimit: row.usageLimit ?? null,
       startsAt: row.startsAt ?? null,
       endsAt: row.endsAt ?? null,
@@ -239,7 +317,7 @@ export class AdminCouponsComponent {
       minOrderAmount: this.editForm.minOrderAmount ?? null,
       maxDiscountAmount: this.editForm.maxDiscountAmount ?? null,
       shippingDiscountAmount: this.editForm.shippingDiscountAmount ?? null,
-      allowedSegments: this.editForm.allowedSegments?.trim() || null,
+      allowedSegments: this.editForm.allowedSegments?.length ? this.editForm.allowedSegments.join(',') : null,
       usageLimit: this.editForm.usageLimit ?? null,
       startsAt: this.editForm.startsAt ?? null,
       endsAt: this.editForm.endsAt ?? null,

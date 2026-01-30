@@ -1,56 +1,404 @@
-<main class="sale-page">
-  <div class="container">
-    <div class="head">
-      <div class="title">Sale</div>
-      <div class="sub">Sản phẩm đang giảm giá từ hệ thống</div>
-      <div class="actions">
-        <button type="button" class="ghost" (click)="load()" [disabled]="loading">Làm mới</button>
-        <a class="ghost" routerLink="/">← Về trang chủ</a>
+<main class="bg-[var(--fh-bg)]">
+  <section *ngIf="heroEnabled" class="mx-auto w-full max-w-[1440px] px-3 pt-4">
+    <div class="relative overflow-hidden border border-[var(--fh-border)] bg-black shadow-sm">
+      <div
+        id="sale-hero-slider"
+        class="flex h-[70vh] snap-x snap-mandatory overflow-x-auto scroll-smooth"
+        (scroll)="onHeroScroll()"
+      >
+        <div *ngFor="let b of heroBanners" class="relative w-full shrink-0 snap-start">
+          <img class="h-full w-full object-cover" [src]="b.imageUrl" [alt]="b.alt" />
+        </div>
+      </div>
+
+      <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent"></div>
+
+      <div class="absolute inset-0 flex items-center px-6 py-10 sm:px-10">
+        <div class="max-w-[58ch] text-white">
+          <div class="inline-flex items-center rounded-full bg-white/15 px-4 py-2 text-xs font-extrabold tracking-[0.2em]">{{ heroLabel }}</div>
+          <div
+            class="mt-5 whitespace-pre-line text-4xl font-black tracking-tight leading-[1.15] sm:text-5xl lg:text-6xl"
+            [style.color]="activeHero.titleColor || null"
+          >
+            {{ activeHero.title }}
+          </div>
+          <div
+            *ngIf="activeHero.note"
+            class="mt-4 text-2xl font-black leading-tight sm:text-3xl"
+            [style.color]="activeHero.noteColor || null"
+          >
+            {{ activeHero.note }}
+          </div>
+          <div *ngIf="activeHero.description" class="mt-5 text-sm font-semibold leading-relaxed text-white/85">
+            {{ activeHero.description }}
+          </div>
+
+          <div class="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              class="inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-extrabold text-[rgba(193,18,31,1)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+              (click)="onHeroCtaClick()"
+            >
+              {{ activeHero.buttonText || 'Mua ngay' }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-11 items-center justify-center rounded-xl border border-white/35 bg-white/10 px-5 text-sm font-extrabold text-white shadow-sm transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
+              (click)="load()"
+              [disabled]="loading"
+            >
+              Làm mới
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button
+        *ngIf="heroBanners.length > 1"
+        type="button"
+        class="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/25 bg-black/25 text-white backdrop-blur transition hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+        (click)="prevHero()"
+        aria-label="Prev"
+      >
+        ‹
+      </button>
+      <button
+        *ngIf="heroBanners.length > 1"
+        type="button"
+        class="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/25 bg-black/25 text-white backdrop-blur transition hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+        (click)="nextHero()"
+        aria-label="Next"
+      >
+        ›
+      </button>
+
+      <div *ngIf="heroBanners.length > 1" class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
+        <button
+          *ngFor="let b of heroBanners; let i = index"
+          type="button"
+          class="h-2 w-2 rounded-full bg-white/50 transition"
+          [class.bg-white]="i === activeHeroIndex"
+          (click)="scrollHeroTo(i)"
+          [attr.aria-label]="'Slide ' + (i + 1)"
+        ></button>
       </div>
     </div>
+  </section>
 
-    <div class="status" *ngIf="loading">
-      <div class="spinner"></div>
+  <section *ngIf="vouchersEnabled" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-8 pt-6" [id]="'sale-sec-SALE_VOUCHERS'">
+    <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
+      <div class="text-center text-lg font-black tracking-wide text-[var(--fh-primary)]">{{ vouchersTitle }}</div>
+
+      <div *ngIf="vouchers.length > 0" class="mt-6 grid gap-4 md:grid-cols-3">
+        <div *ngFor="let v of vouchers" class="voucher-ticket">
+          <div class="voucher-ticket__main">
+            <div class="text-xs font-extrabold text-[var(--fh-primary)]">{{ v.title }}</div>
+            <div class="mt-1 text-xs font-semibold text-[var(--fh-text)]">
+              Nhập mã <span class="font-black">{{ v.code }}</span>
+            </div>
+            <div class="mt-1 text-[11px] font-semibold text-[var(--fh-muted)]">
+              {{ v.note }}
+            </div>
+          </div>
+
+          <div class="voucher-ticket__cta">
+            <button
+              type="button"
+              class="inline-flex h-9 items-center justify-center rounded-md bg-[var(--fh-primary)] px-3 text-[11px] font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+              (click)="copyVoucher(v.code)"
+            >
+              {{ isVoucherCopied(v.code) ? 'Đã sao chép' : (v.buttonText || 'Sao chép mã') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="vouchers.length === 0" class="mt-6 rounded-2xl border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] px-4 py-5 text-center">
+        <div class="text-sm font-black text-[var(--fh-text)]">Chưa có voucher</div>
+        <div class="mt-1 text-xs font-semibold text-[var(--fh-muted)]">Voucher sẽ hiển thị tại đây khi admin cấu hình section SALE_VOUCHERS.</div>
+      </div>
+    </div>
+  </section>
+
+  <section *ngIf="categoriesEnabled && categoryTiles.length > 0" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-8">
+    <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
+      <div class="text-center text-lg font-black tracking-wide text-[var(--fh-primary)]">{{ categoriesTitle }}</div>
+
+      <div class="sale-category-scroll-wrapper mt-5">
+        <button
+          type="button"
+          class="sale-scroll-btn left"
+          (click)="scrollCategory('left')"
+          aria-label="Scroll left"
+        >
+          ‹
+        </button>
+
+        <div id="sale-category-scroll" class="sale-quick-tiles-scroll">
+          <a
+            class="sale-quick-tile"
+            *ngFor="let cat of categoryTiles"
+            [routerLink]="['/category', cat.slug]"
+            [attr.aria-label]="cat.label"
+          >
+            <div class="sale-quick-tile-img">
+              <img [src]="cat.imageUrl" alt="" (error)="onCategoryTileImageError(cat)" />
+            </div>
+            <div class="sale-quick-tile-label">{{ cat.label }}</div>
+          </a>
+        </div>
+
+        <button
+          type="button"
+          class="sale-scroll-btn right"
+          (click)="scrollCategory('right')"
+          aria-label="Scroll right"
+        >
+          ›
+        </button>
+      </div>
+
+      <div class="mt-6 flex justify-center">
+        <button
+          type="button"
+          class="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-5 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+          (click)="scrollToProducts()"
+        >
+          Xem sản phẩm Sale
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section *ngIf="sectionsNavEnabled && visibleNavItems.length > 0" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-2">
+    <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-5 shadow-sm sm:px-8">
+      <div class="text-center text-lg font-black tracking-wide text-[var(--fh-primary)]">{{ sectionsNavTitle }}</div>
+      <div class="mt-4 flex flex-wrap justify-center gap-2">
+        <button
+          *ngFor="let it of visibleNavItems"
+          type="button"
+          class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-4 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+          (click)="scrollToSection(it.key)"
+        >
+          {{ it.title }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <ng-container *ngFor="let k of orderedSectionKeys">
+    <section *ngIf="k === 'FEATURED'" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-6" [id]="'sale-sec-FEATURED'">
+      <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-lg font-black tracking-tight text-[var(--fh-text)]">{{ sectionTitle('FEATURED') }}</div>
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-4 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]" (click)="scrollToProducts()">
+            Xem thêm
+          </button>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <button
+            *ngFor="let p of featuredProducts"
+            type="button"
+            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            (click)="goToProduct(p)"
+          >
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <div class="p-3">
+              <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
+              <div class="mt-2 flex items-end gap-2">
+                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+                <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="k === 'HOT'" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-6" [id]="'sale-sec-HOT'">
+      <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-lg font-black tracking-tight text-[var(--fh-text)]">{{ sectionTitle('HOT') }}</div>
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-4 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]" (click)="scrollToProducts()">
+            Xem thêm
+          </button>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <button
+            *ngFor="let p of hotProducts"
+            type="button"
+            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            (click)="goToProduct(p)"
+          >
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <div class="p-3">
+              <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
+              <div class="mt-2 flex items-end gap-2">
+                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+                <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="k === 'CART_SAVING'" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-6" [id]="'sale-sec-CART_SAVING'">
+      <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
+        <div class="text-lg font-black tracking-tight text-[var(--fh-text)]">{{ sectionTitle('CART_SAVING') }}</div>
+
+        <div *ngIf="cartSavingLinks.length > 0" class="mt-5 grid gap-3 md:grid-cols-3">
+          <a
+            *ngFor="let l of cartSavingLinks"
+            class="group flex items-start gap-3 rounded-2xl border border-[var(--fh-border)] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            [routerLink]="l.route"
+          >
+            <img *ngIf="l.imageUrl" class="h-14 w-14 rounded-xl object-cover bg-slate-100" [src]="l.imageUrl" alt="" />
+            <div class="min-w-0">
+              <div class="text-sm font-black text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ l.title }}</div>
+              <div *ngIf="l.description" class="mt-1 text-xs font-semibold text-[var(--fh-muted)]">{{ l.description }}</div>
+              <div class="mt-2 text-[11px] font-extrabold text-[var(--fh-primary)]">{{ l.buttonText || 'Xem ngay' }}</div>
+            </div>
+          </a>
+        </div>
+
+        <div *ngIf="cartSavingProducts.length > 0" class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <button
+            *ngFor="let p of cartSavingProducts"
+            type="button"
+            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            (click)="goToProduct(p)"
+          >
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <div class="p-3">
+              <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
+              <div class="mt-2 flex items-end gap-2">
+                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+                <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="k === 'EXCLUSIVE'" class="mx-auto mt-6 w-full max-w-[1440px] px-3 pb-6" [id]="'sale-sec-EXCLUSIVE'">
+      <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-lg font-black tracking-tight text-[var(--fh-text)]">{{ sectionTitle('EXCLUSIVE') }}</div>
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-4 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]" (click)="scrollToProducts()">
+            Xem thêm
+          </button>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <button
+            *ngFor="let p of exclusiveProducts"
+            type="button"
+            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            (click)="goToProduct(p)"
+          >
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <div class="p-3">
+              <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
+              <div class="mt-2 flex items-end gap-2">
+                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+                <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+
+  <section class="mx-auto w-full max-w-[1440px] px-3 pb-10" id="sale-products">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <div class="text-xl font-black tracking-tight text-[var(--fh-text)]">Sản phẩm đang giảm giá</div>
+        <div class="mt-1 text-sm font-semibold text-[var(--fh-muted)]">Tự động lọc theo oldPrice/discountPercent</div>
+      </div>
+      <a
+        class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+        routerLink="/"
+      >
+        ← Về trang chủ
+      </a>
+    </div>
+
+    <div *ngIf="loading" class="flex items-center gap-3 rounded-2xl border border-[var(--fh-border)] bg-white p-4 text-sm font-semibold text-[var(--fh-text)] shadow-sm">
+      <span class="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-[rgba(17,24,39,0.16)] border-t-[var(--fh-primary)]"></span>
       <span>Đang tải sản phẩm Sale...</span>
     </div>
 
-    <div class="status error" *ngIf="!loading && error">
+    <div *ngIf="!loading && error" class="rounded-2xl border border-[rgba(193,18,31,0.22)] bg-[rgba(193,18,31,0.06)] p-4 text-sm font-extrabold text-[var(--fh-primary)]">
       {{ error }}
     </div>
 
-    <div class="empty" *ngIf="!loading && !error && products.length === 0">
-      <div class="empty-title">Chưa có sản phẩm Sale</div>
-      <div class="empty-text">Hãy cấu hình giảm giá cho sản phẩm (oldPrice/discountPercent) trong admin.</div>
+    <div *ngIf="!loading && !error && products.length === 0" class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
+      <div class="text-base font-black text-[var(--fh-text)]">Chưa có sản phẩm Sale</div>
+      <div class="mt-1 text-sm font-semibold text-[var(--fh-muted)]">Hãy cấu hình giảm giá cho sản phẩm (oldPrice/discountPercent) trong admin.</div>
     </div>
 
-    <div class="grid" *ngIf="!loading && !error && products.length > 0">
-      <div class="card" *ngFor="let p of products">
-        <button type="button" class="img" (click)="goToProduct(p)">
-          <img [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
-          <span class="tag" *ngIf="p.badge">{{ p.badge }}</span>
-          <span class="disc" *ngIf="getDiscountLabel(p)">{{ getDiscountLabel(p) }}</span>
+    <div *ngIf="!loading && !error && products.length > 0" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        *ngFor="let p of products"
+        class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+      >
+        <button type="button" class="relative block w-full overflow-hidden" (click)="goToProduct(p)">
+          <img
+            class="h-[240px] w-full object-cover bg-slate-100 transition duration-300 group-hover:scale-[1.04]"
+            [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'"
+            [alt]="p.name"
+          />
+
+          <span *ngIf="p.badge" class="absolute left-3 top-3 inline-flex items-center rounded-full bg-[rgba(17,24,39,0.82)] px-3 py-1 text-[11px] font-extrabold tracking-wide text-white">
+            {{ p.badge }}
+          </span>
+          <span
+            *ngIf="getDiscountLabel(p)"
+            class="absolute right-3 top-3 inline-flex items-center rounded-full bg-[var(--fh-primary)] px-3 py-1 text-[11px] font-black tracking-wide text-[var(--fh-primary-contrast)] shadow"
+          >
+            {{ getDiscountLabel(p) }}
+          </span>
         </button>
 
-        <div class="body">
-          <button type="button" class="name" (click)="goToProduct(p)">{{ p.name }}</button>
-          <div class="meta">
+        <div class="p-4">
+          <button type="button" class="line-clamp-2 w-full text-left text-[15px] font-black leading-snug text-[var(--fh-text)] transition hover:text-[var(--fh-primary)]" (click)="goToProduct(p)">
+            {{ p.name }}
+          </button>
+
+          <div class="mt-1 text-xs font-semibold text-[var(--fh-muted)]">
             <span *ngIf="p.brand">{{ p.brand }}</span>
-            <span class="sep" *ngIf="p.brand && p.soldCount">•</span>
+            <span *ngIf="p.brand && p.soldCount" class="mx-1">•</span>
             <span *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
           </div>
-          <div class="price">
-            <span class="now">{{ formatMoney(p.price) }}đ</span>
-            <span class="old" *ngIf="p.oldPrice">{{ formatMoney(p.oldPrice) }}đ</span>
+
+          <div class="mt-3 flex items-end gap-2">
+            <span class="text-base font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+            <span *ngIf="p.oldPrice" class="text-xs font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
           </div>
 
-          <div class="cta">
-            <button type="button" class="btn ghost" (click)="addToCart(p)">Thêm giỏ</button>
-            <button type="button" class="btn primary" (click)="buyNow(p)">Mua ngay</button>
+          <div class="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--fh-border)] bg-white text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+              (click)="addToCart(p)"
+            >
+              <span>Thêm giỏ</span>
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--fh-primary)] bg-[var(--fh-primary)] text-sm font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+              (click)="buyNow(p)"
+            >
+              <span>Mua ngay</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <app-footer />
+  </section>
 </main>

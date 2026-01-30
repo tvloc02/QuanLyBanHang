@@ -76,12 +76,21 @@ export class AdminProductDetailComponent {
     this.load();
   }
 
+  private resolveImageUrl(input?: string | null): string {
+    const url = (input || '').toString().trim();
+    if (!url) return '';
+    if (/^data:/i.test(url)) return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    if (url.startsWith('/')) return `${environment.apiBaseUrl}${url}`;
+    return `${environment.apiBaseUrl}/${url}`;
+  }
+
   get images(): string[] {
     const p = this.product;
     if (!p) return [];
     const imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
-    if (imgs.length > 0) return imgs;
-    return p.imageUrl ? [p.imageUrl] : [];
+    if (imgs.length > 0) return imgs.map((x) => this.resolveImageUrl(x)).filter(Boolean);
+    return p.imageUrl ? [this.resolveImageUrl(p.imageUrl)].filter(Boolean) : [];
   }
 
   load(): void {

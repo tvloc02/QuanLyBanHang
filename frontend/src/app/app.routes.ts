@@ -5,6 +5,14 @@ import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent)
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./features/auth/register.component').then((m) => m.RegisterComponent)
+  },
+  {
     path: '',
     component: ShellComponent,
     children: [
@@ -19,14 +27,6 @@ export const routes: Routes = [
       {
         path: 'product/:slug',
         loadComponent: () => import('./features/product/product-detail.component').then((m) => m.ProductDetailComponent)
-      },
-      {
-        path: 'login',
-        loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent)
-      },
-      {
-        path: 'register',
-        loadComponent: () => import('./features/auth/register.component').then((m) => m.RegisterComponent)
       },
       {
         path: 'wishlist',
@@ -110,6 +110,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/customers/admin-customers.component').then((m) => m.AdminCustomersComponent)
       },
       {
+        path: 'sale-page',
+        loadComponent: () => import('./features/admin/sale-page/admin-sale-page.component').then((m) => m.AdminSalePageComponent)
+      },
+      {
         path: 'reviews',
         loadComponent: () => import('./features/admin/reviews/admin-reviews.component').then((m) => m.AdminReviewsComponent)
       },
@@ -127,8 +131,17 @@ export const routes: Routes = [
           {
             path: 'notifications',
             loadComponent: () => import('./features/admin/settings/admin-notification-settings.component').then((m) => m.AdminNotificationSettingsComponent)
+          },
+          {
+            path: 'home-sections',
+            loadComponent: () => import('./features/admin/settings/admin-home-sections.component').then((m) => m.AdminHomeSectionsComponent)
           }
         ]
+      }
+      ,
+      {
+        path: 'support-chat',
+        loadComponent: () => import('./features/admin/support-chat/admin-support-chat.component').then((m) => m.AdminSupportChatComponent)
       }
     ]
   },

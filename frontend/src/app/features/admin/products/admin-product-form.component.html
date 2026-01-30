@@ -2,7 +2,7 @@
   <div class="page-head">
     <div class="title">
       <div class="title-main">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }}</div>
-      <div class="title-sub">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/size' }}</div>
+      <div class="title-sub">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/kích cỡ' }}</div>
     </div>
 
     <div class="head-actions">
@@ -28,7 +28,7 @@
             </div>
 
             <div class="field">
-              <label class="label">Slug *</label>
+              <label class="label">Đường dẫn *</label>
               <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
             </div>
           </div>
@@ -62,12 +62,12 @@
 
           <div class="grid2">
             <div class="field">
-              <label class="label">Sizes (CSV)</label>
+              <label class="label">Kích cỡ (CSV)</label>
               <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
             </div>
 
             <div class="field">
-              <label class="label">Colors (CSV)</label>
+              <label class="label">Màu sắc (CSV)</label>
               <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
             </div>
           </div>
@@ -83,30 +83,73 @@
       <div class="card">
         <div class="card-head">Danh mục (cấp 3) *</div>
         <div class="card-body">
-          <div class="cat-box">
-            <div class="cat-box__head">
-              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilter" placeholder="Tìm danh mục..." />
-              <button class="btn ghost" type="button" (click)="clearSelectedCategories()">Xóa chọn</button>
-            </div>
+          <div class="cat-toolbar">
+            <button class="btn ghost" type="button" (click)="openCategoryModal()">Chọn danh mục</button>
+            <button class="btn ghost" type="button" (click)="clearSelectedCategories()" [disabled]="selectedCategoryLeafs.length===0">Xóa chọn</button>
+          </div>
 
-            <div class="cat-box__selected" *ngIf="selectedCategoryLeafs.length > 0">
-              <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
-            </div>
-
-            <div class="cat-box__list">
-              <label class="cat-item" *ngFor="let cat of filteredLeafCategories">
-                <input type="checkbox" [checked]="selectedCategoryIds.has(cat.id)" (change)="toggleCategory(cat)" />
-                <span class="cat-item__name">{{ cat.name }}</span>
-                <span class="cat-item__slug">/{{ cat.slug }}</span>
-              </label>
-            </div>
+          <div class="cat-selected" *ngIf="selectedCategoryLeafs.length > 0">
+            <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
           </div>
 
           <div class="hint">Đã chọn: <code>{{ selectedCategoryLeafs.length }}</code> danh mục</div>
 
-          <div class="field" style="margin-top: 10px">
-            <label class="label">Category slug (tương thích lọc hiện tại) *</label>
-            <input class="input" formControlName="category" placeholder="slug danh mục (tự set theo danh mục đầu tiên)" />
+          <input type="hidden" formControlName="category" />
+        </div>
+      </div>
+
+      <div class="cat-overlay" *ngIf="categoryModalOpen">
+        <div class="cat-modal">
+          <div class="cat-head">
+            <div class="cat-title">Chọn danh mục</div>
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">×</button>
+          </div>
+
+          <div class="cat-body">
+            <div class="cat-search">
+              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="Tìm danh mục..." />
+              <div class="cat-search-hint">Chỉ tick ở danh mục con (cấp 3).</div>
+            </div>
+
+            <div class="cat-tree">
+              <ng-container *ngTemplateOutlet="treeTpl; context: { $implicit: categoryTree, level: 0 }"></ng-container>
+            </div>
+
+            <ng-template #treeTpl let-nodes let-level="level">
+              <div class="cat-nodes">
+                <ng-container *ngFor="let node of (nodes || [])">
+                  <div class="cat-row">
+                    <div class="cat-left" [style.paddingLeft.px]="12 + level * 16">
+                      <button
+                        class="cat-exp"
+                        type="button"
+                        *ngIf="node.children?.length"
+                        (click)="toggleExpandCategory(node)"
+                        [attr.aria-label]="isExpandedCategory(node) ? 'Thu gọn' : 'Mở rộng'"
+                      >
+                        {{ isExpandedCategory(node) ? '−' : '+' }}
+                      </button>
+                      <span class="cat-name">{{ node.name }}</span>
+                    </div>
+
+                    <div class="cat-right">
+                      <label class="cat-check" *ngIf="isLeafCategory(node)">
+                        <input type="checkbox" [checked]="selectedCategoryIds.has(node.id)" (change)="toggleCategory(node)" />
+                        <span>Chọn</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="cat-children" *ngIf="node.children?.length && (categoryFilter ? true : isExpandedCategory(node))">
+                    <ng-container *ngTemplateOutlet="treeTpl; context: { $implicit: node.children, level: level + 1 }"></ng-container>
+                  </div>
+                </ng-container>
+              </div>
+            </ng-template>
+          </div>
+
+          <div class="cat-actions">
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">Đóng</button>
           </div>
         </div>
       </div>
@@ -139,16 +182,20 @@
                 <label class="label">Ảnh theo màu</label>
                 <div class="images">
                   <div class="img-row" *ngFor="let ic of variantImages(i).controls; let j = index">
-                    <input class="input" [formControlName]="j" placeholder="https://..." />
-                    <input type="file" accept="image/*" (change)="onVariantFileSelect(i, j, $event)" style="margin-left:8px" />
-                    <button class="btn ghost" type="button" (click)="removeVariantImage(i, j)" style="margin-left:8px">Xóa</button>
+                    <button class="thumb-btn" type="button" *ngIf="variantPreview(i, j)" (click)="openCropVariant(i, j)">
+                      <img class="thumb-img" [src]="variantPreview(i, j)" alt="preview" />
+                    </button>
+                    <input type="hidden" [formControlName]="j" />
+                    <input class="file-input" type="file" accept="image/*" [id]="'variantFile' + i + '_' + j" (change)="onVariantFileSelect(i, j, $event)" />
+                    <label class="btn ghost file-btn" [for]="'variantFile' + i + '_' + j">Chọn ảnh</label>
+                    <button class="btn ghost danger" type="button" (click)="removeVariantImage(i, j)" style="margin-left:8px">Xóa</button>
                   </div>
                   <button class="btn ghost" type="button" (click)="addVariantImage(i)">+ Thêm ảnh</button>
                 </div>
               </div>
 
               <div class="field" formArrayName="stocks">
-                <label class="label">Tồn kho theo size</label>
+                <label class="label">Tồn kho theo kích cỡ</label>
                 <div class="stock-grid">
                   <div class="stock-row" *ngFor="let sc of variantStocks(i).controls; let k = index" [formGroupName]="k">
                     <div class="stock-size">{{ sc.get('size')?.value }}</div>
@@ -160,7 +207,7 @@
           </div>
 
           <div class="empty" *ngIf="variants.length === 0">
-            Chưa có biến thể. Bạn có thể nhập <b>sizes/colors</b> rồi bấm <b>“Tạo biến thể theo màu”</b>.
+            Chưa có biến thể. Bạn có thể nhập <b>kích cỡ/màu sắc</b> rồi bấm <b>“Tạo biến thể theo màu”</b>.
           </div>
         </div>
       </div>
@@ -168,14 +215,57 @@
       <div class="card">
         <div class="card-head">Ảnh sản phẩm (tổng)</div>
         <div class="card-body">
-          <div class="images" formArrayName="images">
+          <div class="img-layout-toolbar">
+            <div class="img-layout-label">Bố cục hiển thị</div>
+            <select
+              class="input img-layout-select"
+              [ngModel]="imageLayout"
+              (ngModelChange)="setImageLayout($event)"
+              [ngModelOptions]="{ standalone: true }"
+              name="imageLayout"
+            >
+              <option value="free">Tự do</option>
+              <option value="1-4">1 lớn - 4 nhỏ</option>
+              <option value="1-3">1 lớn - 3 nhỏ</option>
+              <option value="2-2">2 - 2 (4 ảnh bằng nhau)</option>
+            </select>
+          </div>
+
+          <div class="images" formArrayName="images" *ngIf="imageLayout === 'free'">
             <div class="img-row" *ngFor="let c of images.controls; let i = index">
-              <input class="input" [formControlName]="i" placeholder="https://..." />
-              <input type="file" accept="image/*" (change)="onFileSelect(i, $event)" style="margin-left:8px" />
-              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính" style="margin-left:8px">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
-              <button class="btn ghost" type="button" (click)="removeImage(i)" style="margin-left:8px">Xóa</button>
+              <button class="thumb-btn" type="button" *ngIf="mainPreview(i)" (click)="openCropMain(i)">
+                <img class="thumb-img" [src]="mainPreview(i)" alt="preview" />
+              </button>
+              <input type="hidden" [formControlName]="i" />
+              <input class="file-input" type="file" accept="image/*" [id]="'mainFile' + i" (change)="onFileSelect(i, $event)" />
+              <label class="btn ghost file-btn" [for]="'mainFile' + i">Chọn ảnh</label>
+              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
+              <button class="btn ghost danger" type="button" (click)="removeImage(i)">Xóa</button>
             </div>
-            <button class="btn ghost" type="button" (click)="addImage()">+ Thêm ảnh</button>
+            <button class="btn ghost add-btn" type="button" (click)="addImage()">+ Thêm ảnh</button>
+          </div>
+
+          <div class="img-grid" formArrayName="images" *ngIf="imageLayout !== 'free'" [class.layout-1-4]="imageLayout==='1-4'" [class.layout-1-3]="imageLayout==='1-3'" [class.layout-2-2]="imageLayout==='2-2'">
+            <div class="slot" *ngFor="let c of images.controls; let i = index" [class.slot-0]="i===0" [class.empty]="!mainPreview(i)">
+              <button class="slot-preview" type="button" *ngIf="mainPreview(i)" (click)="openCropMain(i)">
+                <img class="slot-img" [src]="mainPreview(i)" alt="preview" />
+                <div class="slot-badge" *ngIf="i===0">Chính</div>
+              </button>
+
+              <div class="slot-empty" *ngIf="!mainPreview(i)">
+                <div class="slot-empty-title">Chưa có ảnh</div>
+                <div class="slot-empty-sub">Bấm chọn ảnh để thêm</div>
+              </div>
+
+              <input type="hidden" [formControlName]="i" />
+              <input class="file-input" type="file" accept="image/*" [id]="'mainGridFile' + i" (change)="onFileSelect(i, $event)" />
+
+              <div class="slot-actions">
+                <label class="btn ghost file-btn" [for]="'mainGridFile' + i">Chọn ảnh</label>
+                <button class="btn ghost" type="button" (click)="setMain(i)" [disabled]="i===0">{{ i === 0 ? 'Ảnh chính' : 'Đặt chính' }}</button>
+                <button class="btn ghost danger" type="button" (click)="clearImage(i)">Xóa</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -197,7 +287,7 @@
         <div class="card-body">
           <div class="summary">
             <div class="s-row"><span>Tên</span><b>{{ form.value.name || '-' }}</b></div>
-            <div class="s-row"><span>Slug</span><b>{{ form.value.slug || '-' }}</b></div>
+            <div class="s-row"><span>Đường dẫn</span><b>{{ form.value.slug || '-' }}</b></div>
             <div class="s-row"><span>Giá</span><b>{{ form.value.price }}</b></div>
             <div class="s-row"><span>Tồn</span><b>{{ form.value.stock }}</b></div>
             <div class="s-row"><span>Danh mục</span><b>{{ selectedCategoryLeafs.length }}</b></div>
@@ -210,6 +300,34 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="crop-overlay" *ngIf="cropOpen">
+  <div class="crop-modal">
+    <div class="crop-head">
+      <div class="crop-title">Cắt ảnh</div>
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">×</button>
+    </div>
+
+    <div class="crop-body">
+      <canvas
+        #cropCanvas
+        class="crop-canvas"
+        width="780"
+        height="440"
+        (mousedown)="onCropMouseDown($event)"
+        (mousemove)="onCropMouseMove($event)"
+        (mouseup)="onCropMouseUp($event)"
+        (mouseleave)="onCropMouseUp($event)"
+      ></canvas>
+      <div class="crop-hint">Kéo chuột để chọn vùng cắt. Kéo vùng đã chọn để di chuyển.</div>
+    </div>
+
+    <div class="crop-actions">
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Hủy</button>
+      <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cắt & Lưu</button>
     </div>
   </div>
 </div>
