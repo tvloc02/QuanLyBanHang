@@ -1,77 +1,139 @@
-<div class="page">
-  <div class="page-head">
-    <div class="head-left">
-      <div class="title">Người dùng</div>
-      <div class="subtitle">Quản lý tài khoản quản trị, nhân viên và khách hàng</div>
-    </div>
-    <div class="head-actions">
-      <button class="btn" type="button" (click)="openCreate()" [disabled]="loading">
-        <span class="btn-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-        </span>
-        Thêm người dùng
-      </button>
-      <button class="btn" type="button" (click)="exportCsv()" [disabled]="loading || filteredRows.length === 0">
-        <span class="btn-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </span>
-        Xuất CSV
-      </button>
-      <button class="btn" type="button" (click)="load()" [disabled]="loading">
-        <span class="btn-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-        </span>
-        {{ loading ? 'Đang tải...' : 'Làm mới' }}
-      </button>
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Quản lý người dùng</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Quản lý tài khoản quản trị, quản lý và nhân viên</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="openCreate()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-600 rounded-xl hover:shadow-xl hover:scale-105 transition-all font-semibold border border-transparent whitespace-nowrap text-sm disabled:opacity-60"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          <span>Thêm người dùng</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="exportCsv()"
+          [disabled]="loading || totalFiltered === 0"
+          class="flex items-center gap-2 px-3 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Xuất CSV</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-k">Tổng</div>
-      <div class="stat-v">{{ totalCount }}</div>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng</div>
+      <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ totalCount }}</div>
     </div>
-    <div class="stat">
-      <div class="stat-k">Hoạt động</div>
-      <div class="stat-v">{{ activeCount }}</div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Hoạt động</div>
+      <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ activeCount }}</div>
     </div>
-    <div class="stat">
-      <div class="stat-k">Bị khóa</div>
-      <div class="stat-v">{{ lockedCount }}</div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Bị khóa</div>
+      <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ lockedCount }}</div>
     </div>
   </div>
 
-  <div class="filters card">
-    <div class="filters-row">
-      <div class="search">
-        <span class="search-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </span>
-        <input class="search-input" [(ngModel)]="q" placeholder="Tìm theo tên, email, username, sđt..." />
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div class="p-5 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+      <div class="flex-1 min-w-[260px]">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tìm kiếm</label>
+        <div class="relative">
+          <svg viewBox="0 0 24 24" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input
+            class="w-full pl-11 pr-11 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900 placeholder-gray-400 shadow-sm focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-200/60"
+            [(ngModel)]="q"
+            (ngModelChange)="onFiltersChanged()"
+            placeholder="Tìm theo tên, email, username, sđt..."
+          />
+          <button
+            *ngIf="q"
+            type="button"
+            (click)="q=''; onFiltersChanged()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white hover:bg-blue-50 transition-colors"
+            aria-label="Xóa tìm kiếm"
+            title="Xóa"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+          </button>
+        </div>
       </div>
 
-      <div class="filter">
-        <label class="filter-label">Vai trò</label>
-        <select class="filter-input" [(ngModel)]="roleFilter">
-          <option value="ALL">Tất cả</option>
-          <option value="ADMIN">Quản trị</option>
-          <option value="STAFF">Nhân viên</option>
-          <option value="CUSTOMER">Khách hàng</option>
-        </select>
-      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Vai trò</label>
+          <div class="relative">
+            <select
+              class="appearance-none min-w-[180px] px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+              [(ngModel)]="roleFilter"
+              (ngModelChange)="onFiltersChanged()"
+            >
+              <option value="ALL">Tất cả</option>
+              <option value="ADMIN">Quản trị</option>
+              <option value="MANAGER">Quản lý</option>
+              <option value="STAFF">Nhân viên</option>
+            </select>
+            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
 
-      <div class="filter">
-        <label class="filter-label">Trạng thái</label>
-        <select class="filter-input" [(ngModel)]="statusFilter">
-          <option value="ALL">Tất cả</option>
-          <option value="ACTIVE">Hoạt động</option>
-          <option value="LOCKED">Khóa</option>
-        </select>
-      </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Trạng thái</label>
+          <div class="relative">
+            <select
+              class="appearance-none min-w-[180px] px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+              [(ngModel)]="statusFilter"
+              (ngModelChange)="onFiltersChanged()"
+            >
+              <option value="ALL">Tất cả</option>
+              <option value="ACTIVE">Hoạt động</option>
+              <option value="LOCKED">Khóa</option>
+            </select>
+            <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
 
-      <button class="btn ghost" type="button" (click)="q=''; roleFilter='ALL'; statusFilter='ALL'" [disabled]="loading">
-        Xóa lọc
-      </button>
+        <button
+          type="button"
+          (click)="q=''; roleFilter='ALL'; statusFilter='ALL'; onFiltersChanged()"
+          [disabled]="loading"
+          class="inline-flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-blue-50 transition-colors disabled:opacity-60"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/></svg>
+          <span>Xóa lọc</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -108,8 +170,8 @@
             <label class="label">Vai trò</label>
             <select class="input" [(ngModel)]="editForm.role">
               <option value="ADMIN">Quản trị</option>
+              <option value="MANAGER">Quản lý</option>
               <option value="STAFF">Nhân viên</option>
-              <option value="CUSTOMER">Khách hàng</option>
             </select>
           </div>
           <div class="field">
@@ -181,72 +243,156 @@
     </div>
   </div>
 
-  <div class="alert" *ngIf="error">{{ error }}</div>
+  <div *ngIf="error" class="rounded-xl border-2 border-red-200 bg-red-50 text-red-700 px-4 py-3 font-semibold">{{ error }}</div>
 
-  <div class="card">
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th style="width: 64px">ID</th>
-          <th style="width: 180px">Họ tên</th>
-          <th style="width: 220px">Email</th>
-          <th style="width: 130px">Username</th>
-          <th style="width: 120px">SĐT</th>
-          <th style="width: 120px">Vai trò</th>
-          <th style="width: 160px">Mật khẩu</th>
-          <th style="width: 118px">Trạng thái</th>
-          <th style="width: 184px">Thao tác</th>
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+      <thead class="sticky top-0 z-10">
+        <tr class="bg-gradient-to-r from-blue-50 to-sky-50">
+          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider w-24">ID</th>
+          <th class="px-4 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Người dùng</th>
+          <th class="px-4 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Email</th>
+          <th class="px-4 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">SĐT</th>
+          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Vai trò</th>
+          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Mật khẩu</th>
+          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Trạng thái</th>
+          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Thao tác</th>
         </tr>
       </thead>
-      <tbody>
-        <tr *ngIf="!loading && filteredRows.length === 0">
-          <td colspan="9" class="empty">{{ rows.length === 0 ? 'Chưa có người dùng.' : 'Không tìm thấy người dùng phù hợp.' }}</td>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <tr *ngIf="loading">
+          <td colspan="9" class="px-6 py-10 text-center text-gray-600 font-semibold">Đang tải dữ liệu...</td>
         </tr>
-        <tr *ngFor="let r of filteredRows">
-          <td>#{{ r.id }}</td>
-          <td class="strong">{{ r.fullName || '-' }}</td>
-          <td class="muted">{{ r.email || '-' }}</td>
-          <td>{{ r.username || '-' }}</td>
-          <td>{{ r.phone || '-' }}</td>
-          <td>
-            <span class="role" [attr.data-role]="primaryRole(r)">{{ roleLabel(primaryRole(r)) }}</span>
+        <tr *ngIf="!loading && totalFiltered === 0">
+          <td colspan="9" class="px-6 py-10 text-center text-gray-600 font-semibold">{{ rows.length === 0 ? 'Chưa có người dùng.' : 'Không tìm thấy người dùng phù hợp.' }}</td>
+        </tr>
+        <tr *ngFor="let r of pagedRows" class="hover:bg-blue-50/40 transition-colors">
+          <td class="px-4 py-4 text-center">
+            <div class="text-sm font-extrabold text-gray-700">#{{ r.id }}</div>
           </td>
-          <td>
-            <div class="pw-cell">
-              <span class="pw-mask">********</span>
-              <button class="btn icon-only ghost" type="button" (click)="onResetPassword(r)" title="Reset mật khẩu" aria-label="Reset mật khẩu" role="button">
+          <td class="px-4 py-4">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm" style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)">
+                {{ (r.fullName || r.username || r.email || 'U').toString().trim().charAt(0).toUpperCase() }}
+              </div>
+              <div class="min-w-0">
+                <div class="text-sm font-extrabold text-gray-900 truncate">{{ r.fullName || '-' }}</div>
+                <div class="text-xs font-semibold text-gray-500 truncate">{{ r.username || '-' }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-4">
+            <div class="text-sm font-semibold text-gray-700 truncate">{{ r.email || '-' }}</div>
+          </td>
+          <td class="px-4 py-4">
+            <div class="text-sm font-semibold text-gray-700 truncate">{{ r.phone || '-' }}</div>
+          </td>
+          <td class="px-4 py-4 text-center">
+            <span
+              class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold text-white shadow-sm"
+              [ngClass]="{
+                'bg-gradient-to-r from-red-500 to-pink-500': primaryRole(r) === 'ADMIN',
+                'bg-gradient-to-r from-indigo-500 to-purple-500': primaryRole(r) === 'MANAGER',
+                'bg-gradient-to-r from-cyan-500 to-blue-500': primaryRole(r) === 'STAFF'
+              }"
+            >
+              {{ roleLabel(primaryRole(r)) }}
+            </span>
+          </td>
+          <td class="px-4 py-4 text-center">
+            <div class="inline-flex items-center gap-2">
+              <span class="text-sm font-mono font-extrabold text-gray-500">••••••••</span>
+              <button
+                type="button"
+                (click)="onResetPassword(r)"
+                title="Reset mật khẩu"
+                aria-label="Reset mật khẩu"
+                class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm"
+              >
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11V7a4 4 0 0 1 8 0v4"/><rect x="3" y="11" width="14" height="10" rx="2"/><path d="M7 15h6"/></svg>
               </button>
             </div>
-            <div class="pw-hint">Reset về: 12345678</div>
+            <div class="mt-1 text-[11px] text-gray-400 font-semibold">Reset về: 12345678</div>
           </td>
-          <td>
-            <span class="badge" [class.off]="r.enabled === false">{{ r.enabled === false ? 'Khóa' : 'Hoạt động' }}</span>
+          <td class="px-4 py-4 text-center">
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border"
+              [ngClass]="r.enabled === false
+                ? 'bg-red-100 text-red-800 border-red-200'
+                : 'bg-green-100 text-green-800 border-green-200'"
+            >
+              {{ r.enabled === false ? 'Khóa' : 'Hoạt động' }}
+            </span>
           </td>
-          <td>
-            <div class="row-actions" style="display:flex; gap:8px; justify-content:center">
-              <button class="btn icon-only ghost" type="button" (click)="onView(r)" title="Xem" aria-label="Xem" role="button">
+          <td class="px-4 py-4">
+            <div class="flex items-center justify-center gap-2">
+              <button type="button" (click)="onView(r)" title="Xem" aria-label="Xem" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
-              <button class="btn icon-only ghost" type="button" (click)="onEdit(r)" title="Sửa" aria-label="Sửa" role="button">
+              <button type="button" (click)="onEdit(r)" title="Sửa" aria-label="Sửa" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-colors shadow-sm">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
               </button>
-              <button class="btn icon-only ghost" type="button" (click)="onToggleEnabled(r)" [title]="(r.enabled === false ? 'Mở khóa' : 'Khóa') + ' tài khoản'" [attr.aria-label]="(r.enabled === false ? 'Mở khóa' : 'Khóa') + ' tài khoản'" role="button">
+              <button
+                type="button"
+                (click)="onToggleEnabled(r)"
+                [title]="(r.enabled === false ? 'Mở khóa' : 'Khóa') + ' tài khoản'"
+                [attr.aria-label]="(r.enabled === false ? 'Mở khóa' : 'Khóa') + ' tài khoản'"
+                class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 bg-white transition-colors shadow-sm"
+                [ngClass]="r.enabled === false
+                  ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                  : 'border-purple-200 text-purple-700 hover:bg-purple-50'"
+              >
                 <svg *ngIf="r.enabled !== false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 <svg *ngIf="r.enabled === false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V9a5 5 0 0 1 7.5-4.33"/></svg>
               </button>
-              <button class="btn icon-only danger" type="button" (click)="onDelete(r)" title="Xóa" aria-label="Xóa" role="button">
+              <button type="button" (click)="onDelete(r)" title="Xóa" aria-label="Xóa" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors shadow-sm">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
           </td>
         </tr>
       </tbody>
-    </table>
-  </div>
+      </table>
+    </div>
 
-  <div class="list-footer">
-    <div class="result">Hiển thị {{ filteredRows.length }} / {{ rows.length }}</div>
+    <div class="px-5 py-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <select
+          class="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-3 pr-8 rounded-xl leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500/60 text-sm font-semibold shadow-sm hover:border-gray-400 transition-colors cursor-pointer"
+          [ngModel]="pageSize"
+          (ngModelChange)="setPageSize($event)"
+        >
+          <option *ngFor="let s of pageSizeOptions" [ngValue]="s">{{ s }}</option>
+        </select>
+
+        <div class="text-sm text-gray-700">
+          Tổng: <span class="font-bold">{{ totalFiltered }}</span>.
+          <span class="hidden sm:inline ml-1">Hiển thị {{ rangeFrom }} - {{ rangeTo }}</span>
+        </div>
+      </div>
+
+      <div class="inline-flex items-center rounded-xl border border-gray-200 overflow-hidden bg-white">
+        <button type="button" (click)="goToPage(1)" [disabled]="page === 1" class="px-3 py-2 text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+        <button type="button" (click)="goToPage(page - 1)" [disabled]="page === 1" class="px-3 py-2 text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
+
+        <ng-container *ngFor="let p of pageItems">
+          <button
+            *ngIf="p !== '...'"
+            type="button"
+            (click)="goToPage($any(p))"
+            class="px-4 py-2 text-sm font-bold border-l border-gray-200"
+            [ngClass]="$any(p) === page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-50'"
+          >
+            {{ p }}
+          </button>
+          <span *ngIf="p === '...'" class="px-4 py-2 text-sm font-bold text-gray-400 border-l border-gray-200">…</span>
+        </ng-container>
+
+        <button type="button" (click)="goToPage(page + 1)" [disabled]="page === totalPages" class="px-3 py-2 text-sm font-bold text-gray-500 border-l border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+        <button type="button" (click)="goToPage(totalPages)" [disabled]="page === totalPages" class="px-3 py-2 text-sm font-bold text-gray-500 border-l border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal thêm người dùng -->
@@ -282,8 +428,8 @@
             <label class="label">Vai trò</label>
             <select class="input" [(ngModel)]="form.role">
               <option value="ADMIN">Quản trị</option>
+              <option value="MANAGER">Quản lý</option>
               <option value="STAFF">Nhân viên</option>
-              <option value="CUSTOMER">Khách hàng</option>
             </select>
           </div>
           <div class="field">

@@ -1,16 +1,16 @@
 <main class="bg-[var(--fh-bg)]">
-  <div class="mx-auto w-full max-w-[1100px] px-3 py-8">
-    <a routerLink="/" class="inline-flex items-center gap-2 text-sm font-extrabold text-[var(--fh-primary)]">← Về trang chủ</a>
+  <div class="mx-auto w-full max-w-[1280px] px-4 py-10">
+    <a routerLink="/" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--fh-primary)]">← Về trang chủ</a>
 
-    <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
+    <div class="mt-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <div class="text-2xl font-black tracking-tight text-[var(--fh-text)]">Hồ sơ tài khoản</div>
-        <div class="mt-1 text-sm font-semibold text-[var(--fh-muted)]">Cập nhật thông tin liên hệ, địa chỉ và vị trí giao hàng.</div>
+        <div class="text-2xl font-bold tracking-tight text-[var(--fh-text)]">Hồ sơ tài khoản</div>
+        <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Cập nhật thông tin liên hệ, địa chỉ và vị trí giao hàng.</div>
       </div>
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-4 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] disabled:opacity-60"
+          class="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--fh-border)] bg-white px-4 text-sm font-semibold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] disabled:opacity-60"
           (click)="load()"
           [disabled]="loading || saving"
         >
@@ -19,7 +19,7 @@
         <button
           type="submit"
           form="profileForm"
-          class="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--fh-primary)] px-4 text-sm font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 disabled:opacity-60"
+          class="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--fh-primary)] px-4 text-sm font-semibold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 disabled:opacity-60"
           [disabled]="loading || saving"
         >
           {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
@@ -27,202 +27,473 @@
       </div>
     </div>
 
-    <div *ngIf="me" class="mt-4 flex flex-wrap gap-2">
-      <div class="inline-flex items-center gap-2 rounded-full border border-[var(--fh-border)] bg-white px-4 py-2 text-xs font-bold text-[var(--fh-text)] shadow-sm">
-        <span class="text-[var(--fh-muted)]">Email</span>
-        <span class="font-black">{{ me.email || '-' }}</span>
-      </div>
-      <div class="inline-flex items-center gap-2 rounded-full border border-[var(--fh-border)] bg-white px-4 py-2 text-xs font-bold text-[var(--fh-text)] shadow-sm">
-        <span class="text-[var(--fh-muted)]">Username</span>
-        <span class="font-black">{{ me.username || '-' }}</span>
+    <div class="pointer-events-none fixed right-5 top-5 z-[999]" *ngIf="toastVisible">
+      <div
+        class="pointer-events-auto w-[360px] max-w-[calc(100vw-40px)] rounded-lg border border-black/10 border-l-4 bg-white px-4 py-3 text-sm font-semibold shadow-xl"
+        [class.border-l-[rgba(22,163,74,1)]]="toastType === 'success'"
+        [class.text-[rgba(22,163,74,1)]]="toastType === 'success'"
+        [class.border-l-[rgba(193,18,31,1)]]="toastType === 'error'"
+        [class.text-[var(--fh-primary)]]="toastType === 'error'"
+      >
+        {{ toastMessage }}
       </div>
     </div>
 
-    <form id="profileForm" class="mt-4" [formGroup]="form" (ngSubmit)="save()">
-      <div class="grid gap-4 lg:grid-cols-3">
-        <div class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm lg:col-span-2">
-          <div class="text-base font-black text-[var(--fh-text)]">Thông tin liên hệ</div>
-          <div class="mt-1 text-xs font-semibold text-[var(--fh-muted)]">Thông tin dùng để liên hệ khi giao hàng.</div>
+    <form id="profileForm" class="mt-6" [formGroup]="form" (ngSubmit)="save()">
+      <div class="grid gap-3 items-start lg:grid-cols-[200px_minmax(0,1fr)]">
+        <div class="rounded-lg border border-[var(--fh-border)] bg-white p-3 shadow-sm self-start">
+          <div class="flex items-center gap-3">
+            <div class="relative h-12 w-12 overflow-hidden rounded-full border border-black/10 bg-[rgba(193,18,31,0.08)]">
+              <img *ngIf="avatarPreviewUrl" [src]="avatarPreviewUrl" alt="avatar" class="h-full w-full object-cover" />
+              <div *ngIf="!avatarPreviewUrl" class="flex h-full w-full items-center justify-center text-lg font-bold text-[var(--fh-primary)]">
+                {{ avatarInitial }}
+              </div>
+            </div>
+            <div class="min-w-0">
+              <div class="truncate text-sm font-semibold text-[var(--fh-text)]">{{ me?.username || 'Tài khoản' }}</div>
+              <div class="mt-1 truncate text-xs font-medium text-[var(--fh-muted)]">{{ me?.email || '' }}</div>
+            </div>
+          </div>
 
-          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="mt-4 border-t border-black/10 pt-4">
+            <div class="flex flex-col gap-3 columns-1" style="columns: 1 !important; column-count: 1 !important; -webkit-columns: 1 !important; -moz-columns: 1 !important;">
+              <button
+                type="button"
+                class="w-full rounded-md px-2 py-2 text-left text-sm font-semibold transition hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]"
+                [class.text-[var(--fh-primary)]]="activeSection === 'profile'"
+                [class.text-[var(--fh-text)]]="activeSection !== 'profile'"
+                (click)="setSection('profile')"
+              >Hồ Sơ</button>
+
+              <button
+                type="button"
+                class="w-full rounded-md px-2 py-2 text-left text-sm font-semibold transition hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]"
+                [class.text-[var(--fh-primary)]]="activeSection === 'password'"
+                [class.text-[var(--fh-text)]]="activeSection !== 'password'"
+                (click)="setSection('password')"
+              >Đổi Mật Khẩu</button>
+
+              <button
+                type="button"
+                class="w-full rounded-md px-2 py-2 text-left text-sm font-semibold transition hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]"
+                [class.text-[var(--fh-primary)]]="activeSection === 'address'"
+                [class.text-[var(--fh-text)]]="activeSection !== 'address'"
+                (click)="setSection('address')"
+              >Địa Chỉ</button>
+
+              <button
+                type="button"
+                class="w-full rounded-md px-2 py-2 text-left text-sm font-semibold transition hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]"
+                [class.text-[var(--fh-primary)]]="activeSection === 'bank'"
+                [class.text-[var(--fh-text)]]="activeSection !== 'bank'"
+                (click)="setSection('bank')"
+              >Ngân Hàng</button>
+
+              <button
+                type="button"
+                class="w-full rounded-md px-2 py-2 text-left text-sm font-semibold transition hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]"
+                [class.text-[var(--fh-primary)]]="activeSection === 'notifications'"
+                [class.text-[var(--fh-text)]]="activeSection !== 'notifications'"
+                (click)="setSection('notifications')"
+              >Cài Đặt Thông Báo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="min-w-0">
+          <div *ngIf="activeSection === 'profile'" class="grid gap-6 lg:grid-cols-3">
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm lg:col-span-2">
+              <div class="text-base font-bold text-[var(--fh-text)]">Hồ Sơ Của Tôi</div>
+              <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Quản lý thông tin hồ sơ để bảo mật tài khoản.</div>
+
+              <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Tên đăng nhập</div>
+                  <input
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] px-3 text-sm font-medium text-[var(--fh-text)]"
+                    [value]="me?.username || ''"
+                    readonly
+                  />
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Email</div>
+                  <input
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] px-3 text-sm font-medium text-[var(--fh-text)]"
+                    [value]="me?.email || ''"
+                    readonly
+                  />
+                </div>
+              </div>
+
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <div class="text-xs font-extrabold text-[var(--fh-text)]">Họ tên</div>
+              <div class="text-xs font-semibold text-[var(--fh-text)]">Họ tên</div>
               <input
-                class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
                 formControlName="fullName"
                 placeholder="Nhập họ tên"
               />
-              <div *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid" class="mt-2 text-xs font-extrabold text-[var(--fh-primary)]">Bắt buộc</div>
+              <div *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid" class="mt-2 text-xs font-semibold text-[var(--fh-primary)]">Bắt buộc</div>
             </div>
 
             <div>
-              <div class="text-xs font-extrabold text-[var(--fh-text)]">Số điện thoại</div>
+              <div class="text-xs font-semibold text-[var(--fh-text)]">Số điện thoại</div>
               <input
-                class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
                 formControlName="phone"
                 placeholder="Nhập số điện thoại"
               />
-              <div *ngIf="form.controls.phone.touched && form.controls.phone.invalid" class="mt-2 text-xs font-extrabold text-[var(--fh-primary)]">Bắt buộc</div>
+              <div *ngIf="form.controls.phone.touched && form.controls.phone.invalid" class="mt-2 text-xs font-semibold text-[var(--fh-primary)]">Bắt buộc</div>
             </div>
           </div>
-        </div>
 
-        <div class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
-          <div class="text-base font-black text-[var(--fh-text)]">Vị trí giao hàng</div>
-          <div class="mt-1 text-xs font-semibold text-[var(--fh-muted)]">Dùng để gợi ý địa chỉ nhanh.</div>
-
-          <div class="mt-4 grid gap-2">
-            <button
-              type="button"
-              class="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-4 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] disabled:opacity-60"
-              (click)="useCurrentLocation()"
-              [disabled]="addressLoading"
-            >
-              {{ addressLoading ? 'Đang lấy vị trí...' : 'Lấy vị trí hiện tại' }}
-            </button>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <div class="text-[11px] font-extrabold text-[var(--fh-muted)]">Lat</div>
-                <input
-                  class="mt-1 h-10 w-full rounded-xl border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] px-3 text-xs font-bold text-[var(--fh-text)]"
-                  formControlName="latitude"
-                  readonly
-                />
-              </div>
-              <div>
-                <div class="text-[11px] font-extrabold text-[var(--fh-muted)]">Lng</div>
-                <input
-                  class="mt-1 h-10 w-full rounded-xl border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] px-3 text-xs font-bold text-[var(--fh-text)]"
-                  formControlName="longitude"
-                  readonly
-                />
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <div class="text-xs font-semibold text-[var(--fh-text)]">Giới tính</div>
+              <div class="mt-3 flex flex-wrap gap-4 text-sm font-medium text-[var(--fh-text)]">
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio" class="h-4 w-4" formControlName="gender" value="male" />
+                  Nam
+                </label>
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio" class="h-4 w-4" formControlName="gender" value="female" />
+                  Nữ
+                </label>
+                <label class="inline-flex items-center gap-2">
+                  <input type="radio" class="h-4 w-4" formControlName="gender" value="other" />
+                  Khác
+                </label>
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] p-3 text-xs font-semibold text-[var(--fh-muted)]">
-              Bạn cũng có thể chỉnh địa chỉ bên dưới, vị trí chỉ để hỗ trợ gợi ý.
+            <div>
+              <div class="text-xs font-semibold text-[var(--fh-text)]">Ngày sinh</div>
+              <div class="mt-2 grid grid-cols-3 gap-2">
+                <select
+                  class="h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none"
+                  formControlName="dobDay"
+                >
+                  <option value="">Ngày</option>
+                  <option *ngFor="let d of dobDays" [value]="d">{{ d }}</option>
+                </select>
+                <select
+                  class="h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none"
+                  formControlName="dobMonth"
+                >
+                  <option value="">Tháng</option>
+                  <option *ngFor="let m of dobMonths" [value]="m">{{ m }}</option>
+                </select>
+                <select
+                  class="h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none"
+                  formControlName="dobYear"
+                >
+                  <option value="">Năm</option>
+                  <option *ngFor="let y of dobYears" [value]="y">{{ y }}</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="mt-4 rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div class="text-base font-black text-[var(--fh-text)]">Địa chỉ</div>
-            <div class="mt-1 text-xs font-semibold text-[var(--fh-muted)]">Chọn theo dữ liệu hành chính chuẩn.</div>
+        <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+          <div class="text-base font-bold text-[var(--fh-text)]">Ảnh đại diện</div>
+          <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Dung lượng file tối đa 1 MB. Định dạng: JPEG, PNG</div>
+
+          <div class="mt-5 flex flex-col items-center gap-4">
+            <div class="relative h-28 w-28 overflow-hidden rounded-full border border-black/10 bg-[rgba(193,18,31,0.08)]">
+              <img *ngIf="avatarPreviewUrl" [src]="avatarPreviewUrl" alt="avatar" class="h-full w-full object-cover" />
+              <div *ngIf="!avatarPreviewUrl" class="flex h-full w-full items-center justify-center text-4xl font-bold text-[var(--fh-primary)]">
+                {{ avatarInitial }}
+              </div>
+            </div>
+
+            <label class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-[var(--fh-border)] bg-white px-4 text-sm font-semibold text-[var(--fh-text)] shadow-sm">
+              Chọn Ảnh
+              <input type="file" class="hidden" accept="image/*" (change)="onAvatarSelected($event)" />
+            </label>
           </div>
-          <div class="inline-flex overflow-hidden rounded-xl border border-[var(--fh-border)] bg-white">
-            <button
-              type="button"
-              class="h-10 px-4 text-xs font-extrabold"
-              [class.bg-[var(--fh-primary)]]="addressMode === 'DEPTH3'"
-              [class.text-[var(--fh-primary-contrast)]]="addressMode === 'DEPTH3'"
-              [class.text-[var(--fh-text)]]="addressMode !== 'DEPTH3'"
-              (click)="setAddressMode('DEPTH3')"
-            >
-              3 cấp
-            </button>
-            <button
-              type="button"
-              class="h-10 px-4 text-xs font-extrabold"
-              [class.bg-[var(--fh-primary)]]="addressMode === 'VN2'"
-              [class.text-[var(--fh-primary-contrast)]]="addressMode === 'VN2'"
-              [class.text-[var(--fh-text)]]="addressMode !== 'VN2'"
-              (click)="setAddressMode('VN2')"
-            >
-              2 cấp (mới)
-            </button>
-          </div>
-        </div>
-
-        <div *ngIf="addressError" class="mt-4 rounded-xl border border-[rgba(193,18,31,0.22)] bg-[rgba(193,18,31,0.06)] p-3 text-sm font-extrabold text-[var(--fh-primary)]">
-          {{ addressError }}
-        </div>
-
-        <div class="mt-4 grid gap-3 md:grid-cols-3" *ngIf="addressMode === 'DEPTH3'">
-          <div>
-            <div class="text-xs font-extrabold text-[var(--fh-text)]">Tỉnh/Thành</div>
-            <select
-              class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
-              formControlName="depth3ProvinceName"
-              (change)="onDepth3ProvinceChange($any($event.target).value)"
-            >
-              <option value="">-- Chọn tỉnh/thành --</option>
-              <option *ngFor="let p of depth3ProvinceOptions" [value]="p">{{ p }}</option>
-            </select>
-          </div>
-
-          <div>
-            <div class="text-xs font-extrabold text-[var(--fh-text)]">Quận/Huyện</div>
-            <select
-              class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)] disabled:bg-[rgba(15,23,42,0.02)]"
-              formControlName="depth3DistrictName"
-              [disabled]="!depth3DistrictOptions.length"
-              (change)="onDepth3DistrictChange($any($event.target).value)"
-            >
-              <option value="">-- Chọn quận/huyện --</option>
-              <option *ngFor="let d of depth3DistrictOptions" [value]="d">{{ d }}</option>
-            </select>
-          </div>
-
-          <div>
-            <div class="text-xs font-extrabold text-[var(--fh-text)]">Phường/Xã</div>
-            <select
-              class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)] disabled:bg-[rgba(15,23,42,0.02)]"
-              formControlName="depth3WardName"
-              [disabled]="!depth3WardOptions.length"
-              (change)="onDepth3WardChange($any($event.target).value)"
-            >
-              <option value="">-- Chọn phường/xã --</option>
-              <option *ngFor="let w of depth3WardOptions" [value]="w">{{ w }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="mt-4 grid gap-3 md:grid-cols-2" *ngIf="addressMode === 'VN2'">
-          <div>
-            <div class="text-xs font-extrabold text-[var(--fh-text)]">Tỉnh/Thành (mới)</div>
-            <select
-              class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
-              formControlName="vn2ProvinceCode"
-              (change)="onVn2ProvinceChange($any($event.target).value)"
-            >
-              <option value="">-- Chọn tỉnh/thành --</option>
-              <option *ngFor="let p of vn2ProvinceOptions" [value]="p.code">{{ p.name }}</option>
-            </select>
-          </div>
-
-          <div>
-            <div class="text-xs font-extrabold text-[var(--fh-text)]">Phường/Xã (mới)</div>
-            <select
-              class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)] disabled:bg-[rgba(15,23,42,0.02)]"
-              formControlName="vn2CommuneCode"
-              [disabled]="vn2Loading || !vn2CommuneOptions.length"
-              (change)="onVn2CommuneChange($any($event.target).value)"
-            >
-              <option value="">{{ vn2Loading ? 'Đang tải...' : '-- Chọn phường/xã --' }}</option>
-              <option *ngFor="let c of vn2CommuneOptions" [value]="c.code">{{ c.name }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="mt-4">
-          <div class="text-xs font-extrabold text-[var(--fh-text)]">Địa chỉ chi tiết</div>
-          <input
-            class="mt-2 h-11 w-full rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-semibold text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
-            formControlName="addressDetail"
-            placeholder="Số nhà, tên đường, ..."
-          />
         </div>
       </div>
 
-      <div *ngIf="error" class="mt-4 rounded-xl border border-[rgba(193,18,31,0.22)] bg-[rgba(193,18,31,0.06)] p-3 text-sm font-extrabold text-[var(--fh-primary)]">
-        {{ error }}
-      </div>
-      <div *ngIf="success" class="mt-4 rounded-xl border border-[rgba(22,163,74,0.22)] bg-[rgba(22,163,74,0.06)] p-3 text-sm font-extrabold text-[rgba(22,163,74,1)]">
-        {{ success }}
+          <div *ngIf="activeSection === 'address'" class="grid gap-6">
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div class="text-base font-bold text-[var(--fh-text)]">Địa chỉ</div>
+                  <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Chọn theo dữ liệu hành chính chuẩn.</div>
+                </div>
+                <div class="inline-flex overflow-hidden rounded-lg border border-[var(--fh-border)] bg-white">
+                  <button
+                    type="button"
+                    class="h-10 px-4 text-xs font-semibold"
+                    [class.bg-[var(--fh-primary)]]="addressMode === 'DEPTH3'"
+                    [class.text-[var(--fh-primary-contrast)]]="addressMode === 'DEPTH3'"
+                    [class.text-[var(--fh-text)]]="addressMode !== 'DEPTH3'"
+                    (click)="setAddressMode('DEPTH3')"
+                  >
+                    3 cấp
+                  </button>
+                  <button
+                    type="button"
+                    class="h-10 px-4 text-xs font-semibold"
+                    [class.bg-[var(--fh-primary)]]="addressMode === 'VN2'"
+                    [class.text-[var(--fh-primary-contrast)]]="addressMode === 'VN2'"
+                    [class.text-[var(--fh-text)]]="addressMode !== 'VN2'"
+                    (click)="setAddressMode('VN2')"
+                  >
+                    2 cấp (mới)
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-5 grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  class="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--fh-border)] bg-white px-4 text-sm font-semibold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] disabled:opacity-60"
+                  (click)="useCurrentLocation()"
+                  [disabled]="addressLoading"
+                >
+                  {{ addressLoading ? 'Đang lấy vị trí...' : 'Lấy vị trí hiện tại' }}
+                </button>
+
+                <button
+                  type="button"
+                  class="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--fh-border)] bg-white px-4 text-sm font-semibold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] disabled:opacity-60"
+                  (click)="mapOpen ? closeMapPicker() : openMapPicker()"
+                  [disabled]="addressLoading"
+                >
+                  {{ mapOpen ? 'Ẩn bản đồ' : 'Chọn trên bản đồ' }}
+                </button>
+              </div>
+
+              <div *ngIf="mapOpen" class="mt-4 overflow-hidden rounded-lg border border-[var(--fh-border)]">
+                <div #mapContainer class="h-[360px] w-full"></div>
+              </div>
+
+              <div *ngIf="addressError" class="mt-5 rounded-lg border border-[rgba(193,18,31,0.22)] bg-[rgba(193,18,31,0.06)] p-3 text-sm font-semibold text-[var(--fh-primary)]">
+                {{ addressError }}
+              </div>
+
+              <div class="mt-5 grid gap-4 md:grid-cols-3" *ngIf="addressMode === 'DEPTH3'">
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Tỉnh/Thành</div>
+                  <select
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                    formControlName="depth3ProvinceName"
+                    (change)="onDepth3ProvinceChange($any($event.target).value)"
+                  >
+                    <option value="">-- Chọn tỉnh/thành --</option>
+                    <option *ngFor="let p of depth3ProvinceOptions" [value]="p">{{ p }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Quận/Huyện</div>
+                  <select
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)] disabled:bg-[rgba(15,23,42,0.02)]"
+                    formControlName="depth3DistrictName"
+                    [disabled]="!depth3DistrictOptions.length"
+                    (change)="onDepth3DistrictChange($any($event.target).value)"
+                  >
+                    <option value="">-- Chọn quận/huyện --</option>
+                    <option *ngFor="let d of depth3DistrictOptions" [value]="d">{{ d }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Phường/Xã</div>
+                  <select
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)] disabled:bg-[rgba(15,23,42,0.02)]"
+                    formControlName="depth3WardName"
+                    [disabled]="!depth3WardOptions.length"
+                    (change)="onDepth3WardChange($any($event.target).value)"
+                  >
+                    <option value="">-- Chọn phường/xã --</option>
+                    <option *ngFor="let w of depth3WardOptions" [value]="w">{{ w }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-5 grid gap-4 md:grid-cols-2" *ngIf="addressMode === 'VN2'">
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Tỉnh/Thành (mới)</div>
+                  <select
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                    formControlName="vn2ProvinceCode"
+                    (change)="onVn2ProvinceChange($any($event.target).value)"
+                  >
+                    <option value="">-- Chọn tỉnh/thành --</option>
+                    <option *ngFor="let p of vn2ProvinceOptions" [value]="p.code">{{ p.name }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Phường/Xã (mới)</div>
+                  <select
+                    class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)] disabled:bg-[rgba(15,23,42,0.02)]"
+                    formControlName="vn2CommuneCode"
+                    [disabled]="vn2Loading || !vn2CommuneOptions.length"
+                    (change)="onVn2CommuneChange($any($event.target).value)"
+                  >
+                    <option value="">{{ vn2Loading ? 'Đang tải...' : '-- Chọn phường/xã --' }}</option>
+                    <option *ngFor="let c of vn2CommuneOptions" [value]="c.code">{{ c.name }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-5">
+                <div class="text-xs font-semibold text-[var(--fh-text)]">Địa chỉ chi tiết</div>
+                <input
+                  class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                  formControlName="addressDetail"
+                  placeholder="Số nhà, tên đường, ..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="activeSection === 'bank'" class="grid gap-6">
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-base font-bold text-[var(--fh-text)]">Thẻ Tín Dụng/Ghi Nợ</div>
+                <button type="button" class="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--fh-primary)] px-4 text-sm font-semibold text-[var(--fh-primary-contrast)]">
+                  + Thêm Thẻ Mới
+                </button>
+              </div>
+              <div class="mt-12 pb-12 text-center text-sm font-medium text-[var(--fh-muted)]">Bạn chưa liên kết thẻ.</div>
+            </div>
+
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-base font-bold text-[var(--fh-text)]">Tài Khoản Ngân Hàng Của Tôi</div>
+                <button type="button" class="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--fh-primary)] px-4 text-sm font-semibold text-[var(--fh-primary-contrast)]">
+                  + Thêm Ngân Hàng Liên Kết
+                </button>
+              </div>
+              <div class="mt-12 pb-12 text-center text-sm font-medium text-[var(--fh-muted)]">Bạn chưa có tài khoản ngân hàng.</div>
+            </div>
+          </div>
+
+          <div *ngIf="activeSection === 'password'" class="grid gap-6">
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="text-base font-bold text-[var(--fh-text)]">Đổi Mật Khẩu</div>
+              <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Chức năng này sẽ được nối API sau.</div>
+              <div class="mt-5 grid gap-4 md:max-w-[520px]">
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Mật khẩu hiện tại</div>
+                  <input class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium" type="password" disabled />
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Mật khẩu mới</div>
+                  <input class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium" type="password" disabled />
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-[var(--fh-text)]">Nhập lại mật khẩu mới</div>
+                  <input class="mt-2 h-11 w-full rounded-lg border border-[var(--fh-border)] bg-white px-3 text-sm font-medium" type="password" disabled />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="activeSection === 'notifications'" class="grid gap-6">
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-base font-bold text-[var(--fh-text)]">Email thông báo</div>
+                  <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Thông báo và nhắc nhở quan trọng về tài khoản sẽ không thể bị tắt</div>
+                </div>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" class="sr-only peer" [checked]="notifyEmailSystem" (change)="notifyEmailSystem = $any($event.target).checked" />
+                  <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                </label>
+              </div>
+
+              <div class="mt-6 grid gap-5">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-sm font-semibold text-[var(--fh-text)]">Cập nhật đơn hàng</div>
+                    <div class="mt-1 text-sm font-medium text-[var(--fh-muted)]">Cập nhật về tình trạng vận chuyển của tất cả các đơn hàng</div>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" class="sr-only peer" [checked]="notifyEmailOrders" (change)="notifyEmailOrders = $any($event.target).checked" />
+                    <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                  </label>
+                </div>
+
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-sm font-semibold text-[var(--fh-text)]">Khuyến mãi</div>
+                    <div class="mt-1 text-sm font-medium text-[var(--fh-muted)]">Cập nhật về các ưu đãi và khuyến mãi sắp tới</div>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" class="sr-only peer" [checked]="notifyEmailPromos" (change)="notifyEmailPromos = $any($event.target).checked" />
+                    <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                  </label>
+                </div>
+
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="text-sm font-semibold text-[var(--fh-text)]">Khảo sát</div>
+                    <div class="mt-1 text-sm font-medium text-[var(--fh-muted)]">Đồng ý nhận khảo sát để cho chúng tôi được lắng nghe bạn</div>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" class="sr-only peer" [checked]="notifyEmailSurvey" (change)="notifyEmailSurvey = $any($event.target).checked" />
+                    <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-base font-bold text-[var(--fh-text)]">Thông báo SMS</div>
+                  <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Thông báo và nhắc nhở quan trọng về tài khoản sẽ không thể bị tắt</div>
+                </div>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" class="sr-only peer" [checked]="notifySmsSystem" (change)="notifySmsSystem = $any($event.target).checked" />
+                  <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                </label>
+              </div>
+
+              <div class="mt-6 flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-[var(--fh-text)]">Khuyến mãi</div>
+                  <div class="mt-1 text-sm font-medium text-[var(--fh-muted)]">Cập nhật về các ưu đãi và khuyến mãi sắp tới</div>
+                </div>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" class="sr-only peer" [checked]="notifySmsPromos" (change)="notifySmsPromos = $any($event.target).checked" />
+                  <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-[var(--fh-border)] bg-white p-6 shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-base font-bold text-[var(--fh-text)]">Thông báo Zalo</div>
+                  <div class="mt-2 text-sm font-medium text-[var(--fh-muted)]">Thông báo và nhắc nhở quan trọng về tài khoản sẽ không thể bị tắt</div>
+                </div>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" class="sr-only peer" [checked]="notifyZaloSystem" (change)="notifyZaloSystem = $any($event.target).checked" />
+                  <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                </label>
+              </div>
+
+              <div class="mt-6 flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-[var(--fh-text)]">Khuyến mãi (Shopee Việt Nam)</div>
+                  <div class="mt-1 text-sm font-medium text-[var(--fh-muted)]">Cập nhật về các ưu đãi và khuyến mãi sắp tới</div>
+                </div>
+                <label class="relative inline-flex cursor-pointer items-center">
+                  <input type="checkbox" class="sr-only peer" [checked]="notifyZaloPromos" (change)="notifyZaloPromos = $any($event.target).checked" />
+                  <div class="h-6 w-11 rounded-full bg-[rgba(15,23,42,0.12)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-[rgba(22,163,74,1)] peer-checked:after:translate-x-5"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </form>
   </div>

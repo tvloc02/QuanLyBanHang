@@ -99,6 +99,39 @@ export interface AdminNotificationSettingsResponse {
   updatedAt?: string | null;
 }
 
+export interface AdminBranchResponse {
+  id: number;
+  code: string;
+  name: string;
+  managerUserId?: number | null;
+  managerName?: string | null;
+  managerUserIds?: number[] | null;
+  managerNames?: string[] | null;
+  address?: string | null;
+  province?: string | null;
+  district?: string | null;
+  ward?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  active?: boolean | null;
+  productCount?: number | null;
+  totalStock?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminBranchStockResponse {
+  productId: number;
+  stock: number;
+  updatedAt?: string | null;
+}
+
+export interface AdminBranchStatsResponse {
+  productCount?: number | null;
+  totalStock?: number | null;
+  orderCount?: number | null;
+}
+
 export type AdminHomeSectionItemType = 'PRODUCT' | 'COUPON' | 'NEWS' | 'LINK';
 
 export interface HomeSectionItemResponse {
@@ -316,6 +349,34 @@ export class AdminDataService {
 
   getReviews() {
     return this.http.get<ApiResponse<AdminReviewResponse[]>>(`${environment.apiBaseUrl}/api/admin/reviews`);
+  }
+
+  getBranches() {
+    return this.http.get<ApiResponse<AdminBranchResponse[]>>(`${environment.apiBaseUrl}/api/admin/branches`);
+  }
+
+  createBranch(data: { code: string; name: string; managerUserId?: number | null; managerUserIds?: number[] | null; address?: string | null; province?: string | null; district?: string | null; ward?: string | null; latitude?: number | null; longitude?: number | null; active?: boolean | null }) {
+    return this.http.post<ApiResponse<AdminBranchResponse>>(`${environment.apiBaseUrl}/api/admin/branches`, data);
+  }
+
+  updateBranch(id: number, data: { code: string; name: string; managerUserId?: number | null; managerUserIds?: number[] | null; address?: string | null; province?: string | null; district?: string | null; ward?: string | null; latitude?: number | null; longitude?: number | null; active?: boolean | null }) {
+    return this.http.put<ApiResponse<AdminBranchResponse>>(`${environment.apiBaseUrl}/api/admin/branches/${id}`, data);
+  }
+
+  deleteBranch(id: number) {
+    return this.http.delete<ApiResponse<string>>(`${environment.apiBaseUrl}/api/admin/branches/${id}`);
+  }
+
+  listBranchStocks(branchId: number) {
+    return this.http.get<ApiResponse<AdminBranchStockResponse[]>>(`${environment.apiBaseUrl}/api/admin/branches/${branchId}/stocks`);
+  }
+
+  upsertBranchStocks(branchId: number, data: Array<{ productId: number; stock: number }>) {
+    return this.http.put<ApiResponse<AdminBranchStockResponse[]>>(`${environment.apiBaseUrl}/api/admin/branches/${branchId}/stocks`, data);
+  }
+
+  getBranchStats(branchId: number) {
+    return this.http.get<ApiResponse<AdminBranchStatsResponse>>(`${environment.apiBaseUrl}/api/admin/branches/${branchId}/stats`);
   }
 
   deleteUser(userId: number) {

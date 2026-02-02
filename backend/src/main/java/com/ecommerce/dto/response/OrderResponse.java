@@ -22,6 +22,10 @@ public class OrderResponse {
 
     private String couponCode;
 
+    private Long branchId;
+
+    private Double shippingDistanceKm;
+
     private Instant createdAt;
 
     public OrderResponse() {}
@@ -88,6 +92,22 @@ public class OrderResponse {
 
     public void setCouponCode(String couponCode) {
         this.couponCode = couponCode;
+    }
+
+    public Long getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(Long branchId) {
+        this.branchId = branchId;
+    }
+
+    public Double getShippingDistanceKm() {
+        return shippingDistanceKm;
+    }
+
+    public void setShippingDistanceKm(Double shippingDistanceKm) {
+        this.shippingDistanceKm = shippingDistanceKm;
     }
 
     public Instant getCreatedAt() {

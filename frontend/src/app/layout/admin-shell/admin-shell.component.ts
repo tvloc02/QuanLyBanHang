@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { UserDataService, UserMeResponse } from '../../core/services/user-data.service';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
@@ -20,20 +21,37 @@ export class AdminShellComponent implements OnInit, OnDestroy {
   openGroup: string | null = null;
   activeGroup: string | null = null;
 
+  roles: string[] = [];
+
+  me: UserMeResponse | null = null;
+
   notifications: any[] = [];
 
   private routerSub?: Subscription;
+  private meSub?: Subscription;
 
   @ViewChild('userWrap')
   userWrap?: ElementRef<HTMLElement>;
 
   constructor(
     private auth: AuthService,
+    private userData: UserDataService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.sidebarCollapsed = localStorage.getItem('adminSidebarCollapsed') === '1';
+    this.roles = this.auth.getRoles();
+
+    this.meSub = this.userData.getMe().subscribe({
+      next: (res) => {
+        this.me = res?.data || null;
+      },
+      error: () => {
+        this.me = null;
+      }
+    });
+
     this.syncOpenGroupFromUrl(this.router.url);
 
     this.routerSub = this.router.events
@@ -46,6 +64,7 @@ export class AdminShellComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routerSub?.unsubscribe();
+    this.meSub?.unsubscribe();
   }
 
   toggleSidebar(): void {
@@ -117,6 +136,34 @@ export class AdminShellComponent implements OnInit, OnDestroy {
     this.router.navigateByUrl('/login');
   }
 
+  hasRole(role: string): boolean {
+    return this.roles.includes(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    return roles.some((r) => this.roles.includes(r));
+  }
+
+  get roleLabel(): string {
+    if (this.hasRole('ADMIN')) return 'Quản trị viên hệ thống';
+    if (this.hasRole('MANAGER')) return 'Quản lý';
+    if (this.hasRole('STAFF')) return 'Nhân viên';
+    return 'Tài khoản';
+  }
+
+  get displayName(): string {
+    const fullName = String(this.me?.fullName || '').trim();
+    if (fullName) return fullName;
+    const username = String(this.me?.username || '').trim();
+    if (username) return username;
+    return 'User';
+  }
+
+  get avatarInitial(): string {
+    const s = this.displayName;
+    return (s ? s[0] : 'U').toUpperCase();
+  }
+
   private syncOpenGroupFromUrl(url: string): void {
     this.activeGroup = this.getGroupFromUrl(url);
 
@@ -143,7 +190,8 @@ export class AdminShellComponent implements OnInit, OnDestroy {
 
     if (
       u.startsWith('/admin/users') ||
-      u.startsWith('/admin/settings')
+      u.startsWith('/admin/settings') ||
+      u.startsWith('/admin/branches')
     ) {
       return 'system';
     }

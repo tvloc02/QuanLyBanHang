@@ -536,8 +536,7 @@ export class LoginComponent implements AfterViewInit {
         next: (res) => {
           const data = res?.data;
           this.auth.setSession(data);
-          const roles = Array.isArray(data?.roles) ? data.roles : [];
-          this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
+          this.router.navigateByUrl(this.auth.isInternal() ? '/admin' : '/');
         },
         error: () => {
           this.toast.error('Hệ thống đăng nhập qua Google đang bảo trì.');
@@ -572,8 +571,7 @@ export class LoginComponent implements AfterViewInit {
         }
         const data = res?.data;
         this.auth.setSession(data);
-        const roles = Array.isArray(data?.roles) ? data.roles : [];
-        this.router.navigateByUrl(roles.includes('ADMIN') ? '/admin' : '/');
+        this.router.navigateByUrl(this.auth.isInternal() ? '/admin' : '/');
       },
       error: (err: any) => {
         this.loading.set(false);

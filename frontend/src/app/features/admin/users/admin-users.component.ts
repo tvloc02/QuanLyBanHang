@@ -16,32 +16,36 @@ export class AdminUsersComponent {
   rows: AdminUserResponse[] = [];
 
   q = '';
-  roleFilter: 'ALL' | 'ADMIN' | 'STAFF' | 'CUSTOMER' = 'ALL';
+  roleFilter: 'ALL' | 'ADMIN' | 'MANAGER' | 'STAFF' = 'ALL';
   statusFilter: 'ALL' | 'ACTIVE' | 'LOCKED' = 'ALL';
+
+  page = 1;
+  pageSize = 10;
+  pageSizeOptions: number[] = [10, 50, 100, 500];
 
   createOpen = false;
   createLoading = false;
   viewOpen = false;
   selectedUser: AdminUserResponse | null = null;
-  form: { fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'STAFF' | 'CUSTOMER'; enabled: boolean } = {
+  form: { fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean } = {
     fullName: '',
     email: '',
     username: '',
     phone: '',
-    role: 'CUSTOMER',
+    role: 'STAFF',
     enabled: true
   };
 
   // Edit modal state
   editOpen = false;
   editLoading = false;
-  editForm: { id?: number; fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'STAFF' | 'CUSTOMER'; enabled: boolean } = {
+  editForm: { id?: number; fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean } = {
     id: undefined,
     fullName: '',
     email: '',
     username: '',
     phone: '',
-    role: 'CUSTOMER',
+    role: 'STAFF',
     enabled: true
   };
 
@@ -92,6 +96,65 @@ export class AdminUsersComponent {
     });
   }
 
+  get totalFiltered(): number {
+    return this.filteredRows.length;
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.totalFiltered / this.pageSize));
+  }
+
+  get pagedRows(): AdminUserResponse[] {
+    const p = Math.min(Math.max(1, this.page), this.totalPages);
+    const start = (p - 1) * this.pageSize;
+    return this.filteredRows.slice(start, start + this.pageSize);
+  }
+
+  get rangeFrom(): number {
+    if (this.totalFiltered === 0) return 0;
+    return (Math.min(Math.max(1, this.page), this.totalPages) - 1) * this.pageSize + 1;
+  }
+
+  get rangeTo(): number {
+    if (this.totalFiltered === 0) return 0;
+    const p = Math.min(Math.max(1, this.page), this.totalPages);
+    return Math.min(p * this.pageSize, this.totalFiltered);
+  }
+
+  get pageItems(): Array<number | string> {
+    const total = this.totalPages;
+    const current = Math.min(Math.max(1, this.page), total);
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    if (current <= 4) {
+      return [1, 2, 3, 4, 5, '...', total];
+    }
+
+    if (current >= total - 3) {
+      return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    }
+
+    return [1, '...', current - 1, current, current + 1, '...', total];
+  }
+
+  onFiltersChanged(): void {
+    this.page = 1;
+  }
+
+  setPageSize(next: number): void {
+    const v = Number(next) || 10;
+    this.pageSize = v;
+    this.page = 1;
+  }
+
+  goToPage(p: number): void {
+    const next = Math.min(Math.max(1, p), this.totalPages);
+    this.page = next;
+  }
+
   exportCsv(): void {
     const headers = ['ID', 'Họ tên', 'Email', 'Username', 'SĐT', 'Vai trò', 'Trạng thái', 'Ngày tạo'];
     const escape = (v: unknown) => {
@@ -138,6 +201,8 @@ export class AdminUsersComponent {
     switch (role) {
       case 'ADMIN':
         return 'Quản trị';
+      case 'MANAGER':
+        return 'Quản lý';
       case 'STAFF':
         return 'Nhân viên';
       case 'CUSTOMER':
@@ -148,11 +213,17 @@ export class AdminUsersComponent {
     }
   }
 
-  primaryRole(row: AdminUserResponse): 'ADMIN' | 'STAFF' | 'CUSTOMER' {
+  primaryRole(row: AdminUserResponse): 'ADMIN' | 'MANAGER' | 'STAFF' {
     const roles = row?.roles || [];
     if (roles.includes('ADMIN')) return 'ADMIN';
+    if (roles.includes('MANAGER')) return 'MANAGER';
     if (roles.includes('STAFF')) return 'STAFF';
-    return 'CUSTOMER';
+    return 'STAFF';
+  }
+
+  private isAdminListUser(row: AdminUserResponse): boolean {
+    const roles = row?.roles || [];
+    return roles.includes('ADMIN') || roles.includes('MANAGER') || roles.includes('STAFF');
   }
 
   load(): void {
@@ -165,7 +236,12 @@ export class AdminUsersComponent {
           this.error = res?.message || 'Không thể tải danh sách người dùng.';
           return;
         }
-        this.rows = Array.isArray(res.data) ? res.data : [];
+        const rows = Array.isArray(res.data) ? res.data : [];
+        this.rows = rows.filter((x) => this.isAdminListUser(x));
+
+        if (this.page > this.totalPages) {
+          this.page = this.totalPages;
+        }
       },
       error: () => {
         this.loading = false;
@@ -175,7 +251,7 @@ export class AdminUsersComponent {
   }
 
   openCreate(): void {
-    this.form = { fullName: '', email: '', username: '', phone: '', role: 'CUSTOMER', enabled: true };
+    this.form = { fullName: '', email: '', username: '', phone: '', role: 'STAFF', enabled: true };
     this.createOpen = true;
   }
 
@@ -219,9 +295,9 @@ export class AdminUsersComponent {
     // Prefill edit form
     const role = (row.roles || []).includes('ADMIN')
       ? 'ADMIN'
-      : (row.roles || []).includes('STAFF')
-      ? 'STAFF'
-      : 'CUSTOMER';
+      : (row.roles || []).includes('MANAGER')
+      ? 'MANAGER'
+      : 'STAFF';
     this.editForm = {
       id: row.id,
       fullName: row.fullName || '',

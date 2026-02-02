@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
+import { rolesGuard } from './core/guards/roles.guard';
 
 export const routes: Routes = [
   {
@@ -70,6 +71,7 @@ export const routes: Routes = [
       },
       {
         path: 'products',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
         children: [
           {
             path: '',
@@ -95,14 +97,17 @@ export const routes: Routes = [
       },
       {
         path: 'categories',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
         loadComponent: () => import('./features/admin/categories/admin-categories.component').then((m) => m.AdminCategoriesComponent)
       },
       {
         path: 'coupons',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
         loadComponent: () => import('./features/admin/coupons/admin-coupons.component').then((m) => m.AdminCouponsComponent)
       },
       {
         path: 'users',
+        canActivate: [rolesGuard(['ADMIN'])],
         loadComponent: () => import('./features/admin/users/admin-users.component').then((m) => m.AdminUsersComponent)
       },
       {
@@ -110,7 +115,13 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/customers/admin-customers.component').then((m) => m.AdminCustomersComponent)
       },
       {
+        path: 'branches',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
+        loadComponent: () => import('./features/admin/branches/admin-branches.component').then((m) => m.AdminBranchesComponent)
+      },
+      {
         path: 'sale-page',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
         loadComponent: () => import('./features/admin/sale-page/admin-sale-page.component').then((m) => m.AdminSalePageComponent)
       },
       {
@@ -119,6 +130,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [rolesGuard(['ADMIN'])],
         children: [
           {
             path: '',

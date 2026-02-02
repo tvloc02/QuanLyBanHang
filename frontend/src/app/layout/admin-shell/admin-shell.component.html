@@ -1,87 +1,137 @@
 <div class="adm-layout font-sans antialiased" [class.sidebar-collapsed]="sidebarCollapsed">
-  <header class="adm-topbar">
-    <div class="topbar-left">
-      <a class="adm-brand" routerLink="/admin">
-        <span class="logo">FH</span>
-        <span class="text">
-          <span class="name">FashionHub</span>
-          <span class="sub">Quản trị hệ thống</span>
-        </span>
-      </a>
-    </div>
-
-    <div class="topbar-right">
-      <button class="toggle-btn" type="button" aria-label="Thu gọn menu" (click)="toggleSidebar()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-      </button>
-
-      <button class="notification-btn" type="button" aria-label="Thông báo" (click)="toggleNotificationPanel()">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-        </svg>
-        <span class="notification-badge">{{ notifications.length }}</span>
-      </button>
-
-      <div class="notification-panel" *ngIf="notificationPanelOpen">
-        <div class="notification-header">
-          <h3>Thông báo</h3>
-          <button type="button" class="close-btn" (click)="closeNotificationPanel()">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-        <div class="notification-list">
-          <div *ngFor="let notif of notifications" class="notification-item" [class.unread]="!notif.read">
-            <div class="notif-dot" *ngIf="!notif.read"></div>
-            <div class="notif-content">
-              <div class="notif-title">{{ notif.title }}</div>
-              <div class="notif-message">{{ notif.message }}</div>
-              <div class="notif-time">{{ notif.time }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="notification-footer">
-          <a href="#" class="view-all">Xem tất cả →</a>
-        </div>
-      </div>
-
-      <div class="user-wrap" #userWrap>
-        <button class="user-btn" type="button" (click)="toggleUserMenu()">
-          <span class="avatar">A</span>
-          <div class="user-info">
-            <div class="user-role">Quản trị viên hệ thống</div>
-            <div class="user-name">admin</div>
-          </div>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+  <header class="adm-topbar !block !p-0 !h-20 !bg-white !shadow-md !border-b-2 !border-gray-200">
+    <div class="flex w-full items-center justify-between px-6 h-full">
+      <div class="flex items-center gap-4 min-w-0">
+        <button
+          type="button"
+          aria-label="Menu"
+          (click)="toggleSidebar()"
+          class="p-2 rounded-xl text-gray-500 hover:bg-blue-50 transition-colors lg:hidden"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
         </button>
 
-        <div class="menu" *ngIf="userMenuOpen">
-          <div class="menu-head">
-            <div class="menu-title">Quản trị viên hệ thống</div>
-            <div class="menu-sub">admin</div>
+        <a class="adm-brand !p-0 !gap-3" routerLink="/admin">
+          <span class="logo !w-12 !h-12 !rounded-xl">FH</span>
+          <span class="text min-w-0">
+            <span class="name !text-xl !font-bold !text-blue-600 truncate">FashionHub</span>
+            <span class="sub truncate">Quản trị hệ thống</span>
+          </span>
+        </a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          class="toggle-btn hidden lg:flex !w-10 !h-10 !rounded-xl !border-2 !border-gray-200 !bg-white hover:!bg-blue-50 !transition-colors"
+          type="button"
+          aria-label="Thu gọn menu"
+          (click)="toggleSidebar()"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+
+        <div class="relative">
+          <button
+            class="notification-btn !relative !w-10 !h-10 !rounded-xl !border-2 !border-gray-200 !bg-white hover:!bg-blue-50 !transition-colors"
+            type="button"
+            aria-label="Thông báo"
+            (click)="toggleNotificationPanel()"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+            <span class="notification-badge !-top-1 !-right-1">{{ notifications.length }}</span>
+          </button>
+
+          <div class="notification-panel !w-[30rem] !max-w-[calc(100vw-24px)] !rounded-xl !shadow-2xl !border-2 !border-gray-200 !overflow-hidden" *ngIf="notificationPanelOpen">
+            <div class="notification-header !px-4 !py-3 !border-b-2 !border-gray-200 !bg-gradient-to-r !from-blue-50 !to-sky-50">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="!m-0 !text-sm !font-bold !text-gray-900">Thông báo</h3>
+                  <p class="!m-0 !text-xs !text-gray-600" *ngIf="notifications.length">{{ notifications.length }} thông báo</p>
+                </div>
+                <button type="button" class="close-btn !w-8 !h-8 !rounded-lg hover:!bg-blue-50" (click)="closeNotificationPanel()">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="notification-list !max-h-[28rem] !overflow-y-auto">
+              <div
+                *ngFor="let notif of notifications"
+                class="notification-item !px-4 !py-3 !border-b-2 !border-gray-200 hover:!bg-blue-50 !transition-colors"
+                [class.unread]="!notif.read"
+              >
+                <div class="flex items-start gap-3">
+                  <div class="notif-dot" *ngIf="!notif.read"></div>
+                  <div class="notif-content">
+                    <div class="notif-title">{{ notif.title }}</div>
+                    <div class="notif-message">{{ notif.message }}</div>
+                    <div class="notif-time">{{ notif.time }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="notification-footer !px-4 !py-3 !bg-gray-50 !border-t-2 !border-gray-200">
+              <a href="#" class="view-all !font-bold !text-blue-600">Xem tất cả →</a>
+            </div>
           </div>
-          <a class="menu-item" routerLink="/admin">Thông tin tài khoản</a>
-          <a class="menu-item" routerLink="/admin">Cài đặt</a>
-          <button class="menu-item danger" type="button" (click)="logout()">Đăng xuất</button>
+        </div>
+
+        <div class="user-wrap dropdown-container" #userWrap>
+          <button
+            class="user-btn !h-[3.5rem] !rounded-xl !bg-white hover:!bg-blue-50 !transition-colors !border-2 !border-gray-200"
+            type="button"
+            (click)="toggleUserMenu()"
+          >
+            <span class="avatar !w-10 !h-10 !rounded-xl" style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)">
+              {{ avatarInitial }}
+            </span>
+            <div class="user-info hidden sm:grid">
+              <div class="user-role !text-sm !font-bold !text-gray-900">{{ roleLabel }}</div>
+              <div class="user-name !text-xs !text-gray-600 !font-semibold">{{ displayName }}</div>
+            </div>
+            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"></path>
+            </svg>
+          </button>
+
+          <div class="menu !w-64 !rounded-xl !shadow-2xl !border-2 !border-gray-200 !overflow-hidden" *ngIf="userMenuOpen">
+            <div class="menu-head !px-4 !py-3 !border-b-2 !border-gray-200 !bg-gradient-to-r !from-blue-50 !to-sky-50">
+              <div class="menu-title !text-sm !font-bold !text-gray-900">{{ roleLabel }}</div>
+              <div class="menu-sub !text-xs !text-gray-600 !font-semibold">{{ displayName }}</div>
+            </div>
+            <a class="menu-item !mx-2 !my-2 !rounded-lg hover:!bg-blue-50 !font-semibold" routerLink="/admin">Thông tin tài khoản</a>
+            <a class="menu-item !mx-2 !mb-2 !rounded-lg hover:!bg-blue-50 !font-semibold" routerLink="/admin">Cài đặt</a>
+            <hr class="my-2 border-gray-200" />
+            <button class="menu-item danger !mx-2 !mb-2 !rounded-lg hover:!bg-red-50 !font-bold" type="button" (click)="logout()">Đăng xuất</button>
+          </div>
         </div>
       </div>
     </div>
   </header>
 
   <div class="adm-body">
-    <aside class="adm-sidebar" [class.collapsed]="sidebarCollapsed">
-      <div class="adm-search">
-        <input class="adm-search-input" placeholder="Tìm kiếm menu..." [disabled]="sidebarCollapsed" />
+    <aside class="adm-sidebar !bg-gradient-to-b !from-white !to-slate-50 !border-r-2 !border-slate-200/70 !shadow-2xl !p-3 !gap-3 transition-all duration-300" [class.collapsed]="sidebarCollapsed">
+      <div class="adm-search" [class.hidden]="sidebarCollapsed">
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3m2.3-5.7a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+          </svg>
+          <input class="adm-search-input !h-11 !rounded-xl !border-2 !border-slate-200 !bg-slate-50 !px-10 !text-sm !font-semibold !text-slate-700 focus:!border-blue-600 focus:!bg-white focus:!ring-4 focus:!ring-blue-200/60" placeholder="Tìm kiếm menu..." [disabled]="sidebarCollapsed" />
+        </div>
       </div>
 
-      <nav class="adm-nav">
+      <nav class="adm-nav !px-1 !py-2">
         <div class="nav-accordion">
-          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
+          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item !w-full !flex !items-center !px-4 !py-3.5 !text-sm !font-bold !rounded-xl !transition-all !duration-200 hover:!bg-blue-50">
             <span class="ic">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
@@ -90,8 +140,8 @@
             <span class="label">Trang chủ</span>
           </a>
 
-          <section class="nav-section" [class.open]="isGroupOpen('sales')" [class.active]="activeGroup === 'sales'">
-            <button class="nav-head" type="button" (click)="onGroupHeaderClick('sales')">
+          <section class="nav-section" *ngIf="hasAnyRole(['ADMIN','MANAGER'])" [class.open]="isGroupOpen('sales')" [class.active]="activeGroup === 'sales'">
+            <button class="nav-head !w-full !flex !items-center !px-4 !py-3.5 !text-sm !font-bold !rounded-xl !transition-all !duration-200 hover:!bg-blue-50" type="button" (click)="onGroupHeaderClick('sales')">
               <span class="ic">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 6H6.28l-.31-1.243A1 1 0 005 4H3a1 1 0 000 2h1.7l.93 4.563a1 1 0 00.986.759h10.15a1 1 0 100-2H8.217l-.403-2h10.5a1 1 0 00.894-.553l3-6A1 1 0 0020 6H5.28l-.31-1.243A1 1 0 004 4H2a1 1 0 000 2h1zm14 16a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4z"></path>
@@ -101,7 +151,7 @@
               <span class="chev">▾</span>
             </button>
             <div class="nav-body">
-              <a routerLink="/admin/products" routerLinkActive="active" class="item">
+              <a routerLink="/admin/products" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M7 2a1 1 0 000 2h6a1 1 0 000-2H7zM4 5a2 2 0 012-2 1 1 0 000-2H3a1 1 0 000 2h1v9a2 2 0 002 2h8a2 2 0 002-2V5h1a1 1 0 000-2h-3a1 1 0 000 2h2v9a1 1 0 01-1 1H6a1 1 0 01-1-1V5z"></path>
@@ -109,7 +159,7 @@
                 </span>
                 <span class="label">Sản phẩm</span>
               </a>
-              <a routerLink="/admin/categories" routerLinkActive="active" class="item">
+              <a routerLink="/admin/categories" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM15 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM5 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM15 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"></path>
@@ -117,7 +167,7 @@
                 </span>
                 <span class="label">Danh mục</span>
               </a>
-              <a routerLink="/admin/coupons" routerLinkActive="active" class="item">
+              <a routerLink="/admin/coupons" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm12 4a2 2 0 012 2v4a2 2 0 01-2 2h-2.5a1 1 0 01-.8-.4l-4.5-6a1 1 0 000-1.2l4.5-6a1 1 0 01.8-.4H16a2 2 0 012 2v4z"></path>
@@ -129,7 +179,7 @@
           </section>
 
           <section class="nav-section" [class.open]="isGroupOpen('orders')" [class.active]="activeGroup === 'orders'">
-            <button class="nav-head" type="button" (click)="onGroupHeaderClick('orders')">
+            <button class="nav-head !w-full !flex !items-center !px-4 !py-3.5 !text-sm !font-bold !rounded-xl !transition-all !duration-200 hover:!bg-blue-50" type="button" (click)="onGroupHeaderClick('orders')">
               <span class="ic">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M4.859 1.667A1 1 0 005 1h10a1 1 0 01.987 1.167l-.99 11a1 1 0 01-.987.833H5a1 1 0 01-.99-.833l-1-11zM3 15a1 1 0 011 1v1a1 1 0 001 1h10a1 1 0 001-1v-1a1 1 0 011-1h2a1 1 0 110 2H2a1 1 0 110-2h1z"></path>
@@ -139,7 +189,7 @@
               <span class="chev">▾</span>
             </button>
             <div class="nav-body">
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'NEW' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'NEW' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.5 1.5H5.75A2.25 2.25 0 003.5 3.75v12.5A2.25 2.25 0 005.75 18.5h8.5a2.25 2.25 0 002.25-2.25V6.5M10.5 1.5v5h5M10.5 1.5L15.5 6.5"></path>
@@ -147,7 +197,7 @@
                 </span>
                 <span class="label">Đơn hàng mới</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'APPROVED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'APPROVED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path>
@@ -155,7 +205,7 @@
                 </span>
                 <span class="label">Đơn hàng đã duyệt</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'PACKING' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'PACKING' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2h-1.05a1 1 0 01-.82-.45l-.5-.82A1 1 0 009.5 2h-3a1 1 0 00-.82.45l-.5.82A1 1 0 015.05 3H4zm0 5a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm0 3a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1z"></path>
@@ -163,7 +213,7 @@
                 </span>
                 <span class="label">Đơn hàng đang đóng gói</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'SHIPPING' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'SHIPPING' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5 1a2 2 0 00-2 2v2H2a2 2 0 00-2 2v3a2 2 0 002 2h2v2a2 2 0 002 2h6a2 2 0 002-2v-2h2a2 2 0 002-2V7a2 2 0 00-2-2h-1V3a2 2 0 00-2-2H5zm5 14H7v-2h3v2zm3-6H2v3h11V9z"></path>
@@ -171,7 +221,7 @@
                 </span>
                 <span class="label">Đơn hàng đang giao</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'DELIVERED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'DELIVERED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.5 3A1.5 1.5 0 001 4.5v.006c0 .596.34 1.132.84 1.393v10.151C1.84 17.905 2.734 19 3.934 19h12.132c1.2 0 2.094-1.095 2.094-2.45V5.899c.5-.26.84-.797.84-1.393V4.5A1.5 1.5 0 0017.5 3h-15z"></path>
@@ -179,7 +229,7 @@
                 </span>
                 <span class="label">Đã nhận hàng</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'CANCELLED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'CANCELLED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path>
@@ -187,7 +237,7 @@
                 </span>
                 <span class="label">Đơn hàng đã hủy</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'REJECTED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'REJECTED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
@@ -195,7 +245,7 @@
                 </span>
                 <span class="label">Đơn hàng đã từ chối</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RATED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RATED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
@@ -203,7 +253,7 @@
                 </span>
                 <span class="label">Đã đánh giá</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'REFUNDED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'REFUNDED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M8.16 2.75a.75.75 0 00-1.08.6v.26H4.5A2.5 2.5 0 002 6v7a2.5 2.5 0 002.5 2.5h8A2.5 2.5 0 0015 13V6a2.5 2.5 0 00-2.5-2.5h-2.58V3.35a.75.75 0 00-1.08-.6l-2.5 1.6a.75.75 0 000 1.2l2.5 1.6z"></path>
@@ -211,7 +261,7 @@
                 </span>
                 <span class="label">Hoàn tiền</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_PENDING' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_PENDING' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.3A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"></path>
@@ -219,7 +269,7 @@
                 </span>
                 <span class="label">Trả hàng - Đang chờ</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_APPROVED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_APPROVED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.3A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"></path>
@@ -227,7 +277,7 @@
                 </span>
                 <span class="label">Trả hàng - Đã duyệt</span>
               </a>
-              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_REJECTED' }" class="item">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_REJECTED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.3A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"></path>
@@ -238,8 +288,8 @@
             </div>
           </section>
 
-          <section class="nav-section" [class.open]="isGroupOpen('system')" [class.active]="activeGroup === 'system'">
-            <button class="nav-head" type="button" (click)="onGroupHeaderClick('system')">
+          <section class="nav-section" *ngIf="hasRole('ADMIN')" [class.open]="isGroupOpen('system')" [class.active]="activeGroup === 'system'">
+            <button class="nav-head !w-full !flex !items-center !px-4 !py-3.5 !text-sm !font-bold !rounded-xl !transition-all !duration-200 hover:!bg-blue-50" type="button" (click)="onGroupHeaderClick('system')">
               <span class="ic">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"></path>
@@ -249,7 +299,7 @@
               <span class="chev">▾</span>
             </button>
             <div class="nav-body">
-              <a routerLink="/admin/users" routerLinkActive="active" class="item">
+              <a routerLink="/admin/users" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path>
@@ -257,7 +307,7 @@
                 </span>
                 <span class="label">Người dùng</span>
               </a>
-              <a routerLink="/admin/coupons" routerLinkActive="active" class="item">
+              <a routerLink="/admin/coupons" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm12 4a2 2 0 012 2v4a2 2 0 01-2 2h-2.5a1 1 0 01-.8-.4l-4.5-6a1 1 0 000-1.2l4.5-6a1 1 0 01.8-.4H16a2 2 0 012 2v4z"></path>
@@ -265,7 +315,7 @@
                 </span>
                 <span class="label">Cấu hình mã giảm giá</span>
               </a>
-              <a routerLink="/admin/settings" routerLinkActive="active" class="item">
+              <a routerLink="/admin/settings" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"></path>
@@ -273,7 +323,15 @@
                 </span>
                 <span class="label">Cấu hình chung</span>
               </a>
-              <a routerLink="/admin/settings/mail" routerLinkActive="active" class="item">
+              <a routerLink="/admin/branches" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
+                <span class="ic">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a6 6 0 00-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 00-6-6Zm0 8a2 2 0 110-4 2 2 0 010 4Z"></path>
+                  </svg>
+                </span>
+                <span class="label">Cấu hình chi nhánh</span>
+              </a>
+              <a routerLink="/admin/settings/mail" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
@@ -282,7 +340,7 @@
                 </span>
                 <span class="label">Cấu hình mail</span>
               </a>
-              <a routerLink="/admin/settings/notifications" routerLinkActive="active" class="item">
+              <a routerLink="/admin/settings/notifications" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5.951-1.429 5.951 1.429a1 1 0 001.169-1.409l-7-14z"></path>
@@ -290,7 +348,7 @@
                 </span>
                 <span class="label">Thông báo</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" routerLinkActive="active" class="item">
+              <a routerLink="/admin/settings/home-sections" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
@@ -302,7 +360,7 @@
           </section>
 
           <section class="nav-section" [class.open]="isGroupOpen('customers')" [class.active]="activeGroup === 'customers'">
-            <button class="nav-head" type="button" (click)="onGroupHeaderClick('customers')">
+            <button class="nav-head !w-full !flex !items-center !px-4 !py-3.5 !text-sm !font-bold !rounded-xl !transition-all !duration-200 hover:!bg-blue-50" type="button" (click)="onGroupHeaderClick('customers')">
               <span class="ic">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM0 12c0-.287.021-.575.07-.855A6 6 0 0112 16a6 6 0 110-12 6.253 6.253 0 01.97 6M14 15a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -312,7 +370,7 @@
               <span class="chev">▾</span>
             </button>
             <div class="nav-body">
-              <a routerLink="/admin/customers" routerLinkActive="active" class="item">
+              <a routerLink="/admin/customers" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM0 12c0-.287.021-.575.07-.855A6 6 0 0112 16a6 6 0 110-12 6.253 6.253 0 01.97 6M14 15a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -320,7 +378,7 @@
                 </span>
                 <span class="label">Khách hàng</span>
               </a>
-              <a routerLink="/admin/support-chat" routerLinkActive="active" class="item">
+              <a routerLink="/admin/support-chat" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"></path>
@@ -329,7 +387,7 @@
                 </span>
                 <span class="label">Chat hỗ trợ</span>
               </a>
-              <a routerLink="/admin/reviews" routerLinkActive="active" class="item">
+              <a routerLink="/admin/reviews" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
@@ -340,8 +398,8 @@
             </div>
           </section>
 
-          <section class="nav-section" [class.open]="isGroupOpen('storefront')" [class.active]="activeGroup === 'storefront'">
-            <button class="nav-head" type="button" (click)="onGroupHeaderClick('storefront')">
+          <section class="nav-section" *ngIf="hasAnyRole(['ADMIN','MANAGER'])" [class.open]="isGroupOpen('storefront')" [class.active]="activeGroup === 'storefront'">
+            <button class="nav-head !w-full !flex !items-center !px-4 !py-3.5 !text-sm !font-bold !rounded-xl !transition-all !duration-200 hover:!bg-blue-50" type="button" (click)="onGroupHeaderClick('storefront')">
               <span class="ic">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.343a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM16.364 15.364a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM11 17a1 1 0 102 0v-1a1 1 0 10-2 0v1zM5.343 15.657a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM4 10a1 1 0 01-1-1V8a1 1 0 112 0v1a1 1 0 01-1 1zM3.636 4.343a1 1 0 001.414-1.414L4.343 2.222a1 1 0 00-1.414 1.414l.707.707z"></path>
@@ -351,7 +409,7 @@
               <span class="chev">▾</span>
             </button>
             <div class="nav-body">
-              <a routerLink="/admin/sale-page" routerLinkActive="active" class="item">
+              <a routerLink="/admin/sale-page" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5.951-1.429 5.951 1.429a1 1 0 001.169-1.409l-7-14z"></path>
@@ -359,7 +417,7 @@
                 </span>
                 <span class="label">Quản lý trang Sale</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'FEATURED' }" class="item">
+              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'FEATURED' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
@@ -367,7 +425,7 @@
                 </span>
                 <span class="label">Được yêu thích nhất</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'HOT' }" class="item">
+              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'HOT' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M12.316 2.351a1 1 0 01.639.757l1.23 4.184a1 1 0 00.95.69h4.398a1 1 0 01.592 1.81l-3.559 2.586a1 1 0 00-.364 1.118l1.23 4.184a1 1 0 01-1.542 1.118l-3.559-2.586a1 1 0 00-1.175 0l-3.559 2.586a1 1 0 01-1.542-1.118l1.23-4.184a1 1 0 00-.364-1.118L2.05 9.592a1 1 0 01.592-1.81h4.398a1 1 0 00.95-.69l1.23-4.184z"></path>
@@ -375,7 +433,7 @@
                 </span>
                 <span class="label">Sản phẩm hot mỗi ngày</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'CART_SAVING' }" class="item">
+              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'CART_SAVING' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 6H6.28l-.31-1.243A1 1 0 005 4H3a1 1 0 000 2h1.7l.93 4.563a1 1 0 00.986.759h10.15a1 1 0 100-2H8.217l-.403-2h10.5a1 1 0 00.894-.553l3-6A1 1 0 0020 6H5.28l-.31-1.243A1 1 0 004 4H2a1 1 0 000 2h1zm14 16a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4z"></path>
@@ -383,7 +441,7 @@
                 </span>
                 <span class="label">Giỏ hàng tiết kiệm</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'VOUCHERS' }" class="item">
+              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'VOUCHERS' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M4.859 1.667A1 1 0 005 1h10a1 1 0 01.987 1.167l-.99 11a1 1 0 01-.987.833H5a1 1 0 01-.99-.833l-1-11zM3 15a1 1 0 011 1v1a1 1 0 001 1h10a1 1 0 001-1v-1a1 1 0 011-1h2a1 1 0 110 2H2a1 1 0 110-2h1z"></path>
@@ -391,7 +449,7 @@
                 </span>
                 <span class="label">Voucher độc quyền online</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'EXCLUSIVE' }" class="item">
+              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'EXCLUSIVE' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zM14 2a1 1 0 01.993.883l.717 5.73a2 2 0 01-1.998 2.138h-.734a2 2 0 01-1.999-2.138l.717-5.73A1 1 0 0114 2zM9 13a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H10a1 1 0 01-1-1v-2z"></path>
@@ -399,7 +457,7 @@
                 </span>
                 <span class="label">Độc quyền online</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'NEWS' }" class="item">
+              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'NEWS' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm0 5h6v2H5v-2z"></path>
@@ -412,8 +470,8 @@
         </div>
       </nav>
 
-      <div class="adm-footer">
-        <a class="back" routerLink="/">← Về trang bán hàng</a>
+      <div class="adm-footer !px-1 !pb-2">
+        <a class="back !w-full !inline-flex !items-center !justify-center !gap-2 !rounded-xl !border-2 !border-slate-200 !bg-white !px-4 !py-3 !text-sm !font-bold !text-slate-700 !transition-all hover:!border-blue-200 hover:!bg-blue-50" routerLink="/">← Về trang bán hàng</a>
       </div>
     </aside>
 

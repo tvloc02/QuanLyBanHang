@@ -50,84 +50,81 @@
         <div class="grid">
           <div class="field">
             <div class="label">Họ tên</div>
-            <input class="input" [(ngModel)]="fullName" placeholder="Nhập họ tên người nhận" />
+            <input class="input" [(ngModel)]="fullName" (ngModelChange)="setFullName($event)" placeholder="Nhập họ tên người nhận" />
           </div>
 
           <div class="field">
             <div class="label">Số điện thoại</div>
-            <input class="input" [(ngModel)]="phone" placeholder="Nhập số điện thoại" />
+            <input class="input" [(ngModel)]="phone" (ngModelChange)="setPhone($event)" placeholder="Nhập số điện thoại" />
           </div>
 
-          <div class="field">
-            <div class="label">Tỉnh/Thành phố</div>
-            <div class="suggest-wrap" (click)="$event.stopPropagation()">
-              <input
-                class="input"
-                [value]="provinceQuery"
-                (focus)="focusSuggest('province')"
-                (input)="onProvinceInput($any($event.target).value)"
-                placeholder="VD: Hà Nội"
-              />
-              <div class="suggest" *ngIf="activeSuggest === 'province' && provinceSuggest.length">
-                <button type="button" class="suggest-item" *ngFor="let s of provinceSuggest" (click)="selectProvince(s)">
-                  {{ s }}
-                </button>
-              </div>
+          <ng-container *ngIf="addressMode === 'after_merge'; else beforeMergeBlock">
+            <div class="field">
+              <div class="label">Tỉnh/Thành phố</div>
+              <select class="input" [(ngModel)]="vn2ProvinceCode" (ngModelChange)="onVn2ProvinceChange($event)">
+                <option value="">-- Chọn tỉnh/thành --</option>
+                <option *ngFor="let p of vn2ProvinceOptions" [value]="p.code">{{ p.name }}</option>
+              </select>
             </div>
-          </div>
 
-          <div class="field">
-            <div class="label">Quận/Huyện</div>
-            <div class="suggest-wrap" (click)="$event.stopPropagation()">
-              <input
+            <div class="field">
+              <div class="label">Phường/Xã</div>
+              <select
                 class="input"
-                [value]="districtQuery"
-                [disabled]="!canPickDistrict"
-                (focus)="focusSuggest('district')"
-                (input)="onDistrictInput($any($event.target).value)"
-                placeholder="VD: Quận 1"
-              />
-              <div class="suggest" *ngIf="activeSuggest === 'district' && districtSuggest.length">
-                <button type="button" class="suggest-item" *ngFor="let s of districtSuggest" (click)="selectDistrict(s)">
-                  {{ s }}
-                </button>
-              </div>
+                [(ngModel)]="vn2CommuneCode"
+                [disabled]="vn2Loading || !vn2CommuneOptions.length"
+                (ngModelChange)="onVn2CommuneChange($event)"
+              >
+                <option value="">{{ vn2Loading ? 'Đang tải...' : '-- Chọn phường/xã --' }}</option>
+                <option *ngFor="let c of vn2CommuneOptions" [value]="c.code">{{ c.name }}</option>
+              </select>
             </div>
-          </div>
+          </ng-container>
 
-          <div class="field">
-            <div class="label">Phường/Xã</div>
-            <div class="suggest-wrap" (click)="$event.stopPropagation()">
-              <input
-                class="input"
-                [value]="wardQuery"
-                [disabled]="!canPickWard"
-                (focus)="focusSuggest('ward')"
-                (input)="onWardInput($any($event.target).value)"
-                placeholder="VD: Phường Bến Nghé"
-              />
-              <div class="suggest" *ngIf="activeSuggest === 'ward' && wardSuggest.length">
-                <button type="button" class="suggest-item" *ngFor="let s of wardSuggest" (click)="selectWard(s)">
-                  {{ s }}
-                </button>
-              </div>
+          <ng-template #beforeMergeBlock>
+            <div class="field">
+              <div class="label">Tỉnh/Thành phố</div>
+              <select class="input" [(ngModel)]="province" (ngModelChange)="onProvinceChange($event)">
+                <option value="">-- Chọn tỉnh/thành --</option>
+                <option *ngFor="let p of provinceOptions" [value]="p">{{ p }}</option>
+              </select>
             </div>
-          </div>
+
+            <div class="field">
+              <div class="label">Quận/Huyện</div>
+              <select class="input" [(ngModel)]="district" [disabled]="!canPickDistrict" (ngModelChange)="onDistrictChange($event)">
+                <option value="">-- Chọn quận/huyện --</option>
+                <option *ngFor="let d of districtOptions" [value]="d">{{ d }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <div class="label">Phường/Xã</div>
+              <select class="input" [(ngModel)]="ward" [disabled]="!canPickWard" (ngModelChange)="onWardChange($event)">
+                <option value="">-- Chọn phường/xã --</option>
+                <option *ngFor="let w of wardOptions" [value]="w">{{ w }}</option>
+              </select>
+            </div>
+          </ng-template>
 
           <div class="field full">
             <div class="label">Địa chỉ chi tiết</div>
-            <input class="input" [(ngModel)]="addressDetail" placeholder="Số nhà, tên đường, ..." />
+            <input class="input" [(ngModel)]="addressDetail" (ngModelChange)="setAddressDetail($event)" placeholder="Số nhà, tên đường, ..." />
+          </div>
+
+          <div class="field full">
+            <button type="button" class="ghost" (click)="openMapPicker()">CHỌN TRÊN BẢN ĐỒ</button>
           </div>
 
           <div class="field full">
             <div class="label">Ghi chú (tuỳ chọn)</div>
-            <textarea class="textarea" [(ngModel)]="note" rows="3" placeholder="Ghi chú cho người giao hàng..."></textarea>
+            <textarea class="textarea" [(ngModel)]="note" (ngModelChange)="setNote($event)" rows="3" placeholder="Ghi chú cho người giao hàng..."></textarea>
           </div>
         </div>
 
         <div class="save-profile" *ngIf="isAuthenticated()">
           <label class="save-profile__label">
-            <input type="checkbox" [(ngModel)]="saveToProfile" />
+            <input type="checkbox" [(ngModel)]="saveToProfile" (ngModelChange)="setSaveToProfile($event)" />
             <span>Lưu thông tin này vào tài khoản</span>
           </label>
           <a class="save-profile__link" routerLink="/profile">Sửa trong hồ sơ</a>
@@ -189,6 +186,24 @@
         <button type="button" class="primary" [disabled]="placed" (click)="placeOrder()">ĐẶT HÀNG</button>
         <button type="button" class="ghost" (click)="backToCart()">← Quay lại giỏ hàng</button>
       </aside>
+    </div>
+  </div>
+
+  <div class="map-modal" *ngIf="mapOpen" (click)="closeMapPicker()">
+    <div class="map-modal__content" (click)="$event.stopPropagation()">
+      <div class="map-modal__header">
+        <div class="map-modal__title">Chọn vị trí trên bản đồ</div>
+        <button type="button" class="map-modal__close" (click)="closeMapPicker()">×</button>
+      </div>
+
+      <div #mapContainer class="map-modal__map"></div>
+
+      <div class="map-modal__error" *ngIf="mapError">{{ mapError }}</div>
+
+      <div class="map-modal__actions">
+        <button type="button" class="ghost" (click)="closeMapPicker()">Huỷ</button>
+        <button type="button" class="primary" (click)="confirmMapPicker()">Xác nhận</button>
+      </div>
     </div>
   </div>
 </main>

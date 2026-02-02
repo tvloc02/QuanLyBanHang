@@ -52,5 +52,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findTopBySkuStartingWithOrderBySkuDesc(String prefix);
 
+    Optional<Product> findBySku(String sku);
+
+    boolean existsBySku(String sku);
+
     Optional<Product> findBySlug(String slug);
 }

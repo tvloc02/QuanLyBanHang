@@ -9,6 +9,8 @@
       <input class="search" [(ngModel)]="q" (ngModelChange)="onQueryChange()" placeholder="Tìm kiếm sản phẩm..." />
       <button class="btn ghost" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
       <button class="btn ghost" type="button" (click)="exportCsv()" [disabled]="loading || totalRecords === 0">Xuất CSV</button>
+      <button class="btn ghost" type="button" (click)="exportZip()" [disabled]="loading || totalRecords === 0">Xuất Excel + Ảnh</button>
+      <button class="btn ghost" type="button" (click)="openImport()" [disabled]="loading">Import Excel + Ảnh</button>
       <a class="btn" routerLink="/admin/products/new">+ Thêm sản phẩm</a>
     </div>
   </div>
@@ -122,6 +124,110 @@
 
           <button class="pg" type="button" (click)="nextPage()" [disabled]="page === pageCount">›</button>
           <button class="pg" type="button" (click)="goToPage(pageCount)" [disabled]="page === pageCount">»</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" *ngIf="importOpen">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Import sản phẩm">
+    <div class="modal-head">
+      <div class="modal-title">Import sản phẩm (Excel + Ảnh)</div>
+      <button class="icon" type="button" (click)="closeImport()">✕</button>
+    </div>
+
+    <div class="form" style="padding:16px">
+      <div class="alert error" *ngIf="importError">{{ importError }}</div>
+      <div class="alert success" *ngIf="importSuccess">{{ importSuccess }}</div>
+
+      <div class="grid2">
+        <div class="field">
+          <label class="label">Chế độ</label>
+          <select class="input" [(ngModel)]="importMode" [ngModelOptions]="{ standalone: true }" name="importMode">
+            <option value="CREATE">Tạo mới</option>
+            <option value="UPDATE">Cập nhật (theo mã sản phẩm)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">File</label>
+          <input class="input" type="file" accept=".zip,.xlsx" (change)="onImportFileChange($event)" />
+          <div class="hint" *ngIf="importFileName">Đã chọn: <code>{{ importFileName }}</code></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Danh mục hiển thị (cấp 3)</label>
+        <div class="cat-toolbar">
+          <input class="input" [(ngModel)]="importCategoryFilter" [ngModelOptions]="{ standalone: true }" name="importCategoryFilter" placeholder="Tìm danh mục..." />
+          <button class="btn ghost sm" type="button" (click)="clearImportCategories()" [disabled]="importSelectedCategoryLeafs.length === 0">Xóa chọn</button>
+        </div>
+
+        <div class="cat-selected" *ngIf="importSelectedCategoryLeafs.length > 0">
+          <span class="chip" *ngFor="let c of importSelectedCategoryLeafs">{{ c.name }}</span>
+        </div>
+        <div class="hint">Đã chọn: <code>{{ importSelectedCategoryLeafs.length }}</code> danh mục</div>
+
+        <div class="cat-box">
+          <div class="cat-box__list">
+            <label class="cat-item" *ngFor="let cat of filteredImportLeafCategories">
+              <input type="checkbox" [checked]="importSelectedCategoryIds.has(cat.id)" (change)="toggleImportCategory(cat)" />
+              <span class="cat-item__name">{{ cat.name }}</span>
+              <span class="cat-item__slug">/{{ cat.slug }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn ghost" type="button" (click)="closeImport()" [disabled]="importing">Hủy</button>
+        <a class="btn ghost" [href]="resolveApiUrl('/api/admin/products/template')" target="_blank" rel="noopener">Tải file mẫu</a>
+        <button class="btn" type="button" (click)="submitImport()" [disabled]="importing">{{ importing ? 'Đang import...' : 'Import' }}</button>
+      </div>
+
+      <div class="import-result" *ngIf="importResult">
+        <div class="grid2">
+          <div class="stat">
+            <div class="stat-k">Tổng dòng</div>
+            <div class="stat-v">{{ importResult.total }}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-k">Thành công</div>
+            <div class="stat-v">{{ importResult.successCount }}</div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="stat">
+            <div class="stat-k">Lỗi</div>
+            <div class="stat-v">{{ importResult.errorCount }}</div>
+          </div>
+          <div class="stat" *ngIf="importResult.errorFileUrl">
+            <div class="stat-k">File lỗi</div>
+            <div class="stat-v">
+              <a class="btn ghost sm" [href]="resolveApiUrl(importResult.errorFileUrl)" target="_blank" rel="noopener">Tải file lỗi</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px" *ngIf="(importResult.errors || []).length > 0">
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th style="width: 90px">Dòng</th>
+                  <th style="width: 160px">Mã</th>
+                  <th>Lỗi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let e of importResult.errors">
+                  <td class="center">{{ e.rowNumber }}</td>
+                  <td class="center">{{ e.productCode || '-' }}</td>
+                  <td>{{ e.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -30,8 +30,8 @@
           <td>#{{ r.id }}</td>
           <td>{{ r.userId }}</td>
           <td><span class="badge">{{ r.status }}</span></td>
-          <td class="right">{{ r.total ?? 0 }}</td>
-          <td class="right">{{ r.itemCount ?? 0 }}</td>
+          <td class="right">{{ r.total }}</td>
+          <td class="right">{{ r.itemCount }}</td>
           <td>{{ r.couponCode || '-' }}</td>
           <td>{{ formatDate(r.createdAt) }}</td>
         </tr>

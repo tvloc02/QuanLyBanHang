@@ -11,6 +11,28 @@ interface ApiResponse<T> {
   data: T;
 }
 
+interface CategoryNode {
+  id: number;
+  name: string;
+  slug: string;
+  parentId?: number | null;
+  children?: CategoryNode[];
+}
+
+interface AdminProductImportRowError {
+  rowNumber: number;
+  productCode?: string | null;
+  message: string;
+}
+
+interface AdminProductImportResult {
+  total: number;
+  successCount: number;
+  errorCount: number;
+  errorFileUrl?: string | null;
+  errors?: AdminProductImportRowError[];
+}
+
 interface ProductResponse {
   id: number;
   sku?: string;
@@ -52,8 +74,34 @@ export class AdminProductsListComponent {
   error = '';
   success = '';
 
+  importOpen = false;
+  importing = false;
+  importError = '';
+  importSuccess = '';
+  importMode: 'CREATE' | 'UPDATE' = 'CREATE';
+  private importFile: File | null = null;
+  importFileName = '';
+  importResult: AdminProductImportResult | null = null;
+
+  private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
+
+  importCategoryFilter = '';
+  importCategoryTree: CategoryNode[] = [];
+  importLeafCategories: CategoryNode[] = [];
+  importSelectedCategoryIds = new Set<number>();
+  importSelectedCategoryLeafs: CategoryNode[] = [];
+  private importCategoriesLoaded = false;
+
   constructor(private http: HttpClient) {
     this.load();
+  }
+
+  resolveApiUrl(input?: string | null): string {
+    const url = (input || '').toString().trim();
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('/')) return `${this.apiBaseUrl}${url}`;
+    return `${this.apiBaseUrl}/${url}`;
   }
 
   load(): void {
@@ -208,6 +256,170 @@ export class AdminProductsListComponent {
     a.download = `products_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  exportZip(): void {
+    this.error = '';
+    const url = `${environment.apiBaseUrl}/api/admin/products/export`;
+    this.http
+      .get(url, {
+        observe: 'response',
+        responseType: 'blob'
+      })
+      .subscribe({
+        next: (res) => {
+          const blob = res.body;
+          if (!blob) return;
+
+          const cd = res.headers.get('content-disposition') || '';
+          const m = /filename="?([^";]+)"?/i.exec(cd);
+          const filename = m?.[1] || `products_${new Date().toISOString().slice(0, 10)}.zip`;
+
+          const dlUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = dlUrl;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(dlUrl);
+        },
+        error: (err) => {
+          this.error = err?.error?.message || 'Không thể xuất Excel + ảnh.';
+        }
+      });
+  }
+
+  openImport(): void {
+    this.importOpen = true;
+    this.importing = false;
+    this.importError = '';
+    this.importSuccess = '';
+    this.importMode = 'CREATE';
+    this.importFile = null;
+    this.importFileName = '';
+    this.importResult = null;
+    this.importSelectedCategoryIds.clear();
+    this.importSelectedCategoryLeafs = [];
+    this.importCategoryFilter = '';
+
+    if (!this.importCategoriesLoaded) {
+      this.loadImportCategories();
+    }
+  }
+
+  closeImport(): void {
+    if (this.importing) return;
+    this.importOpen = false;
+  }
+
+  onImportFileChange(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const f = input?.files?.[0] || null;
+    this.importFile = f;
+    this.importFileName = f?.name || '';
+    this.importError = '';
+    this.importSuccess = '';
+    this.importResult = null;
+
+    if (input) input.value = '';
+  }
+
+  private loadImportCategories(): void {
+    const url = `${environment.apiBaseUrl}/api/categories/tree`;
+    this.http.get<ApiResponse<CategoryNode[]>>(url).subscribe({
+      next: (res) => {
+        if (!res?.success) return;
+        this.importCategoryTree = Array.isArray(res.data) ? res.data : [];
+        this.importLeafCategories = this.flattenLeafCategories(this.importCategoryTree);
+        this.refreshImportSelectedCategoryLeafs();
+        this.importCategoriesLoaded = true;
+      },
+      error: () => {
+        this.importCategoriesLoaded = false;
+      }
+    });
+  }
+
+  private flattenLeafCategories(nodes: CategoryNode[]): CategoryNode[] {
+    const out: CategoryNode[] = [];
+    const walk = (n: CategoryNode) => {
+      const children = Array.isArray(n.children) ? n.children : [];
+      if (children.length === 0) {
+        out.push(n);
+        return;
+      }
+      children.forEach(walk);
+    };
+    (nodes || []).forEach(walk);
+    return out;
+  }
+
+  get filteredImportLeafCategories(): CategoryNode[] {
+    const q = (this.importCategoryFilter || '').trim().toLowerCase();
+    const list = this.importLeafCategories || [];
+    if (!q) return list;
+    return list.filter((x) => `${x.name} ${x.slug}`.toLowerCase().includes(q));
+  }
+
+  toggleImportCategory(cat: CategoryNode): void {
+    if (!cat?.id) return;
+    if (this.importSelectedCategoryIds.has(cat.id)) {
+      this.importSelectedCategoryIds.delete(cat.id);
+    } else {
+      this.importSelectedCategoryIds.add(cat.id);
+    }
+    this.refreshImportSelectedCategoryLeafs();
+  }
+
+  clearImportCategories(): void {
+    this.importSelectedCategoryIds.clear();
+    this.refreshImportSelectedCategoryLeafs();
+  }
+
+  private refreshImportSelectedCategoryLeafs(): void {
+    this.importSelectedCategoryLeafs = (this.importLeafCategories || []).filter((x) => this.importSelectedCategoryIds.has(x.id));
+  }
+
+  submitImport(): void {
+    this.importError = '';
+    this.importSuccess = '';
+    this.importResult = null;
+
+    if (!this.importFile) {
+      this.importError = 'Vui lòng chọn file .zip hoặc .xlsx.';
+      return;
+    }
+
+    const categoryIds = Array.from(this.importSelectedCategoryIds);
+    if (categoryIds.length === 0) {
+      this.importError = 'Vui lòng chọn ít nhất 1 danh mục.';
+      return;
+    }
+
+    const form = new FormData();
+    form.append('file', this.importFile);
+    form.append('mode', this.importMode);
+    categoryIds.forEach((id) => form.append('categoryIds', String(id)));
+
+    const url = `${environment.apiBaseUrl}/api/admin/products/import`;
+    this.importing = true;
+    this.http.post<ApiResponse<AdminProductImportResult>>(url, form).subscribe({
+      next: (res) => {
+        this.importing = false;
+        if (!res?.success) {
+          this.importError = res?.message || 'Import thất bại.';
+          return;
+        }
+        this.importResult = res.data;
+        const ok = Number(this.importResult?.successCount || 0);
+        const err = Number(this.importResult?.errorCount || 0);
+        this.importSuccess = `Import hoàn tất. Thành công: ${ok}, lỗi: ${err}.`;
+        this.load();
+      },
+      error: (err) => {
+        this.importing = false;
+        this.importError = err?.error?.message || 'Gọi API import thất bại.';
+      }
+    });
   }
 
   productCode(p: ProductResponse): string {

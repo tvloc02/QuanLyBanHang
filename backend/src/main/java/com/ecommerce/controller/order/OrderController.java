@@ -1,8 +1,10 @@
  package com.ecommerce.controller.order;
 
 import com.ecommerce.dto.request.OrderCreateRequest;
+import com.ecommerce.dto.request.OrderQuoteRequest;
 import com.ecommerce.dto.response.ApiResponse;
 import com.ecommerce.dto.response.OrderResponse;
+import com.ecommerce.dto.response.OrderQuoteResponse;
 import com.ecommerce.exception.ForbiddenException;
 import com.ecommerce.security.SecurityUtils;
 import com.ecommerce.service.order.OrderService;
@@ -36,6 +38,15 @@ public class OrderController {
             throw new ForbiddenException("Forbidden");
         }
         return ResponseEntity.ok(ApiResponse.ok(orderService.createOrder(req)));
+    }
+
+    @PostMapping("/quote")
+    public ResponseEntity<ApiResponse<OrderQuoteResponse>> quote(@Valid @RequestBody OrderQuoteRequest req) {
+        Long currentUserId = SecurityUtils.currentUserId();
+        if (currentUserId == null) {
+            throw new ForbiddenException("Unauthorized");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(orderService.quote(req)));
     }
 
     @GetMapping
