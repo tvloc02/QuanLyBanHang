@@ -31,7 +31,7 @@
         <tr *ngFor="let p of filteredProducts">
           <td>
             <div class="thumb">
-              <img *ngIf="p.imageUrl" [src]="p.imageUrl" alt="thumb" />
+              <img *ngIf="p.imageUrl" [src]="resolveImageUrl(p.imageUrl)" alt="thumb" />
             </div>
           </td>
           <td>

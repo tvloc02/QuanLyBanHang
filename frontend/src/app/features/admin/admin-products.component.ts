@@ -72,6 +72,8 @@ export class AdminProductsComponent {
   products: ProductResponse[] = [];
   q = '';
 
+  private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
+
   saving = false;
   error = '';
   success = '';
@@ -107,6 +109,15 @@ export class AdminProductsComponent {
   constructor(private fb: FormBuilder, private http: HttpClient) {
     this.load();
     this.loadCategories();
+  }
+
+  resolveImageUrl(src?: string | null): string {
+    const s = String(src || '').trim();
+    if (!s) return '';
+    if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.startsWith('/')) return `${this.apiBaseUrl}${s}`;
+    return `${this.apiBaseUrl}/${s}`;
   }
 
   get images(): FormArray {

@@ -538,8 +538,8 @@ export class LoginComponent implements AfterViewInit {
           this.auth.setSession(data);
           this.router.navigateByUrl(this.auth.isInternal() ? '/admin' : '/');
         },
-        error: () => {
-          this.toast.error('Hệ thống đăng nhập qua Google đang bảo trì.');
+        error: (err: any) => {
+          this.toast.error(err?.error?.message || 'Đăng nhập Google thất bại.');
         }
       });
   }

@@ -72,6 +72,8 @@ interface CartSavingLink {
 export class HomeComponent implements AfterViewInit, OnInit {
   readonly cfg = HOME_CONFIG;
 
+  private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
+
   featuredProducts: HomeCardProduct[] = [];
   hotProducts: HomeCardProduct[] = [];
   exclusiveProducts: HomeCardProduct[] = [];
@@ -203,7 +205,7 @@ export class HomeComponent implements AfterViewInit, OnInit {
         out.push({
           title,
           description: String(it.description || ''),
-          imageUrl: String(it.imageUrl || 'https://images.unsplash.com/photo-1520975958225-8c8a552aa9c7?auto=format&fit=crop&w=1200&q=80'),
+          imageUrl: this.resolveImageUrl(String(it.imageUrl || 'https://images.unsplash.com/photo-1520975958225-8c8a552aa9c7?auto=format&fit=crop&w=1200&q=80')),
           route
         });
       }
@@ -225,7 +227,7 @@ export class HomeComponent implements AfterViewInit, OnInit {
           links.push({
             title,
             description: it.description ? String(it.description) : undefined,
-            imageUrl: it.imageUrl ? String(it.imageUrl) : undefined,
+            imageUrl: it.imageUrl ? this.resolveImageUrl(String(it.imageUrl)) : undefined,
             route,
             buttonText: it.buttonText ? String(it.buttonText) : undefined
           });
@@ -415,7 +417,7 @@ export class HomeComponent implements AfterViewInit, OnInit {
     const oldPrice = x?.oldPrice !== undefined ? Number(x.oldPrice) : undefined;
     const discountPercent = x?.discountPercent !== undefined ? Number(x.discountPercent) : undefined;
     const badge = x?.badge ? String(x.badge) : undefined;
-    const imageUrl = x?.imageUrl ? String(x.imageUrl) : 'https://via.placeholder.com/900x900?text=Product';
+    const imageUrl = this.resolveImageUrl(x?.imageUrl ? String(x.imageUrl) : 'https://via.placeholder.com/900x900?text=Product');
 
     const tag = badge || (this.isOnSaleRaw({ price, oldPrice, discountPercent }) ? 'SALE' : undefined);
     const priceText = `${this.formatMoney(price)}đ`;
@@ -427,6 +429,16 @@ export class HomeComponent implements AfterViewInit, OnInit {
       priceText,
       route: slug ? `/product/${slug}` : '/'
     };
+  }
+
+  private resolveImageUrl(raw: string): string {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.startsWith('//')) return `https:${s}`;
+    if (s.startsWith('/')) return `${this.apiBaseUrl}${s}`;
+    return `${this.apiBaseUrl}/${s}`;
   }
 
   private isOnSaleRaw(v: { price: number; oldPrice?: number; discountPercent?: number }): boolean {
