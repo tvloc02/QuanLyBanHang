@@ -1,0 +1,222 @@
+<div class="admin-shipping">
+  <div class="page-header">
+    <h1 class="page-title">Quản lý Phí Vận Chuyển</h1>
+    <p class="page-description">Cấu hình phí vận chuyển theo tỉnh thành và khoảng cách</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button class="tab-btn" 
+            [class.active]="activeTab === 'province'" 
+            (click)="activeTab = 'province'">
+      <i class="icon">📍</i>
+      Phí theo Tỉnh/Thành phố
+    </button>
+    <button class="tab-btn" 
+            [class.active]="activeTab === 'distance'" 
+            (click)="activeTab = 'distance'">
+      <i class="icon">📏</i>
+      Phí theo Khoảng cách
+    </button>
+    <button class="tab-btn" 
+            [class.active]="activeTab === 'settings'" 
+            (click)="activeTab = 'settings'">
+      <i class="icon">⚙️</i>
+      Cài đặt chung
+    </button>
+  </div>
+
+  <!-- Province Shipping Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'province'">
+    <div class="section-header">
+      <h2>Cấu hình phí theo Tỉnh/Thành phố</h2>
+      <button class="btn btn-primary" (click)="activeTab = 'province'">
+        <i class="icon">+</i> Thêm cấu hình
+      </button>
+    </div>
+
+    <!-- Add/Edit Form -->
+    <div class="form-card">
+      <h3>{{ editingProvinceIndex !== null ? 'Cập nhật' : 'Thêm' }} phí vận chuyển</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tỉnh/Thành phố</label>
+          <select class="form-control" [(ngModel)]="newProvinceShipping.province">
+            <option value="">-- Chọn tỉnh/thành phố --</option>
+            <option *ngFor="let province of provinces" [value]="province">
+              {{ province }}
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Phí vận chuyển (VNĐ)</label>
+          <input type="number" class="form-control" [(ngModel)]="newProvinceShipping.fee" 
+                 min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Thời gian giao hàng (ngày)</label>
+          <input type="number" class="form-control" [(ngModel)]="newProvinceShipping.estimatedDays" 
+                 min="1" placeholder="1">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="addProvinceShipping()">
+          {{ editingProvinceIndex !== null ? 'Cập nhật' : 'Thêm' }}
+        </button>
+        <button class="btn btn-secondary" (click)="resetProvinceForm()">Hủy</button>
+      </div>
+    </div>
+
+    <!-- Province List -->
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Tỉnh/Thành phố</th>
+            <th>Phí vận chuyển</th>
+            <th>Thời gian giao</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of provinceShippings; let i = index">
+            <td>{{ item.province }}</td>
+            <td>{{ formatMoney(item.fee) }}đ</td>
+            <td>{{ item.estimatedDays }} ngày</td>
+            <td>
+              <button class="btn btn-sm btn-warning" (click)="editProvinceShipping(i)">Sửa</button>
+              <button class="btn btn-sm btn-danger" (click)="deleteProvinceShipping(i)">Xóa</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="provinceShippings.length === 0">
+        <p>Chưa có cấu hình phí vận chuyển nào</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distance Shipping Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'distance'">
+    <div class="section-header">
+      <h2>Cấu hình phí theo Khoảng cách</h2>
+      <button class="btn btn-primary">
+        <i class="icon">+</i> Thêm cấu hình
+      </button>
+    </div>
+
+    <!-- Add/Edit Form -->
+    <div class="form-card">
+      <h3>{{ editingDistanceIndex !== null ? 'Cập nhật' : 'Thêm' }} khoảng cách</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Khoảng cách tối thiểu (km)</label>
+          <input type="number" class="form-control" [(ngModel)]="newDistanceShipping.minDistance" 
+                 min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Khoảng cách tối đa (km)</label>
+          <input type="number" class="form-control" [(ngModel)]="newDistanceShipping.maxDistance" 
+                 min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Phí vận chuyển (VNĐ)</label>
+          <input type="number" class="form-control" [(ngModel)]="newDistanceShipping.fee" 
+                 min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Thời gian giao hàng (ngày)</label>
+          <input type="number" class="form-control" [(ngModel)]="newDistanceShipping.estimatedDays" 
+                 min="1" placeholder="1">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="addDistanceShipping()">
+          {{ editingDistanceIndex !== null ? 'Cập nhật' : 'Thêm' }}
+        </button>
+        <button class="btn btn-secondary" (click)="resetDistanceForm()">Hủy</button>
+      </div>
+    </div>
+
+    <!-- Distance List -->
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Khoảng cách</th>
+            <th>Phí vận chuyển</th>
+            <th>Thời gian giao</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of distanceShippings; let i = index">
+            <td>
+              {{ item.minDistance }} - {{ item.maxDistance === 999 ? '∞' : item.maxDistance }} km
+            </td>
+            <td>{{ formatMoney(item.fee) }}đ</td>
+            <td>{{ item.estimatedDays }} ngày</td>
+            <td>
+              <button class="btn btn-sm btn-warning" (click)="editDistanceShipping(i)">Sửa</button>
+              <button class="btn btn-sm btn-danger" (click)="deleteDistanceShipping(i)">Xóa</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="distanceShippings.length === 0">
+        <p>Chưa có cấu hình khoảng cách nào</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'settings'">
+    <div class="section-header">
+      <h2>Cài đặt chung vận chuyển</h2>
+    </div>
+
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Miễn phí vận chuyển (đơn hàng tối thiểu)</label>
+          <input type="number" class="form-control" [(ngModel)]="shippingSettings.freeShippingThreshold" 
+                 min="0" placeholder="500000">
+          <small>Miễn phí vận chuyển cho đơn hàng từ giá trị này</small>
+        </div>
+        <div class="form-group">
+          <label>Phí mặc định</label>
+          <input type="number" class="form-control" [(ngModel)]="shippingSettings.defaultFee" 
+                 min="0" placeholder="30000">
+          <small>Phí vận chuyển mặc định khi không có cấu hình</small>
+        </div>
+        <div class="form-group">
+          <label>Phí giao hàng trong ngày</label>
+          <input type="number" class="form-control" [(ngModel)]="shippingSettings.sameDayFee" 
+                 min="0" placeholder="50000">
+          <small>Phụ thu cho giao hàng trong ngày</small>
+        </div>
+        <div class="form-group">
+          <label>Phí giao hàng nhanh</label>
+          <input type="number" class="form-control" [(ngModel)]="shippingSettings.expressFee" 
+                 min="0" placeholder="40000">
+          <small>Phụ thu cho giao hàng nhanh</small>
+        </div>
+        <div class="form-group">
+          <label>Phí cuối tuần</label>
+          <input type="number" class="form-control" [(ngModel)]="shippingSettings.weekendFee" 
+                 min="0" placeholder="10000">
+          <small>Phụ thu cho giao hàng cuối tuần</small>
+        </div>
+        <div class="form-group">
+          <label>Phí vùng xa</label>
+          <input type="number" class="form-control" [(ngModel)]="shippingSettings.remoteFee" 
+                 min="0" placeholder="20000">
+          <small>Phụ thu cho các vùng xa xôi</small>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="saveSettings()">Lưu cài đặt</button>
+      </div>
+    </div>
+  </div>
+</div>

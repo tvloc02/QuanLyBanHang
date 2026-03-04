@@ -24,6 +24,12 @@ public class ProductResponse {
 
     private Long categoryId;
 
+    private Long productTypeId;
+
+    private String gender;
+
+    private String attributesJson;
+
     private List<Long> categoryIds = new ArrayList<>();
 
     private String category;
@@ -122,6 +128,30 @@ public class ProductResponse {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public Long getProductTypeId() {
+        return productTypeId;
+    }
+
+    public void setProductTypeId(Long productTypeId) {
+        this.productTypeId = productTypeId;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAttributesJson() {
+        return attributesJson;
+    }
+
+    public void setAttributesJson(String attributesJson) {
+        this.attributesJson = attributesJson;
     }
 
     public List<Long> getCategoryIds() {

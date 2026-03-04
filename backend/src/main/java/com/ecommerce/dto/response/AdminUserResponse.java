@@ -30,6 +30,8 @@ public class AdminUserResponse {
 
     private BigDecimal avgMonthlySpendLast6Months;
 
+    private Long branchId;
+
     public AdminUserResponse() {}
 
     public AdminUserResponse(
@@ -174,5 +176,13 @@ public class AdminUserResponse {
 
     public void setAvgMonthlySpendLast6Months(BigDecimal avgMonthlySpendLast6Months) {
         this.avgMonthlySpendLast6Months = avgMonthlySpendLast6Months;
+    }
+
+    public Long getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(Long branchId) {
+        this.branchId = branchId;
     }
 }

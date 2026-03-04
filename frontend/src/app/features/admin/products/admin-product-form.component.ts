@@ -34,6 +34,41 @@ interface ProductVariantResponse {
   active?: boolean;
 }
 
+interface AdminBranchResponse {
+  id: number;
+  code: string;
+  name: string;
+  active?: boolean;
+}
+
+interface AdminProductVariantBranchStockResponse {
+  branchId: number;
+  productId: number;
+  color: string;
+  size: string;
+  stock: number;
+  imageUrl?: string;
+  updatedAt?: string;
+}
+
+interface AdminProductTypeResponse {
+  id: number;
+  code: string;
+  name: string;
+  active?: boolean;
+  fieldsJson?: string;
+}
+
+type VariantBranchMatrixRow = {
+  color: string;
+  size: string;
+  price: number;
+  oldPrice: number | null;
+  imageUrl: string;
+  stocks: Array<{ branchId: number; stock: number }>;
+  total: number;
+};
+
 interface ProductResponse {
   id: number;
   sku?: string;
@@ -47,6 +82,7 @@ interface ProductResponse {
   categoryIds?: number[];
   category: string;
   brand: string;
+  productTypeId?: number | null;
   imageUrl?: string;
   images?: string[];
   variants?: ProductVariantResponse[];
@@ -78,6 +114,7 @@ export class AdminProductFormComponent {
 
   categoryTree: CategoryNode[] = [];
   leafCategories: CategoryNode[] = [];
+  allCategories: CategoryNode[] = [];
   categoryFilter = '';
   selectedCategoryIds = new Set<number>();
   selectedCategoryLeafs: CategoryNode[] = [];
@@ -85,12 +122,24 @@ export class AdminProductFormComponent {
   categoryModalOpen = false;
   expandedCategoryIds = new Set<number>();
 
+  productTypesLoading = false;
+  productTypes: AdminProductTypeResponse[] = [];
+
+  get activeProductTypes(): AdminProductTypeResponse[] {
+    return (this.productTypes || []).filter((x) => x && x.active !== false);
+  }
+
+  branches: AdminBranchResponse[] = [];
+  variantBranchRows: VariantBranchMatrixRow[] = [];
+  private variantBranchCellByKey = new Map<string, { stock: number; imageUrl: string }>();
+
   private id: number | null = null;
 
   form = this.fb.group({
     name: ['', [Validators.required]],
     slug: ['', [Validators.required]],
     category: ['', [Validators.required]],
+    productTypeId: [null as number | null],
     brand: ['FashionHub', [Validators.required]],
     price: [199000, [Validators.required]],
     oldPrice: [null as number | null],
@@ -141,7 +190,9 @@ export class AdminProductFormComponent {
     private route: ActivatedRoute,
     private router: Router
   ) {
+    this.loadBranches();
     this.loadCategories();
+    this.loadProductTypes();
 
     const rawId = this.route.snapshot.paramMap.get('id');
     this.id = rawId ? Number(rawId) : null;
@@ -151,6 +202,289 @@ export class AdminProductFormComponent {
       this.images.clear();
       this.addImage();
     }
+  }
+
+  private loadProductTypes(): void {
+    this.productTypesLoading = true;
+    const url = `${environment.apiBaseUrl}/api/admin/product-types`;
+    this.http.get<ApiResponse<AdminProductTypeResponse[]>>(url).subscribe({
+      next: (res) => {
+        this.productTypesLoading = false;
+        if (!res?.success) {
+          this.productTypes = [];
+          return;
+        }
+        const rows = Array.isArray(res.data) ? res.data : [];
+        this.productTypes = rows.filter((x) => x && typeof x.id === 'number');
+
+        const current = this.form.value.productTypeId;
+        if (current == null && !this.isEdit) {
+          const firstActive = this.productTypes.find((x) => x.active !== false);
+          if (firstActive?.id != null) {
+            this.form.patchValue({ productTypeId: firstActive.id });
+          }
+        }
+      },
+      error: () => {
+        this.productTypesLoading = false;
+        this.productTypes = [];
+      }
+    });
+  }
+
+  productTypeLabelById(id: number | null | undefined): string {
+    const pid = id != null ? Number(id) : NaN;
+    if (!Number.isFinite(pid)) return '';
+    const pt = (this.productTypes || []).find((x) => x.id === pid);
+    return pt ? `${pt.name} (${pt.code})` : `#${pid}`;
+  }
+
+  private loadBranches(): void {
+    const url = `${environment.apiBaseUrl}/api/admin/branches`;
+    this.http.get<ApiResponse<AdminBranchResponse[]>>(url).subscribe({
+      next: (res) => {
+        if (!res?.success) {
+          this.branches = [];
+          return;
+        }
+        const rows = Array.isArray(res.data) ? res.data : [];
+        this.branches = rows.filter((x) => x && typeof x.id === 'number');
+        this.ensureVariantBranchRows();
+      },
+      error: () => {
+        this.branches = [];
+      }
+    });
+  }
+
+  branchLabelById(branchId: number): string {
+    const b = (this.branches || []).find((x) => x.id === branchId);
+    if (!b) return `#${branchId}`;
+    return `${b.code} - ${b.name}`;
+  }
+
+  private normalizeKeyPart(v: unknown): string {
+    return (v || '').toString().trim().toLowerCase();
+  }
+
+  private variantCellKey(branchId: number, color: string, size: string): string {
+    return `${branchId}|${this.normalizeKeyPart(color)}|${this.normalizeKeyPart(size)}`;
+  }
+
+  private ensureVariantBranchRows(): void {
+    const branchIds = (this.branches || []).map((b) => b.id).filter((x) => typeof x === 'number');
+    if (branchIds.length === 0) return;
+
+    const priceByColor = new Map<string, { price: number; oldPrice: number | null }>();
+    for (const vg of this.variants.controls) {
+      const color = (vg.get('color')?.value || '').toString().trim();
+      if (!color) continue;
+      const p = Number(vg.get('price')?.value || 0);
+      const opRaw = vg.get('oldPrice')?.value;
+      const op = opRaw != null && opRaw !== '' ? Number(opRaw) : null;
+      priceByColor.set(this.normalizeKeyPart(color), {
+        price: Number.isFinite(p) ? p : 0,
+        oldPrice: op != null && Number.isFinite(op) ? op : null
+      });
+    }
+
+    const rowKeys: Array<{ color: string; size: string }> = [];
+    const seen = new Set<string>();
+    for (const vg of this.variants.controls) {
+      const color = (vg.get('color')?.value || '').toString().trim();
+      if (!color) continue;
+      const stocks = vg.get('stocks') as FormArray | null;
+      const sizeCtrls = (stocks?.controls || []) as any[];
+      for (const sc of sizeCtrls) {
+        const size = (sc.get('size')?.value || '').toString().trim();
+        if (!size) continue;
+        const k = `${this.normalizeKeyPart(color)}|${this.normalizeKeyPart(size)}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        rowKeys.push({ color, size });
+      }
+    }
+
+    this.variantBranchRows = rowKeys.map(({ color, size }) => {
+      const stocks = branchIds.map((bid) => {
+        const cell = this.variantBranchCellByKey.get(this.variantCellKey(bid, color, size));
+        return { branchId: bid, stock: Number(cell?.stock || 0) };
+      });
+      const total = stocks.reduce((sum, x) => sum + Math.max(0, Number(x.stock || 0)), 0);
+
+      const priceMeta = priceByColor.get(this.normalizeKeyPart(color));
+      const price = Number(priceMeta?.price || 0);
+      const oldPrice = priceMeta?.oldPrice ?? null;
+
+      let imageUrl = '';
+      for (const bid of branchIds) {
+        const cell = this.variantBranchCellByKey.get(this.variantCellKey(bid, color, size));
+        const u = (cell?.imageUrl || '').toString().trim();
+        if (u) {
+          imageUrl = u;
+          break;
+        }
+      }
+
+      return { color, size, price, oldPrice, imageUrl, stocks, total };
+    });
+
+    this.syncVariantStocksFromMatrix();
+  }
+
+  onVariantBranchMatrixChanged(): void {
+    const branchIds = (this.branches || []).map((b) => b.id).filter((x) => typeof x === 'number');
+    const nextMap = new Map<string, { stock: number; imageUrl: string }>();
+
+    for (const row of this.variantBranchRows || []) {
+      row.total = (row.stocks || []).reduce((sum, x) => sum + Math.max(0, Number(x.stock || 0)), 0);
+      for (const bid of branchIds) {
+        const cell = (row.stocks || []).find((x) => x.branchId === bid);
+        nextMap.set(this.variantCellKey(bid, row.color, row.size), {
+          stock: Math.max(0, Number(cell?.stock || 0)),
+          imageUrl: (row.imageUrl || '').toString().trim()
+        });
+      }
+    }
+
+    this.variantBranchCellByKey = nextMap;
+    this.syncVariantStocksFromMatrix();
+    this.recalculateTotalStock();
+  }
+
+  onVariantRowPriceChanged(row: VariantBranchMatrixRow): void {
+    const ck = this.normalizeKeyPart(row?.color);
+    if (!ck) return;
+
+    const p = Number(row.price || 0);
+    const price = Number.isFinite(p) ? p : 0;
+
+    const op = row.oldPrice != null && row.oldPrice !== ('' as any) ? Number(row.oldPrice) : null;
+    const oldPrice = op != null && Number.isFinite(op) ? op : null;
+
+    for (const r of this.variantBranchRows || []) {
+      if (this.normalizeKeyPart(r.color) !== ck) continue;
+      r.price = price;
+      r.oldPrice = oldPrice;
+    }
+
+    for (const vg of this.variants.controls) {
+      const color = (vg.get('color')?.value || '').toString().trim();
+      if (!color) continue;
+      if (this.normalizeKeyPart(color) !== ck) continue;
+      vg.get('price')?.setValue(price, { emitEvent: false });
+      vg.get('oldPrice')?.setValue(oldPrice, { emitEvent: false });
+    }
+
+    this.syncProductPriceFromVariants();
+  }
+
+  private syncProductPriceFromVariants(): void {
+    let minPrice: number | null = null;
+    let maxOldPrice: number | null = null;
+
+    for (const vg of this.variants.controls) {
+      const p = Number(vg.get('price')?.value || 0);
+      if (Number.isFinite(p)) {
+        if (minPrice == null || p < minPrice) minPrice = p;
+      }
+      const opRaw = vg.get('oldPrice')?.value;
+      const op = opRaw != null && opRaw !== '' ? Number(opRaw) : null;
+      if (op != null && Number.isFinite(op)) {
+        if (maxOldPrice == null || op > maxOldPrice) maxOldPrice = op;
+      }
+    }
+
+    if (minPrice == null) minPrice = Number(this.form.value.price || 0);
+    this.form.patchValue({
+      price: minPrice,
+      oldPrice: maxOldPrice
+    });
+  }
+
+  private syncVariantStocksFromMatrix(): void {
+    const byRowKey = new Map<string, number>();
+    for (const r of this.variantBranchRows || []) {
+      byRowKey.set(`${this.normalizeKeyPart(r.color)}|${this.normalizeKeyPart(r.size)}`, Number(r.total || 0));
+    }
+
+    for (const vg of this.variants.controls) {
+      const color = (vg.get('color')?.value || '').toString().trim();
+      if (!color) continue;
+      const stocks = vg.get('stocks') as FormArray | null;
+      const sizeCtrls = (stocks?.controls || []) as any[];
+      for (const sc of sizeCtrls) {
+        const size = (sc.get('size')?.value || '').toString().trim();
+        if (!size) continue;
+        const key = `${this.normalizeKeyPart(color)}|${this.normalizeKeyPart(size)}`;
+        const total = byRowKey.get(key);
+        if (typeof total === 'number') {
+          sc.get('stock')?.setValue(total, { emitEvent: false });
+        }
+      }
+    }
+  }
+
+  private loadVariantBranchStocks(productId: number): void {
+    const url = `${environment.apiBaseUrl}/api/admin/products/${productId}/variant-branch-stocks`;
+    this.http.get<ApiResponse<AdminProductVariantBranchStockResponse[]>>(url).subscribe({
+      next: (res) => {
+        if (!res?.success) return;
+        const rows = Array.isArray(res.data) ? res.data : [];
+        const nextMap = new Map<string, { stock: number; imageUrl: string }>();
+        for (const x of rows) {
+          if (!x || typeof x.branchId !== 'number') continue;
+          const color = (x.color || '').toString();
+          const size = (x.size || '').toString();
+          const key = this.variantCellKey(x.branchId, color, size);
+          nextMap.set(key, {
+            stock: Number(x.stock || 0),
+            imageUrl: (x.imageUrl || '').toString().trim()
+          });
+        }
+        this.variantBranchCellByKey = nextMap;
+        this.ensureVariantBranchRows();
+      },
+      error: () => {
+        // ignore
+      }
+    });
+  }
+
+  matrixImagePreview(url: string): string {
+    return this.resolveImageUrl((url || '').toString());
+  }
+
+  async onMatrixImageFileSelect(rowIndex: number, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+    this.error = '';
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name || 'image.jpg');
+      const url = `${environment.apiBaseUrl}/api/admin/uploads`;
+      const res = await this.http.post<ApiResponse<{ url: string }>>(url, formData).toPromise();
+      const uploaded = res?.data?.url;
+      if (!uploaded) {
+        this.error = res?.message || 'Upload thất bại.';
+        return;
+      }
+      if (this.variantBranchRows[rowIndex]) {
+        this.variantBranchRows[rowIndex].imageUrl = uploaded;
+      }
+      this.onVariantBranchMatrixChanged();
+    } catch (e: any) {
+      this.error = e?.error?.message || 'Không upload được ảnh.';
+    } finally {
+      (event.target as HTMLInputElement).value = '';
+    }
+  }
+
+  clearMatrixImage(rowIndex: number): void {
+    if (!this.variantBranchRows[rowIndex]) return;
+    this.variantBranchRows[rowIndex].imageUrl = '';
+    this.onVariantBranchMatrixChanged();
   }
 
   openCategoryModal(): void {
@@ -300,6 +634,7 @@ export class AdminProductFormComponent {
         if (!res?.success) return;
         this.categoryTree = Array.isArray(res.data) ? res.data : [];
         this.leafCategories = this.flattenLeafCategories(this.categoryTree);
+        this.allCategories = this.flattenAllCategories(this.categoryTree);
         this.refreshSelectedCategoryLeafs();
       },
       error: () => {
@@ -309,7 +644,8 @@ export class AdminProductFormComponent {
   }
 
   private refreshSelectedCategoryLeafs(): void {
-    this.selectedCategoryLeafs = (this.leafCategories || []).filter((x) => this.selectedCategoryIds.has(x.id));
+    const list = (this.allCategories && this.allCategories.length > 0) ? this.allCategories : this.leafCategories;
+    this.selectedCategoryLeafs = (list || []).filter((x) => this.selectedCategoryIds.has(x.id));
     const firstSlug = this.selectedCategoryLeafs[0]?.slug || this.form.value.category || '';
     this.form.patchValue({ category: firstSlug });
   }
@@ -322,6 +658,17 @@ export class AdminProductFormComponent {
         out.push(n);
         return;
       }
+      children.forEach(walk);
+    };
+    (nodes || []).forEach(walk);
+    return out;
+  }
+
+  private flattenAllCategories(nodes: CategoryNode[]): CategoryNode[] {
+    const out: CategoryNode[] = [];
+    const walk = (n: CategoryNode) => {
+      out.push(n);
+      const children = Array.isArray(n.children) ? n.children : [];
       children.forEach(walk);
     };
     (nodes || []).forEach(walk);
@@ -398,6 +745,7 @@ export class AdminProductFormComponent {
     });
 
     this.recalculateTotalStock();
+    this.ensureVariantBranchRows();
   }
 
   recalculateTotalStock(): void {
@@ -815,6 +1163,7 @@ export class AdminProductFormComponent {
           return;
         }
         this.applyProductToForm(res.data);
+        this.loadVariantBranchStocks(id);
       },
       error: (err) => {
         this.loading = false;
@@ -828,6 +1177,7 @@ export class AdminProductFormComponent {
       name: p?.name || '',
       slug: p?.slug || '',
       category: p?.category || '',
+      productTypeId: (p as any)?.productTypeId ?? null,
       brand: p?.brand || 'FashionHub',
       price: Number(p?.price || 0),
       oldPrice: p?.oldPrice != null ? Number(p.oldPrice) : null,
@@ -890,6 +1240,7 @@ export class AdminProductFormComponent {
     }
 
     this.recalculateTotalStock();
+    this.ensureVariantBranchRows();
   }
 
   submit(): void {
@@ -903,7 +1254,13 @@ export class AdminProductFormComponent {
 
     const categoryIds = Array.from(this.selectedCategoryIds);
     if (categoryIds.length === 0) {
-      this.error = 'Vui lòng chọn ít nhất 1 danh mục cấp 3.';
+      this.error = 'Vui lòng chọn ít nhất 1 danh mục.';
+      return;
+    }
+
+    const productTypeId = this.form.value.productTypeId;
+    if (productTypeId == null) {
+      this.error = 'Vui lòng chọn loại sản phẩm.';
       return;
     }
 
@@ -913,6 +1270,8 @@ export class AdminProductFormComponent {
     const images = this.images.controls
       .map((c) => (c.value || '').toString().trim())
       .filter(Boolean);
+
+    this.onVariantBranchMatrixChanged();
 
     const variants = this.variants.controls.map((vg) => {
       const imgs = ((vg.get('images') as FormArray)?.controls || [])
@@ -942,6 +1301,7 @@ export class AdminProductFormComponent {
       slug: this.form.value.slug,
       category: this.form.value.category,
       categoryIds,
+      productTypeId,
       brand: this.form.value.brand,
       price: this.form.value.price,
       oldPrice: this.form.value.oldPrice,
@@ -961,17 +1321,50 @@ export class AdminProductFormComponent {
 
     this.saving = true;
 
+    const upsertVariantBranchStocks = (productId: number) => {
+      const url = `${environment.apiBaseUrl}/api/admin/products/${productId}/variant-branch-stocks`;
+      const body = (this.variantBranchRows || []).flatMap((r) =>
+        (r.stocks || []).map((x) => ({
+          branchId: x.branchId,
+          color: r.color,
+          size: r.size,
+          stock: Math.max(0, Number(x.stock || 0)),
+          imageUrl: (r.imageUrl || '').toString().trim() || null
+        }))
+      );
+      return this.http.put<ApiResponse<AdminProductVariantBranchStockResponse[]>>(url, body);
+    };
+
     if (this.isEdit && this.id != null) {
       const url = `${environment.apiBaseUrl}/api/products/${this.id}`;
       this.http.put<ApiResponse<ProductResponse>>(url, payload).subscribe({
         next: (res) => {
-          this.saving = false;
           if (!res?.success) {
+            this.saving = false;
             this.error = res?.message || 'Cập nhật sản phẩm thất bại.';
             return;
           }
-          this.success = `Đã cập nhật sản phẩm #${res.data?.id} (${res.data?.name}).`;
-          this.router.navigate(['/admin/products', res.data.id]);
+          const pid = res.data?.id;
+          if (!pid) {
+            this.saving = false;
+            this.success = 'Đã cập nhật sản phẩm.';
+            return;
+          }
+          upsertVariantBranchStocks(pid).subscribe({
+            next: (r2) => {
+              this.saving = false;
+              if (!r2?.success) {
+                this.error = r2?.message || 'Lưu tồn kho theo chi nhánh (size+màu) thất bại.';
+                return;
+              }
+              this.success = `Đã cập nhật sản phẩm #${pid} (${res.data?.name}).`;
+              this.router.navigate(['/admin/products', pid]);
+            },
+            error: (err2) => {
+              this.saving = false;
+              this.error = err2?.error?.message || 'Lưu tồn kho theo chi nhánh (size+màu) thất bại.';
+            }
+          });
         },
         error: (err) => {
           this.saving = false;
@@ -984,13 +1377,32 @@ export class AdminProductFormComponent {
     const url = `${environment.apiBaseUrl}/api/products`;
     this.http.post<ApiResponse<ProductResponse>>(url, payload).subscribe({
       next: (res) => {
-        this.saving = false;
         if (!res?.success) {
+          this.saving = false;
           this.error = res?.message || 'Tạo sản phẩm thất bại.';
           return;
         }
-        this.success = `Đã tạo sản phẩm #${res.data?.id} (${res.data?.name}).`;
-        this.router.navigate(['/admin/products', res.data.id]);
+        const pid = res.data?.id;
+        if (!pid) {
+          this.saving = false;
+          this.success = 'Đã tạo sản phẩm.';
+          return;
+        }
+        upsertVariantBranchStocks(pid).subscribe({
+          next: (r2) => {
+            this.saving = false;
+            if (!r2?.success) {
+              this.error = r2?.message || 'Lưu tồn kho theo chi nhánh (size+màu) thất bại.';
+              return;
+            }
+            this.success = `Đã tạo sản phẩm #${pid} (${res.data?.name}).`;
+            this.router.navigate(['/admin/products', pid]);
+          },
+          error: (err2) => {
+            this.saving = false;
+            this.error = err2?.error?.message || 'Lưu tồn kho theo chi nhánh (size+màu) thất bại.';
+          }
+        });
       },
       error: (err) => {
         this.saving = false;

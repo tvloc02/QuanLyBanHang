@@ -34,6 +34,21 @@ export class AdminOrdersComponent implements OnDestroy {
     this.load();
   }
 
+  get totalOrdersAll(): number {
+    return (this.allRows || []).length;
+  }
+
+  get totalOrdersInView(): number {
+    return (this.rows || []).length;
+  }
+
+  get totalAmountInView(): number {
+    return (this.rows || []).reduce((sum, r) => {
+      const n = Number((r as any)?.total ?? 0);
+      return sum + (Number.isFinite(n) ? n : 0);
+    }, 0);
+  }
+
   ngOnDestroy(): void {
     if (this.qpSub) {
       this.qpSub.unsubscribe();
@@ -152,5 +167,11 @@ export class AdminOrdersComponent implements OnDestroy {
     const d = new Date(input);
     if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleString();
+  }
+
+  formatMoney(input: any): string {
+    const n = Number(input);
+    if (!Number.isFinite(n)) return '-';
+    return new Intl.NumberFormat('vi-VN').format(n);
   }
 }

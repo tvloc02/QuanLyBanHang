@@ -69,6 +69,8 @@ export class ProductDetailComponent implements OnInit {
   loading = true;
   error = '';
 
+  productPlaceholderImage = 'https://via.placeholder.com/900x1100?text=Product';
+
   productSlug = '';
   product: ProductDetailResponse | null = null;
 
@@ -119,14 +121,19 @@ export class ProductDetailComponent implements OnInit {
           oldPrice: p.oldPrice !== undefined ? Number(p.oldPrice) : undefined,
           rating: p.rating !== undefined ? Number(p.rating) : undefined,
           discountPercent: p.discountPercent !== undefined ? Number(p.discountPercent) : undefined,
-          soldCount: p.soldCount !== undefined ? Number(p.soldCount) : undefined
+          soldCount: p.soldCount !== undefined ? Number(p.soldCount) : undefined,
+          imageUrl: p.imageUrl ? this.normalizeImageUrl(String(p.imageUrl)) : undefined,
+          images: Array.isArray(p.images) ? p.images.map((x) => this.normalizeImageUrl(String(x))) : undefined
         };
 
-        const imgs = (p.images && p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : []).filter(Boolean) as string[];
-        this.images = imgs.length
-          ? imgs
-          : ['https://via.placeholder.com/900x1100?text=Product', 'https://via.placeholder.com/900x1100?text=Detail'];
-        this.activeImage = this.images[0];
+        const imgs = (this.product.images && this.product.images.length
+          ? this.product.images
+          : this.product.imageUrl
+            ? [this.product.imageUrl]
+            : []
+        ).filter(Boolean) as string[];
+        this.images = imgs.length ? imgs : [this.productPlaceholderImage];
+        this.activeImage = this.images[0] || this.productPlaceholderImage;
 
         const sizes = p.sizes || [];
         const colors = p.colors || [];
@@ -142,10 +149,11 @@ export class ProductDetailComponent implements OnInit {
       },
       error: () => {
         this.product = this.mockProduct(this.productSlug);
-        this.images = this.product.images?.length
-          ? this.product.images
-          : [this.product.imageUrl || 'https://via.placeholder.com/900x1100?text=Product'];
-        this.activeImage = this.images[0];
+        if (this.product.imageUrl) this.product.imageUrl = this.normalizeImageUrl(String(this.product.imageUrl));
+        if (Array.isArray(this.product.images)) this.product.images = this.product.images.map((x) => this.normalizeImageUrl(String(x)));
+
+        this.images = this.product.images?.length ? this.product.images : [this.product.imageUrl || this.productPlaceholderImage];
+        this.activeImage = this.images[0] || this.productPlaceholderImage;
         this.selectedSize = (this.product.sizes || [])[0] || '';
         this.selectedColor = (this.product.colors || [])[0] || '';
         this.loading = false;
@@ -171,7 +179,7 @@ export class ProductDetailComponent implements OnInit {
             name: String(x.name || 'Sản phẩm'),
             slug: String(x.slug || ''),
             price: Number(x.price || 0),
-            imageUrl: x.imageUrl ? String(x.imageUrl) : undefined,
+            imageUrl: x.imageUrl ? this.normalizeImageUrl(String(x.imageUrl)) : undefined,
             badge: x.badge ? String(x.badge) : undefined,
             discountPercent: x.discountPercent !== undefined ? Number(x.discountPercent) : undefined,
             rating: x.rating !== undefined ? Number(x.rating) : undefined
@@ -187,6 +195,27 @@ export class ProductDetailComponent implements OnInit {
 
   selectImage(url: string): void {
     this.activeImage = url;
+  }
+
+  onHeroImageError(): void {
+    this.activeImage = this.productPlaceholderImage;
+  }
+
+  onThumbImageError(index: number): void {
+    if (!Array.isArray(this.images)) return;
+    if (index < 0 || index >= this.images.length) return;
+    if (this.images[index] === this.productPlaceholderImage) return;
+    const old = this.images[index];
+    this.images[index] = this.productPlaceholderImage;
+    if (this.activeImage === old) {
+      this.activeImage = this.productPlaceholderImage;
+    }
+  }
+
+  onRelatedImageError(p: RelatedProduct): void {
+    if (!p) return;
+    if (p.imageUrl === this.productPlaceholderImage) return;
+    p.imageUrl = this.productPlaceholderImage;
   }
 
   selectColor(c: string): void {
@@ -317,5 +346,17 @@ export class ProductDetailComponent implements OnInit {
       sizes: ['S', 'M', 'L', 'XL'],
       colors: ['Hồng', 'Đen', 'Trắng']
     };
+  }
+
+  private normalizeImageUrl(raw: string): string {
+    const v = String(raw || '').trim().replace(/\\/g, '/');
+    if (!v) return '';
+    if (v.startsWith('data:')) return v;
+    if (v.startsWith('blob:')) return v;
+    if (v.startsWith('http://') || v.startsWith('https://')) return v;
+    if (v.startsWith('//')) return `https:${v}`;
+    if (v.startsWith('/')) return `${environment.apiBaseUrl}${v}`;
+    if (v.startsWith('assets/')) return v;
+    return `${environment.apiBaseUrl}/${v}`;
   }
 }

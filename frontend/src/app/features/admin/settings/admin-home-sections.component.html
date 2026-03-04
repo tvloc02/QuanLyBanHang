@@ -58,6 +58,11 @@
 
         <div class="card-body">
           <div class="form">
+            <div *ngIf="selectedKey === 'NEWS'" class="alert" style="margin-bottom: 12px">
+              Banner trang Tin tức đã tách ra trang cấu hình riêng.
+              <a routerLink="/admin/settings/news-banner" style="margin-left: 8px; font-weight: 900">Mở cấu hình Banner</a>
+            </div>
+
             <div class="grid2">
               <div class="field">
                 <label class="label">Tiêu đề</label>

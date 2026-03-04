@@ -80,6 +80,7 @@
           out.setAddressDetail(u.getAddressDetail());
           out.setLatitude(u.getLatitude());
           out.setLongitude(u.getLongitude());
+          out.setBranchId(u.getBranchId());
           out.setCreatedAt(u.getCreatedAt());
           out.setUpdatedAt(u.getUpdatedAt());
           return out;

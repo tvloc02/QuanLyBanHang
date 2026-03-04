@@ -21,10 +21,10 @@ declare const google: any;
       <div class="auth-card">
         <div class="auth-header">
           <div class="brand-section">
-            <h1 class="brand-name">FASHION<span>HUB</span></h1>
+            <h1 class="brand-name"><span class="brand-lo">Lo</span><span class="brand-vin">Vin</span></h1>
             <p class="brand-tagline">Nâng tầm phong cách của bạn</p>
           </div>
-          <a routerLink="/" class="back-home">
+          <a routerLink="/sale" class="back-home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -69,8 +69,22 @@ declare const google: any;
                 placeholder="Nhập mật khẩu"
                 (keyup.enter)="save()"
               />
-              <button type="button" class="toggle-password" (click)="togglePass()">
-                {{ showPassword() ? 'Ẩn' : 'Hiện' }}
+              <button
+                type="button"
+                class="toggle-password"
+                (click)="togglePass()"
+                [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+              >
+                <svg *ngIf="!showPassword()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                  <path d="M2 12s3.5-7 10-7s10 7 10 7s-3.5 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg *ngIf="showPassword()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                  <path d="M3 3l18 18" />
+                  <path d="M10.6 10.6a3 3 0 0 0 4.24 4.24" />
+                  <path d="M9.9 4.6A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a18.7 18.7 0 0 1-4.2 5.4" />
+                  <path d="M6.2 6.2C3.7 8.1 2 12 2 12s3.5 7 10 7c1 0 1.9-.1 2.8-.4" />
+                </svg>
               </button>
             </div>
           </div>
@@ -81,7 +95,7 @@ declare const google: any;
               <span class="checkmark"></span>
               Ghi nhớ đăng nhập
             </label>
-            <a href="javascript:void(0)" class="forgot-password">Quên mật khẩu?</a>
+            <a routerLink="/forgot-password" class="forgot-password">Quên mật khẩu?</a>
           </div>
 
           <button class="login-button" (click)="save()" [disabled]="loading()">
@@ -94,15 +108,10 @@ declare const google: any;
           </div>
 
           <div class="social-grid">
-            <button class="facebook-btn" (click)="loginWithFacebook()">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              Facebook
-            </button>
-
             <ng-container *ngIf="googleClientId && !googleRenderFailed(); else googleDisabled">
-              <div id="googleBtn" class="google-btn-wrapper"></div>
+              <div class="google-btn-wrapper">
+                <div id="googleBtn" class="google-gsi"></div>
+              </div>
             </ng-container>
 
             <ng-template #googleDisabled>
@@ -123,7 +132,6 @@ declare const google: any;
     :host {
       --primary: #c1121f;
       --primary-hover: #a4101a;
-      --facebook: #1877f2;
       --text-main: #1f2937;
       --text-muted: #6b7280;
       --border: #e5e7eb;
@@ -184,7 +192,11 @@ declare const google: any;
       color: var(--text-main);
     }
 
-    .brand-name span {
+    .brand-lo {
+      color: var(--text-main);
+    }
+
+    .brand-vin {
       color: var(--primary);
     }
 
@@ -278,13 +290,20 @@ declare const google: any;
     .toggle-password {
       position: absolute;
       right: 14px;
-      background: none;
+      width: 36px;
+      height: 36px;
       border: none;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--primary);
+      background: transparent;
+      color: rgba(17, 24, 39, 0.7);
       cursor: pointer;
       padding: 6px;
+      display: grid;
+      place-items: center;
+    }
+
+    .toggle-password svg {
+      width: 18px;
+      height: 18px;
     }
 
     .form-options {
@@ -370,7 +389,7 @@ declare const google: any;
 
     .social-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
       margin-bottom: 20px;
     }
@@ -378,29 +397,14 @@ declare const google: any;
     .google-btn-wrapper {
       width: 100%;
       display: flex;
-      justify-content: flex-end;
-    }
-
-    .facebook-btn {
-      width: 100%;
-      height: 48px;
-      background: var(--facebook);
-      color: white;
-      border: none;
-      border-radius: 16px;
-      font-size: 15px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      gap: 10px;
-      cursor: pointer;
-      transition: opacity 0.2s;
+      height: 54px;
+      align-items: center;
     }
 
-    .facebook-btn svg {
-      width: 20px;
-      height: 20px;
+    .google-gsi {
+      transform: scale(1.12);
+      transform-origin: center;
     }
 
     .auth-footer {
@@ -417,11 +421,11 @@ declare const google: any;
 
     .google-fallback-btn {
       width: 100%;
-      height: 48px;
+      height: 54px;
       background: #fff;
       color: #111;
       border: 1.5px solid var(--border);
-      border-radius: 16px;
+      border-radius: 18px;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
@@ -504,7 +508,7 @@ export class LoginComponent implements AfterViewInit {
         return;
       }
 
-      const width = this.getGoogleBtnWidth(googleBtnEl);
+      const width = this.getGoogleBtnWidth(googleBtnEl?.parentElement as HTMLElement | null);
       g.accounts.id.initialize({
         client_id: clientId,
         callback: (resp: any) => this.onGoogleCredential(resp)
@@ -523,7 +527,7 @@ export class LoginComponent implements AfterViewInit {
   private getGoogleBtnWidth(el: HTMLElement | null): number {
     const w = el?.getBoundingClientRect?.().width;
     if (typeof w === 'number' && isFinite(w) && w > 0) return Math.floor(w);
-    return 240;
+    return 360;
   }
 
   private onGoogleCredential(resp: any): void {
@@ -542,10 +546,6 @@ export class LoginComponent implements AfterViewInit {
           this.toast.error(err?.error?.message || 'Đăng nhập Google thất bại.');
         }
       });
-  }
-
-  loginWithFacebook(): void {
-    this.toast.info('Tính năng Facebook hiện đang được cập nhật.');
   }
 
   googleNotConfigured(): void {

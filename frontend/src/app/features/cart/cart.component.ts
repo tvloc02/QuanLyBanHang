@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { HOME_CONFIG, HomeSectionId } from '../home/home.config';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FooterComponent } from '../../shared/footer/footer.component';
+import { FormsModule } from '@angular/forms';
 
 interface CartItem {
   id: number;
@@ -14,12 +15,38 @@ interface CartItem {
   quantity: number;
   size?: string;
   color?: string;
+  selected?: boolean;
+  originalPrice?: number;
+  branch?: string;
+}
+
+interface Address {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  type?: string;
+  province?: string;
+  district?: string;
+}
+
+interface PaymentMethod {
+  id: number;
+  name: string;
+  description: string;
+}
+
+interface DiscountCode {
+  code: string;
+  discount: number;
+  type: 'percentage' | 'fixed';
+  minAmount?: number;
 }
 
 @Component({
   selector: 'app-cart',
   standalone: true,
-  imports: [CommonModule, RouterLink, FooterComponent],
+  imports: [CommonModule, RouterLink, FooterComponent, FormsModule],
   templateUrl: './cart.component.html',
   styleUrls: ['./cart.component.scss']
 })
@@ -37,6 +64,21 @@ export class CartComponent implements OnInit {
   activeSuggestIndex = -1;
 
   items: CartItem[] = [];
+  
+  // New properties for enhanced cart functionality
+  discountCode = '';
+  discountMessage = '';
+  discountAmount = 0;
+  addresses: Address[] = [];
+  selectedAddressIndex = -1;
+  paymentMethods: PaymentMethod[] = [
+    { id: 1, name: 'Thanh toán khi nhận hàng (COD)', description: 'Thanh toán bằng tiền mặt khi nhận hàng' },
+    { id: 2, name: 'Chuyển khoản ngân hàng', description: 'Chuyển khoản qua ngân hàng' },
+    { id: 3, name: 'Thẻ tín dụng/Ghi nợ', description: 'Thanh toán qua thẻ Visa/Mastercard' },
+    { id: 4, name: 'Ví điện tử', description: 'Thanh toán qua MoMo, ZaloPay, VNPay' }
+  ];
+  selectedPaymentMethod = 0;
+  showAddAddress = false;
 
   constructor(
     private router: Router,
@@ -46,6 +88,7 @@ export class CartComponent implements OnInit {
   ngOnInit(): void {
     this.hydrateBadges();
     this.loadCart();
+    this.loadAddresses();
 
     // Close account dropdown when route changes
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -83,7 +126,10 @@ export class CartComponent implements OnInit {
             price: x.price!,
             quantity: typeof x.quantity === 'number' && x.quantity > 0 ? x.quantity : 1,
             size: x.size,
-            color: x.color
+            color: x.color,
+            selected: x.selected !== false, // Default to true
+            originalPrice: x.originalPrice || x.price! * 1.2, // Mock original price
+            branch: x.branch || ['Hà Nội', 'TP.HCM', 'Đà Nẵng'][Math.floor(Math.random() * 3)]
           }));
       } else {
         this.items = [];
@@ -93,6 +139,37 @@ export class CartComponent implements OnInit {
     }
 
     this.cartCount = this.items.length;
+  }
+
+  private loadAddresses(): void {
+    try {
+      const raw = localStorage.getItem('addresses');
+      const arr = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(arr)) {
+        this.addresses = arr;
+      } else {
+        // Mock addresses for demo
+        this.addresses = [
+          {
+            id: 1,
+            name: 'Nguyễn Văn A',
+            phone: '0912345678',
+            address: '123 Nguyễn Huệ, Quận 1, TP.HCM',
+            type: 'Nhà riêng'
+          },
+          {
+            id: 2,
+            name: 'Nguyễn Văn A',
+            phone: '0912345678',
+            address: '456 Lê Lợi, Quận 3, TP.HCM',
+            type: 'Công ty'
+          }
+        ];
+        this.selectedAddressIndex = 0;
+      }
+    } catch {
+      this.addresses = [];
+    }
   }
 
   private persistCart(): void {
@@ -211,7 +288,7 @@ export class CartComponent implements OnInit {
 
     if (!item.sectionId) return;
 
-    this.router.navigateByUrl('/').then(() => {
+    this.router.navigateByUrl('/sale').then(() => {
       window.setTimeout(() => {
         const el = document.getElementById(item.sectionId as string);
         if (!el) return;
@@ -224,7 +301,53 @@ export class CartComponent implements OnInit {
   }
 
   get subtotal(): number {
-    return this.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    return this.selectedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  }
+
+  get originalTotal(): number {
+    return this.selectedItems.reduce((sum, i) => sum + (i.originalPrice || i.price) * i.quantity, 0);
+  }
+
+  get selectedItems(): CartItem[] {
+    return this.items.filter(item => item.selected);
+  }
+
+  get selectedItemsCount(): number {
+    return this.selectedItems.reduce((count, item) => count + item.quantity, 0);
+  }
+
+  get shippingFee(): number {
+    if (this.selectedItems.length === 0) return 0;
+    
+    // Calculate shipping based on branches
+    const branches = new Set(this.selectedItems.map(item => item.branch));
+    let fee = 0;
+    
+    branches.forEach(branch => {
+      switch (branch) {
+        case 'Hà Nội':
+          fee += 30000;
+          break;
+        case 'TP.HCM':
+          fee += 25000;
+          break;
+        case 'Đà Nẵng':
+          fee += 35000;
+          break;
+        default:
+          fee += 30000;
+      }
+    });
+    
+    return fee;
+  }
+
+  get totalAmount(): number {
+    return this.subtotal + this.shippingFee - this.discountAmount;
+  }
+
+  get selectedAddress(): Address | null {
+    return this.selectedAddressIndex >= 0 ? this.addresses[this.selectedAddressIndex] : null;
   }
 
   formatMoney(v: number): string {
@@ -247,11 +370,96 @@ export class CartComponent implements OnInit {
   }
 
   continueShopping(): void {
-    this.router.navigateByUrl('/');
+    this.router.navigateByUrl('/sale');
   }
 
   checkout(): void {
+    if (this.selectedItemsCount === 0) {
+      alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
+      return;
+    }
+    if (!this.selectedAddress) {
+      alert('Vui lòng chọn địa chỉ giao hàng');
+      return;
+    }
+    
+    // Prepare checkout data
+    const checkoutData = {
+      items: this.selectedItems,
+      address: this.selectedAddress,
+      paymentMethod: this.paymentMethods[this.selectedPaymentMethod],
+      subtotal: this.subtotal,
+      shippingFee: this.shippingFee,
+      discountAmount: this.discountAmount,
+      totalAmount: this.totalAmount
+    };
+    
+    localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
     this.router.navigateByUrl('/checkout');
+  }
+
+  // Checkbox functionality
+  toggleSelectAll(): void {
+    const allSelected = this.isAllSelected();
+    this.items.forEach(item => item.selected = !allSelected);
+    this.persistCart();
+  }
+
+  isAllSelected(): boolean {
+    return this.items.length > 0 && this.items.every(item => item.selected);
+  }
+
+  updateSelection(): void {
+    this.persistCart();
+  }
+
+  // Discount functionality
+  applyDiscount(): void {
+    if (!this.discountCode.trim()) {
+      this.discountMessage = 'Vui lòng nhập mã giảm giá';
+      return;
+    }
+
+    // Mock discount codes
+    const validCodes: { [key: string]: DiscountCode } = {
+      'SALE10': { code: 'SALE10', discount: 10, type: 'percentage', minAmount: 200000 },
+      'SALE20': { code: 'SALE20', discount: 20, type: 'percentage', minAmount: 500000 },
+      'FIXED50': { code: 'FIXED50', discount: 50000, type: 'fixed', minAmount: 300000 },
+      'NEWUSER': { code: 'NEWUSER', discount: 15, type: 'percentage', minAmount: 100000 }
+    };
+
+    const code = this.discountCode.toUpperCase().trim();
+    const discount = validCodes[code];
+
+    if (!discount) {
+      this.discountMessage = 'Mã giảm giá không hợp lệ';
+      this.discountAmount = 0;
+      return;
+    }
+
+    if (discount.minAmount && this.subtotal < discount.minAmount) {
+      this.discountMessage = `Đơn hàng tối thiểu ${this.formatMoney(discount.minAmount)}đ để áp dụng mã này`;
+      this.discountAmount = 0;
+      return;
+    }
+
+    if (discount.type === 'percentage') {
+      this.discountAmount = Math.round(this.subtotal * discount.discount / 100);
+    } else {
+      this.discountAmount = Math.min(discount.discount, this.subtotal);
+    }
+
+    this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
+  }
+
+  // Address functionality
+  selectAddress(index: number): void {
+    this.selectedAddressIndex = index;
+  }
+
+  // Payment method functionality
+  selectPaymentMethod(index: number): void {
+    this.selectedPaymentMethod = index;
   }
 
   @HostListener('window:scroll')

@@ -277,8 +277,8 @@ export class CategoryDetailComponent implements OnInit {
 
     if (!item.sectionId) return;
 
-    // Navigate back to Home and scroll to target section
-    this.router.navigateByUrl('/').then(() => {
+    // Navigate back to Sale and scroll to target section
+    this.router.navigateByUrl('/sale').then(() => {
       // Allow Home to render first
       window.setTimeout(() => {
         const el = document.getElementById(item.sectionId as string);

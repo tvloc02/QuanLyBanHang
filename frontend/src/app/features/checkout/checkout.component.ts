@@ -885,7 +885,11 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           localStorage.removeItem('cart');
           this.placed = true;
           window.setTimeout(() => {
-            this.router.navigateByUrl('/');
+            const q = new URLSearchParams();
+            if (res?.data?.id) q.set('orderId', String(res.data.id));
+            if (payload?.shippingPhone) q.set('phone', String(payload.shippingPhone));
+            const qs = q.toString();
+            this.router.navigateByUrl(`/${qs ? `?${qs}` : ''}`);
           }, 1200);
         },
         error: () => {

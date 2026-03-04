@@ -1,63 +1,125 @@
-<div class="page">
-  <div class="page-head">
-    <div class="title">Cấu hình hệ thống</div>
-    <div class="head-actions">
-      <button class="btn" type="button" (click)="load()" [disabled]="loading || saving">
-        {{ loading ? 'Đang tải...' : 'Làm mới' }}
-      </button>
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a2 2 0 0 0-2 2v1H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h7v-6h2v6h7a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-1V8a2 2 0 0 0-2-2h-2V5a2 2 0 0 0-2-2h-2Z" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Cấu hình chung</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Thiết lập hệ thống và cấu hình AI / Chatbot</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="alert" *ngIf="error">{{ error }}</div>
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+    {{ error }}
+  </div>
 
-  <div class="card">
-    <div class="card-title">Cấu hình AI / Chatbot</div>
-
-    <div class="meta" *ngIf="ai">
-      <div class="meta-row">
-        <span class="k">Gemini</span>
-        <span class="v">{{ ai.hasGeminiApiKey ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
-      </div>
-      <div class="meta-row">
-        <span class="k">ChatGPT (OpenAI)</span>
-        <span class="v">{{ ai.hasOpenaiApiKey ? 'Đã cấu hình' : 'Chưa cấu hình' }}</span>
-      </div>
-      <div class="meta-row" *ngIf="ai.updatedAt">
-        <span class="k">Cập nhật</span>
-        <span class="v">{{ ai.updatedAt }}</span>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Gemini</div>
+      <div class="mt-1 text-2xl font-extrabold" [class.text-green-600]="!!ai?.hasGeminiApiKey" [class.text-gray-900]="!ai?.hasGeminiApiKey">
+        {{ ai?.hasGeminiApiKey ? 'Đã cấu hình' : 'Chưa cấu hình' }}
       </div>
     </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">OpenAI</div>
+      <div class="mt-1 text-2xl font-extrabold" [class.text-green-600]="!!ai?.hasOpenaiApiKey" [class.text-gray-900]="!ai?.hasOpenaiApiKey">
+        {{ ai?.hasOpenaiApiKey ? 'Đã cấu hình' : 'Chưa cấu hình' }}
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Cập nhật</div>
+      <div class="mt-1 text-2xl font-extrabold text-gray-900">
+        {{ ai?.updatedAt || '-' }}
+      </div>
+    </div>
+  </div>
 
-    <div class="form">
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Provider mặc định</label>
-          <select class="input" [(ngModel)]="form.defaultProvider">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div class="p-5 sm:p-6 border-b border-gray-100">
+      <div class="text-lg font-extrabold text-gray-900">Cấu hình AI / Chatbot</div>
+      <div class="mt-1 text-sm text-gray-600 font-semibold">Admin nhập key ở đây. User chỉ việc sử dụng.</div>
+      <div class="text-sm text-gray-600 font-semibold">Để trống key = giữ nguyên. Tick "Xóa" = xóa key.</div>
+    </div>
+
+    <div class="p-5 sm:p-6 space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Provider mặc định</label>
+          <select
+            class="w-full h-11 px-4 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+            [(ngModel)]="form.defaultProvider"
+          >
             <option value="gemini">Gemini</option>
             <option value="openai">ChatGPT (OpenAI)</option>
           </select>
         </div>
-        <div class="hint">
-          <div class="small muted">Admin nhập key ở đây. User chỉ việc sử dụng.</div>
-          <div class="small muted">Để trống key = giữ nguyên. Tick "Xóa" = xóa key.</div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Gemini API Key</label>
+          <input
+            class="w-full h-11 px-4 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+            type="password"
+            [(ngModel)]="form.geminiApiKey"
+            placeholder="Nhập key để cập nhật"
+          />
+          <label class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-600">
+            <input type="checkbox" class="w-4 h-4" [(ngModel)]="form.clearGemini" />
+            Xóa key Gemini
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">OpenAI API Key</label>
+          <input
+            class="w-full h-11 px-4 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+            type="password"
+            [(ngModel)]="form.openaiApiKey"
+            placeholder="Nhập key để cập nhật"
+          />
+          <label class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-600">
+            <input type="checkbox" class="w-4 h-4" [(ngModel)]="form.clearOpenai" />
+            Xóa key OpenAI
+          </label>
         </div>
       </div>
 
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Gemini API Key</label>
-          <input class="input" type="password" [(ngModel)]="form.geminiApiKey" placeholder="Nhập key để cập nhật" />
-          <label class="chk"><input type="checkbox" [(ngModel)]="form.clearGemini" /> Xóa key Gemini</label>
-        </div>
-        <div class="field">
-          <label class="label">OpenAI API Key</label>
-          <input class="input" type="password" [(ngModel)]="form.openaiApiKey" placeholder="Nhập key để cập nhật" />
-          <label class="chk"><input type="checkbox" [(ngModel)]="form.clearOpenai" /> Xóa key OpenAI</label>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</button>
+      <div class="flex justify-end pt-1">
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="loading || saving"
+          class="px-4 py-2 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700 disabled:opacity-60"
+        >
+          {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
+        </button>
       </div>
     </div>
   </div>

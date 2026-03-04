@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, HostListener, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { UserDataService, UserMeResponse } from '../../core/services/user-data.service';
 import { environment } from '../../../environments/environment';
 
 interface ApiResponse<T> {
@@ -46,17 +47,56 @@ export class HeaderComponent implements OnInit {
   openMegaRootId: number | null = null;
   userMenuOpen = false;
 
+  me: UserMeResponse | null = null;
+  rewardPoints = 0;
+  private meLoading = false;
+
   private closeMegaTimer: any | null = null;
 
   constructor(
     private readonly http: HttpClient,
     private readonly router: Router,
-    private readonly auth: AuthService
+    private readonly auth: AuthService,
+    private readonly userData: UserDataService
   ) {}
 
   ngOnInit(): void {
     this.refreshCartCount();
     this.loadCategories();
+    this.loadMeIfNeeded();
+  }
+
+  get userDisplayName(): string {
+    const fullName = String(this.me?.fullName || '').trim();
+    if (fullName) return fullName;
+    const username = String(this.me?.username || '').trim();
+    if (username) return username;
+    return 'Tài khoản';
+  }
+
+  get userInitial(): string {
+    const name = this.userDisplayName;
+    return (name ? name[0] : 'U').toUpperCase();
+  }
+
+  private loadMeIfNeeded(): void {
+    if (!this.isAuthenticated()) {
+      this.me = null;
+      return;
+    }
+    if (this.meLoading) return;
+
+    this.meLoading = true;
+    this.userData.getMe().subscribe({
+      next: (res) => {
+        this.meLoading = false;
+        this.me = res?.data || null;
+      },
+      error: () => {
+        this.meLoading = false;
+        this.me = null;
+      }
+    });
   }
 
   resolveCategoryIcon(key?: string | null): string {
@@ -184,16 +224,24 @@ export class HeaderComponent implements OnInit {
     return this.auth.isAuthenticated();
   }
 
+  isInternal(): boolean {
+    return this.auth.isInternal();
+  }
+
   toggleUserMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.userMenuOpen = !this.userMenuOpen;
     this.openMegaRootId = null;
+    if (this.userMenuOpen) {
+      this.loadMeIfNeeded();
+    }
   }
 
   logout(): void {
     this.userMenuOpen = false;
+    this.me = null;
     this.auth.logout();
-    this.router.navigateByUrl('/');
+    this.router.navigateByUrl('/sale');
   }
 
   onRootCategoryClick(root: CategoryResponse, event: MouseEvent): void {

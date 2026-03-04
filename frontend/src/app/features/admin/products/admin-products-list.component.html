@@ -1,94 +1,201 @@
-<div class="page">
-  <div class="page-head">
-    <div class="title">
-      <div class="title-main">Sản phẩm</div>
-      <div class="title-sub">Quản lý danh sách sản phẩm, biến thể màu/size và tồn kho</div>
-    </div>
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+            <path d="M3.3 7 12 12l8.7-5" />
+            <path d="M12 22V12" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Sản phẩm</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Quản lý danh sách sản phẩm, biến thể màu/size và tồn kho</p>
+        </div>
+      </div>
 
-    <div class="head-actions">
-      <input class="search" [(ngModel)]="q" (ngModelChange)="onQueryChange()" placeholder="Tìm kiếm sản phẩm..." />
-      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
-      <button class="btn ghost" type="button" (click)="exportCsv()" [disabled]="loading || totalRecords === 0">Xuất CSV</button>
-      <button class="btn ghost" type="button" (click)="exportZip()" [disabled]="loading || totalRecords === 0">Xuất Excel + Ảnh</button>
-      <button class="btn ghost" type="button" (click)="openImport()" [disabled]="loading">Import Excel + Ảnh</button>
-      <a class="btn" routerLink="/admin/products/new">+ Thêm sản phẩm</a>
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="exportCsv()"
+          [disabled]="loading || totalRecords === 0"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Xuất CSV</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="exportZip()"
+          [disabled]="loading || totalRecords === 0"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Xuất Excel + Ảnh</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="openImport()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Import Excel + Ảnh</span>
+        </button>
+
+        <a
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm"
+          routerLink="/admin/products/new"
+        >
+          <span>+ Thêm sản phẩm</span>
+        </a>
+      </div>
     </div>
   </div>
 
-  <div class="alert error" *ngIf="error">{{ error }}</div>
-  <div class="alert success" *ngIf="success">{{ success }}</div>
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+    {{ error }}
+  </div>
+  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl font-semibold">
+    {{ success }}
+  </div>
 
-  <div class="card">
-    <div class="table-wrap">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th style="width: 60px" class="center">STT</th>
-            <th style="width: 120px" class="center">Mã sản phẩm</th>
-            <th class="center">Tên Sản phẩm</th>
-            <th style="width: 140px" class="center">Danh mục</th>
-            <th style="width: 130px" class="center">Màu sắc</th>
-            <th style="width: 100px" class="center">Kích cỡ</th>
-            <th style="width: 110px" class="center">Số lượng</th>
-            <th style="width: 100px" class="center">Đã bán</th>
-            <th style="width: 110px" class="center">Còn lại</th>
-            <th style="width: 180px" class="center">Thao tác</th>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng sản phẩm</div>
+      <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ totalProducts }}</div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Đang hiển thị</div>
+      <div class="mt-1 text-2xl font-extrabold text-green-600">{{ activeProducts }}</div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tạm ẩn</div>
+      <div class="mt-1 text-2xl font-extrabold text-red-600">{{ inactiveProducts }}</div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex-1">
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <input
+            class="w-full h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+            [(ngModel)]="q"
+            (ngModelChange)="onQueryChange()"
+            placeholder="Tìm kiếm sản phẩm..."
+          />
+        </div>
+      </div>
+      <div class="text-sm font-extrabold text-gray-700">{{ totalRecords }} sản phẩm</div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gradient-to-r from-blue-50 to-sky-50">
+          <tr class="divide-x divide-gray-200">
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 60px">STT</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Mã sản phẩm</th>
+            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Tên sản phẩm</th>
+            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 140px">Danh mục</th>
+            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 130px">Màu sắc</th>
+            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 100px">Kích cỡ</th>
+            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 110px">Số lượng</th>
+            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 100px">Đã bán</th>
+            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 110px">Còn lại</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 180px">Thao tác</th>
           </tr>
         </thead>
 
-        <tbody>
+        <tbody class="divide-y divide-gray-100 bg-white">
           <tr *ngIf="!loading && totalRecords === 0">
-            <td colspan="10" class="empty">Chưa có sản phẩm.</td>
+            <td colspan="10" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có sản phẩm.</td>
           </tr>
 
-          <tr *ngFor="let p of pagedProducts; let i = index">
-            <td class="center">{{ rowNumber(i) }}</td>
+          <tr *ngFor="let p of pagedProducts; let i = index" class="hover:bg-blue-50/40 transition-colors">
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ rowNumber(i) }}</td>
 
-            <td>
-              <div class="code">{{ productCode(p) }}</div>
-              <div class="id">#{{ p.id }}</div>
+            <td class="px-4 py-3 text-center">
+              <div class="text-sm font-extrabold text-gray-900">{{ productCode(p) }}</div>
+              <div class="text-xs font-bold text-gray-500">#{{ p.id }}</div>
             </td>
 
-            <td>
-              <div class="pname">{{ p.name }}</div>
-              <div class="pslug">/{{ p.slug }}</div>
+            <td class="px-4 py-3 text-left">
+              <div class="text-sm font-extrabold text-gray-900">{{ p.name }}</div>
+              <div class="text-xs font-bold text-gray-500">/{{ p.slug }}</div>
             </td>
 
-            <td>
-              <div class="cat">{{ p.category }}</div>
-              <div class="cat-sub" *ngIf="(p.categoryIds?.length || 0) > 1">+{{ (p.categoryIds?.length || 0) - 1 }} danh mục</div>
+            <td class="px-4 py-3 text-left">
+              <div class="text-sm font-extrabold text-gray-900">{{ p.category }}</div>
+              <div class="text-xs font-bold text-gray-500" *ngIf="(p.categoryIds?.length || 0) > 1">+{{ (p.categoryIds?.length || 0) - 1 }} danh mục</div>
             </td>
 
-            <td>
-              <div class="list" [title]="(p.colors || []).join(', ')">{{ (p.colors?.length || 0) > 0 ? (p.colors || []).join(', ') : '-' }}</div>
+            <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <div class="truncate max-w-[220px]" [title]="(p.colors || []).join(', ')">{{ (p.colors?.length || 0) > 0 ? (p.colors || []).join(', ') : '-' }}</div>
             </td>
 
-            <td>
-              <div class="list" [title]="(p.sizes || []).join(', ')">{{ (p.sizes?.length || 0) > 0 ? (p.sizes || []).join(', ') : '-' }}</div>
+            <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <div class="truncate max-w-[160px]" [title]="(p.sizes || []).join(', ')">{{ (p.sizes?.length || 0) > 0 ? (p.sizes || []).join(', ') : '-' }}</div>
             </td>
 
-            <td class="right">{{ p.stock }}</td>
+            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ p.stock }}</td>
+            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ soldCount(p) }}</td>
+            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ remainingCount(p) }}</td>
 
-            <td class="right">{{ soldCount(p) }}</td>
-
-            <td class="right">{{ remainingCount(p) }}</td>
-
-            <td class="center">
-              <div class="row-actions">
-                <a class="icon-btn" [routerLink]="['/admin/products', p.id]" title="Xem chi tiết">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            <td class="px-4 py-3 text-center">
+              <div class="inline-flex items-center justify-center gap-2">
+                <a
+                  class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
+                  [routerLink]="['/admin/products', p.id]"
+                  title="Xem chi tiết"
+                  aria-label="Xem chi tiết"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                   </svg>
                 </a>
-                <a class="icon-btn edit" [routerLink]="['/admin/products', p.id, 'edit']" title="Chỉnh sửa">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+
+                <a
+                  class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-blue-50 transition-colors"
+                  [routerLink]="['/admin/products', p.id, 'edit']"
+                  title="Chỉnh sửa"
+                  aria-label="Chỉnh sửa"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5Z"></path>
                   </svg>
                 </a>
-                <button class="icon-btn delete" type="button" (click)="remove(p)" [disabled]="deletingId === p.id" title="Xóa">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+
+                <button
+                  type="button"
+                  (click)="remove(p)"
+                  [disabled]="deletingId === p.id"
+                  class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                  title="Xóa"
+                  aria-label="Xóa"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6"></path>
+                    <path d="M14 11v6"></path>
+                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
                   </svg>
                 </button>
               </div>
@@ -96,37 +203,67 @@
           </tr>
         </tbody>
       </table>
-
-      <div class="page-footer">
-        <div class="left">
-          <select class="page-size" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
-            <option *ngFor="let s of pageSizeOptions" [ngValue]="s">{{ s }} / trang</option>
-          </select>
-
-          <div class="total">Tổng số bản ghi: {{ formatInt(totalRecords) }}</div>
-
-          <div class="page-info" *ngIf="pageCount > 1">Trang {{ page }} / {{ pageCount }}</div>
-        </div>
-
-        <div class="pager" *ngIf="pageCount > 1">
-          <button class="pg" type="button" (click)="goToPage(1)" [disabled]="page === 1">«</button>
-          <button class="pg" type="button" (click)="prevPage()" [disabled]="page === 1">‹</button>
-
-          <button
-            class="pg"
-            type="button"
-            *ngFor="let p of pagesToShow()"
-            (click)="goToPage(p)"
-            [class.active]="p === page"
-          >
-            {{ p }}
-          </button>
-
-          <button class="pg" type="button" (click)="nextPage()" [disabled]="page === pageCount">›</button>
-          <button class="pg" type="button" (click)="goToPage(pageCount)" [disabled]="page === pageCount">»</button>
-        </div>
-      </div>
     </div>
+  </div>
+
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+    <div class="inline-flex items-center gap-2">
+      <select
+        class="h-10 px-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-extrabold text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+        [(ngModel)]="pageSize"
+        (ngModelChange)="onPageSizeChange()"
+      >
+        <option *ngFor="let s of pageSizeOptions" [ngValue]="s">{{ s }} / trang</option>
+      </select>
+    </div>
+
+    <div class="inline-flex items-center justify-center gap-2" *ngIf="pageCount > 1">
+      <button
+        type="button"
+        (click)="goToPage(1)"
+        [disabled]="page === 1"
+        class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-60"
+        title="Trang đầu"
+        aria-label="Trang đầu"
+      >
+        «
+      </button>
+      <button
+        type="button"
+        (click)="prevPage()"
+        [disabled]="page === 1"
+        class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-60"
+        title="Trang trước"
+        aria-label="Trang trước"
+      >
+        ‹
+      </button>
+
+      <div class="text-sm font-extrabold text-gray-700 min-w-[140px] text-center">Trang {{ page }} / {{ pageCount }}</div>
+
+      <button
+        type="button"
+        (click)="nextPage()"
+        [disabled]="page === pageCount"
+        class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-60"
+        title="Trang sau"
+        aria-label="Trang sau"
+      >
+        ›
+      </button>
+      <button
+        type="button"
+        (click)="goToPage(pageCount)"
+        [disabled]="page === pageCount"
+        class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-60"
+        title="Trang cuối"
+        aria-label="Trang cuối"
+      >
+        »
+      </button>
+    </div>
+
+    <div class="text-sm font-extrabold text-gray-700">Tổng số bản ghi: {{ formatInt(totalRecords) }}</div>
   </div>
 </div>
 

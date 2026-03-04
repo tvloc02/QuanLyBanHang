@@ -108,8 +108,8 @@
               <div class="menu-title !text-sm !font-bold !text-gray-900">{{ roleLabel }}</div>
               <div class="menu-sub !text-xs !text-gray-600 !font-semibold">{{ displayName }}</div>
             </div>
-            <a class="menu-item !mx-2 !my-2 !rounded-lg hover:!bg-blue-50 !font-semibold" routerLink="/admin">Thông tin tài khoản</a>
-            <a class="menu-item !mx-2 !mb-2 !rounded-lg hover:!bg-blue-50 !font-semibold" routerLink="/admin">Cài đặt</a>
+            <a class="menu-item !mx-2 !my-2 !rounded-lg hover:!bg-blue-50 !font-semibold" routerLink="/admin/profile" (click)="closeUserMenu()">Thông tin tài khoản</a>
+            <a class="menu-item !mx-2 !mb-2 !rounded-lg hover:!bg-blue-50 !font-semibold" routerLink="/admin/settings/mail" (click)="closeUserMenu()">Cài đặt</a>
             <hr class="my-2 border-gray-200" />
             <button class="menu-item danger !mx-2 !mb-2 !rounded-lg hover:!bg-red-50 !font-bold" type="button" (click)="logout()">Đăng xuất</button>
           </div>
@@ -170,10 +170,12 @@
               <a routerLink="/admin/coupons" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm12 4a2 2 0 012 2v4a2 2 0 01-2 2h-2.5a1 1 0 01-.8-.4l-4.5-6a1 1 0 000-1.2l4.5-6a1 1 0 01.8-.4H16a2 2 0 012 2v4z"></path>
+                    <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                    <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a1 1 0 00.82-.45l.5-.82A1 1 0 015.05 4H3zm14 0a1 1 0 00-1 1v10a1 1 0 001 1h1.05a1 1 0 00.82-.45l.5-.82A1 1 0 0019.05 4H17z"></path>
+                    <path d="M5.05 5H3v10h2.05l.93-4.563A1 1 0 016 9H8.217l.403-2H10.5a1 1 0 00.894-.553l3-6A1 1 0 0014 6H5.28l-.31-1.243A1 1 0 004 4H2a1 1 0 000 2h1.7l.93 4.563a1 1 0 00.986.759h10.15a1 1 0 100-2H8.217l-.403 2h10.5a1 1 0 00.894.553l3 6A1 1 0 0020 6h-8.72l-.31 1.243A1 1 0 0016 8h2a1 1 0 000-2h-1.7l-.93-4.563a1 1 0 00-.986-.759H8.217l.403-2h-2.5a1 1 0 00-.894-.553l-3-6A1 1 0 004 6h8.72l.31 1.243A1 1 0 006 8H4a1 1 0 000 2h1.7z"></path>
                   </svg>
                 </span>
-                <span class="label">Mã giảm giá</span>
+                <span class="label">Vận chuyển</span>
               </a>
             </div>
           </section>
@@ -323,6 +325,24 @@
                 </span>
                 <span class="label">Cấu hình chung</span>
               </a>
+              <a routerLink="/admin/settings/product-types" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
+                <span class="ic">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 00-1 1v1H6a2 2 0 00-2 2v2H3a1 1 0 000 2h1v2a2 2 0 002 2h2v1a1 1 0 002 0v-1h2a2 2 0 002-2v-2h1a1 1 0 100-2h-1V7a2 2 0 00-2-2h-2V3a1 1 0 00-1-1zm1 5H6v6h4V7zm2 0v6h2V7h-2z"></path>
+                  </svg>
+                </span>
+                <span class="label">Loại sản phẩm</span>
+              </a>
+              <a routerLink="/admin/shipping-settings" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
+                <span class="ic">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
+                    <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a1 1 0 00.82-.45l.5-.82A1 1 0 015.05 4H3zm14 0a1 1 0 00-1 1v10a1 1 0 001 1h1.05a1 1 0 00.82-.45l.5-.82A1 1 0 0019.05 4H17z"></path>
+                    <path d="M5.05 5H3v10h2.05l.93-4.563A1 1 0 016 9H8.217l.403-2H10.5a1 1 0 00.894-.553l3-6A1 1 0 0014 6H5.28l-.31-1.243A1 1 0 004 4H2a1 1 0 000 2h1.7l.93 4.563a1 1 0 00.986.759h10.15a1 1 0 100-2H8.217l-.403 2h10.5a1 1 0 00.894.553l3 6A1 1 0 0020 6h-8.72l-.31 1.243A1 1 0 0016 8h2a1 1 0 000-2h-1.7l-.93-4.563a1 1 0 00-.986-.759H8.217l.403-2h-2.5a1 1 0 00-.894-.553l-3-6A1 1 0 004 6h8.72l.31 1.243A1 1 0 006 8H4a1 1 0 000 2h1.7z"></path>
+                  </svg>
+                </span>
+                <span class="label">Cấu hình vận chuyển</span>
+              </a>
               <a routerLink="/admin/branches" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -457,13 +477,13 @@
                 </span>
                 <span class="label">Độc quyền online</span>
               </a>
-              <a routerLink="/admin/settings/home-sections" [queryParams]="{ key: 'NEWS' }" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
+              <a routerLink="/admin/settings/news-banner" routerLinkActive="active" class="item !w-full !flex !items-center !px-3 !py-2.5 !text-sm !font-semibold !rounded-lg !transition-all !duration-200 hover:!bg-blue-50">
                 <span class="ic">
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm0 5h6v2H5v-2z"></path>
+                    <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 2h10v2H5V7zm0 4h10v2H5v-2z"></path>
                   </svg>
                 </span>
-                <span class="label">Tin tức</span>
+                <span class="label">Tin tức - Banner</span>
               </a>
             </div>
           </section>
@@ -471,7 +491,7 @@
       </nav>
 
       <div class="adm-footer !px-1 !pb-2">
-        <a class="back !w-full !inline-flex !items-center !justify-center !gap-2 !rounded-xl !border-2 !border-slate-200 !bg-white !px-4 !py-3 !text-sm !font-bold !text-slate-700 !transition-all hover:!border-blue-200 hover:!bg-blue-50" routerLink="/">← Về trang bán hàng</a>
+        <a class="back !w-full !inline-flex !items-center !justify-center !gap-2 !rounded-xl !border-2 !border-slate-200 !bg-white !px-4 !py-3 !text-sm !font-bold !text-slate-700 !transition-all hover:!border-blue-200 hover:!bg-blue-50" routerLink="/sale">← Về trang bán hàng</a>
       </div>
     </aside>
 

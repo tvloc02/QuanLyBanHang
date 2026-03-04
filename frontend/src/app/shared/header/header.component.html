@@ -6,10 +6,9 @@
 
 <header class="tl-header" (click)="showSuggest = false">
   <div class="container tl-header__inner">
-    <a class="tl-header__brand" routerLink="/" aria-label="Home">
+    <a class="tl-header__brand" routerLink="/sale" aria-label="Home">
       <span class="tl-header__brand-text">
-        <span class="tl-header__brand-fashion">FASHION</span>
-        <span class="tl-header__brand-hub">HUB</span>
+        <span class="tl-header__brand-lo">Lo</span><span class="tl-header__brand-vin">Vin</span>
       </span>
     </a>
 
@@ -62,15 +61,29 @@
 
       <ng-container *ngIf="isAuthenticated(); else guestAccount">
         <div class="tl-header__account" (click)="$event.stopPropagation()">
-          <button class="tl-header__avatar" type="button" aria-label="Tài khoản" (click)="toggleUserMenu($any($event))">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                d="M12 12.2a4.6 4.6 0 1 1 0-9.2a4.6 4.6 0 0 1 0 9.2Zm0-2a2.6 2.6 0 1 0 0-5.2a2.6 2.6 0 0 0 0 5.2ZM4 20.5a8 8 0 0 1 16 0a1 1 0 1 1-2 0a6 6 0 0 0-12 0a1 1 0 1 1-2 0Z"
-              />
-            </svg>
+          <button
+            class="tl-header__avatar is-logged"
+            type="button"
+            aria-label="Tài khoản"
+            [attr.title]="userDisplayName"
+            (click)="toggleUserMenu($any($event))"
+          >
+            <span class="tl-header__avatar-initial" aria-hidden="true">{{ userInitial }}</span>
+            <span class="tl-header__avatar-dot" aria-hidden="true"></span>
           </button>
           <div class="tl-header__menu" *ngIf="userMenuOpen">
-            <a class="tl-header__menu-item" routerLink="/profile">Thông tin tài khoản</a>
+            <div class="tl-header__menu-head">
+              <div class="tl-header__menu-avatar" aria-hidden="true">{{ userInitial }}</div>
+              <div class="tl-header__menu-meta">
+                <div class="tl-header__menu-name">{{ userDisplayName }}</div>
+                <div class="tl-header__menu-points">Điểm thưởng: {{ rewardPoints }}</div>
+              </div>
+            </div>
+            <div class="tl-header__menu-sep" aria-hidden="true"></div>
+            <a class="tl-header__menu-item" routerLink="/" (click)="userMenuOpen = false">Đơn hàng</a>
+            <a class="tl-header__menu-item" routerLink="/pages/da-xem" (click)="userMenuOpen = false">Sản phẩm đã xem</a>
+            <a class="tl-header__menu-item" routerLink="/profile" (click)="userMenuOpen = false">Hồ sơ của tôi</a>
+            <a *ngIf="isInternal()" class="tl-header__menu-item" routerLink="/admin" (click)="userMenuOpen = false">Chuyển đến trang quản lý</a>
             <button class="tl-header__menu-item danger" type="button" (click)="logout()">Đăng xuất</button>
           </div>
         </div>

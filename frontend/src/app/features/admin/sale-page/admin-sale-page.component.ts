@@ -87,6 +87,18 @@ export class AdminSalePageComponent {
     items: [] as ItemForm[]
   };
 
+  theme = {
+    title: 'Giao diện (Theme)',
+    enabled: true,
+    fontFamily: '',
+    primaryColor: ''
+  };
+
+  productsSection = {
+    title: 'Sản phẩm đang giảm giá',
+    enabled: true
+  };
+
   private readonly sectionsNavDefaults: Array<{ key: string; title: string }> = [
     { key: 'FEATURED', title: 'Được yêu thích nhất' },
     { key: 'HOT', title: 'Sản phẩm hot mỗi ngày' },
@@ -118,6 +130,8 @@ export class AdminSalePageComponent {
         this.applyVouchers(sections);
         this.applyCategories(sections);
         this.applySectionsNav(sections);
+        this.applyTheme(sections);
+        this.applyProductsSection(sections);
       },
       error: () => {
         this.loading = false;
@@ -189,15 +203,64 @@ export class AdminSalePageComponent {
       }))
     };
 
+    const themePayload = {
+      title: this.theme.title?.trim() || 'Giao diện',
+      enabled: !!this.theme.enabled,
+      items: [
+        {
+          enabled: true,
+          itemType: 'LINK' as AdminHomeSectionItemType,
+          refId: null,
+          title: String(this.theme.fontFamily || '').trim() || null,
+          titleColor: null,
+          description: null,
+          imageUrl: null,
+          route: null,
+          code: 'FONT_FAMILY',
+          note: null,
+          noteColor: null,
+          buttonText: null
+        },
+        {
+          enabled: true,
+          itemType: 'LINK' as AdminHomeSectionItemType,
+          refId: null,
+          title: null,
+          titleColor: String(this.theme.primaryColor || '').trim() || null,
+          description: null,
+          imageUrl: null,
+          route: null,
+          code: 'PRIMARY_COLOR',
+          note: null,
+          noteColor: null,
+          buttonText: null
+        }
+      ]
+    };
+
+    const productsPayload = {
+      title: this.productsSection.title?.trim() || null,
+      enabled: !!this.productsSection.enabled,
+      items: [] as any[]
+    };
+
     forkJoin({
       hero: this.adminData.updateHomeSection('SALE_HERO', heroPayload as any),
       vouchers: this.adminData.updateHomeSection('SALE_VOUCHERS', vouchersPayload as any),
       categories: this.adminData.updateHomeSection('SALE_CATEGORIES', categoriesPayload as any),
-      sectionsNav: this.adminData.updateHomeSection('SALE_SECTIONS', sectionsNavPayload as any)
+      sectionsNav: this.adminData.updateHomeSection('SALE_SECTIONS', sectionsNavPayload as any),
+      theme: this.adminData.updateHomeSection('SALE_THEME', themePayload as any),
+      products: this.adminData.updateHomeSection('SALE_PRODUCTS', productsPayload as any)
     }).subscribe({
       next: (res: any) => {
         this.saving = false;
-        const ok = !!res?.hero?.success && !!res?.vouchers?.success && !!res?.categories?.success && !!res?.sectionsNav?.success;
+        const ok =
+          !!res?.hero?.success &&
+          !!res?.vouchers?.success &&
+          !!res?.categories?.success &&
+          !!res?.sectionsNav?.success &&
+          !!res?.theme?.success &&
+          !!res?.products?.success;
         if (!ok) {
           this.error = 'Lưu cấu hình thất bại.';
           return;
@@ -292,6 +355,24 @@ export class AdminSalePageComponent {
 
   remove(list: ItemForm[], i: number): void {
     list.splice(i, 1);
+  }
+
+  fillAllVouchers(): void {
+    this.error = '';
+    const rows = Array.isArray(this.coupons) ? this.coupons : [];
+    if (rows.length === 0) {
+      this.error = 'Chưa có voucher trong hệ thống để tự động cấu hình.';
+      return;
+    }
+
+    this.vouchers.items = rows.map((c) => ({
+      enabled: true,
+      itemType: 'COUPON',
+      refId: c.id,
+      title: null,
+      note: null,
+      buttonText: 'Sao chép mã'
+    }));
   }
 
   up(list: ItemForm[], i: number): void {
@@ -495,5 +576,35 @@ export class AdminSalePageComponent {
         } as ItemForm;
       })
       .filter((x) => allowedKeys.has(String(x.code || '')));
+  }
+
+  private applyTheme(sections: HomeSectionResponse[]): void {
+    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_THEME');
+    this.theme.title = String(sec?.title || 'Giao diện (Theme)');
+    this.theme.enabled = sec ? sec.enabled !== false : true;
+
+    const items = Array.isArray(sec?.items) ? sec!.items! : [];
+    let fontFamily = '';
+    let primaryColor = '';
+
+    for (const it of items) {
+      if (!it) continue;
+      const code = String(it.code || '').trim().toUpperCase();
+      if (code === 'FONT_FAMILY') {
+        fontFamily = String(it.title || '').trim();
+      }
+      if (code === 'PRIMARY_COLOR') {
+        primaryColor = String((it as any)?.titleColor || it.title || '').trim();
+      }
+    }
+
+    this.theme.fontFamily = fontFamily;
+    this.theme.primaryColor = primaryColor;
+  }
+
+  private applyProductsSection(sections: HomeSectionResponse[]): void {
+    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_PRODUCTS');
+    this.productsSection.title = String(sec?.title || 'Sản phẩm đang giảm giá');
+    this.productsSection.enabled = sec ? sec.enabled !== false : true;
   }
 }

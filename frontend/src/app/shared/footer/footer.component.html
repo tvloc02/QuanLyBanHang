@@ -1,6 +1,11 @@
 <footer id="footer" class="tl-footer">
   <div class="tl-footer__top">
     <div class="container">
+      <div class="tl-footer__intro">
+        <div class="tl-footer__logo">FASHIONHUB</div>
+        <div class="tl-footer__tagline">Thời trang chính hãng - giao nhanh - đổi trả linh hoạt</div>
+      </div>
+
       <div class="tl-footer__grid">
         <section class="tl-footer__col">
           <div class="tl-footer__title">VỀ FASHIONHUB</div>
@@ -57,7 +62,7 @@
         <section class="tl-footer__subscribe">
           <div class="tl-footer__title tl-footer__title--right">ĐĂNG KÝ NHẬN TIN TỪ FASHIONHUB</div>
           <div class="tl-footer__newsletter">
-            <input class="tl-footer__input" placeholder="Nhập địa chỉ Email" />
+            <input class="tl-footer__input" type="email" placeholder="Nhập địa chỉ Email" />
             <button class="tl-footer__btn" type="button">Đăng ký</button>
           </div>
 
@@ -87,10 +92,45 @@
       <div class="tl-footer__social">
         <div class="tl-footer__social-title">Kết nối với FASHIONHUB</div>
         <div class="tl-footer__social-icons">
-          <a class="tl-footer__icon" routerLink="/pages/tiktok" aria-label="TikTok">t</a>
-          <a class="tl-footer__icon" routerLink="/pages/facebook" aria-label="Facebook">f</a>
-          <a class="tl-footer__icon" routerLink="/pages/zalo" aria-label="Zalo">z</a>
-          <a class="tl-footer__icon" routerLink="/pages/youtube" aria-label="YouTube">▶</a>
+          <a class="tl-footer__icon" routerLink="/pages/tiktok" aria-label="TikTok">
+            <svg viewBox="0 0 24 24" class="tl-footer__icon-svg" aria-hidden="true">
+              <path
+                d="M16.8 3c.5 2.9 2.1 4.6 5 5v3c-1.9.1-3.6-.5-5-1.5v6.1c0 4-3.2 7.4-7.4 7.4-4.3 0-7.6-3.4-7.6-7.6 0-4.6 4.2-8 8.8-7.3v3.3c-.4-.1-.9-.1-1.3 0-1.9.3-3.3 2-3.1 3.9.2 1.7 1.6 3 3.3 3.2 2.1.2 3.9-1.4 3.9-3.5V3h3.4z"
+                fill="currentColor"
+              />
+            </svg>
+          </a>
+          <a class="tl-footer__icon" routerLink="/pages/facebook" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" class="tl-footer__icon-svg" aria-hidden="true">
+              <path
+                d="M13.6 21v-7.1H16l.4-2.8h-2.8V9.3c0-.8.2-1.4 1.4-1.4h1.5V5.3c-.3 0-1.2-.1-2.4-.1-2.3 0-3.9 1.4-3.9 4v1.9H8.3v2.8h1.9V21h3.4z"
+                fill="currentColor"
+              />
+            </svg>
+          </a>
+          <a class="tl-footer__icon" routerLink="/pages/zalo" aria-label="Zalo">
+            <svg viewBox="0 0 24 24" class="tl-footer__icon-svg" aria-hidden="true">
+              <path
+                d="M12 3c-5 0-9 3.3-9 7.4 0 2.4 1.3 4.6 3.4 6v3.1c0 .4.4.6.7.4l3.1-1.7c.9.2 1.8.3 2.8.3 5 0 9-3.3 9-7.4S17 3 12 3z"
+                fill="currentColor"
+                opacity=".18"
+              />
+              <path
+                d="M7.3 15.8h9.4v-1.7H10l6.8-6V6.4H7.6v1.7h6.2L7.3 14.2v1.6z"
+                fill="currentColor"
+              />
+            </svg>
+          </a>
+          <a class="tl-footer__icon" routerLink="/pages/youtube" aria-label="YouTube">
+            <svg viewBox="0 0 24 24" class="tl-footer__icon-svg" aria-hidden="true">
+              <path
+                d="M21.6 7.2c.3 1.6.3 4.9.3 4.9s0 3.3-.3 4.9c-.2.9-.9 1.6-1.8 1.8-1.6.3-7.8.3-7.8.3s-6.2 0-7.8-.3c-.9-.2-1.6-.9-1.8-1.8C2.1 15.4 2.1 12 2.1 12s0-3.3.3-4.9c.2-.9.9-1.6 1.8-1.8 1.6-.3 7.8-.3 7.8-.3s6.2 0 7.8.3c.9.2 1.6.9 1.8 1.8z"
+                fill="currentColor"
+                opacity=".18"
+              />
+              <path d="M10.2 15.4V8.6l6 3.4-6 3.4z" fill="currentColor" />
+            </svg>
+          </a>
           <a class="tl-footer__news" routerLink="/pages/fashionhub-news">FashionHub News</a>
         </div>
       </div>

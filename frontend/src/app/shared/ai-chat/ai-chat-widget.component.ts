@@ -57,6 +57,12 @@ type SupportMsg = {
   createdAt?: string | null;
 };
 
+type OrderLite = {
+  id: number;
+  status: string;
+  total: string;
+};
+
 @Component({
   selector: 'app-ai-chat-widget',
   standalone: true,
@@ -79,6 +85,14 @@ export class AiChatWidgetComponent implements OnDestroy {
   supportConversation: SupportConversationResponse | null = null;
   private supportPollTimer: any = null;
 
+  supportAttachMenuOpen = false;
+  supportPendingImageName = '';
+  private supportPendingImageFile: File | null = null;
+
+  supportOrdersOpen = false;
+  supportOrdersLoading = false;
+  supportOrders: OrderLite[] = [];
+
   private readonly supportGuestTokenKey = 'supportChatGuestToken';
 
   quotaLoading = false;
@@ -94,6 +108,9 @@ export class AiChatWidgetComponent implements OnDestroy {
 
   @ViewChild('supportList')
   supportList?: ElementRef<HTMLElement>;
+
+  @ViewChild('supportFile')
+  supportFile?: ElementRef<HTMLInputElement>;
 
   constructor(
     private http: HttpClient,
@@ -122,8 +139,10 @@ export class AiChatWidgetComponent implements OnDestroy {
 
     const url = `${environment.apiBaseUrl}/api/support-chat/messages`;
     const guestToken = this.getSupportGuestToken();
+
+    const composed = this.composeSupportMessage(text);
     this.http
-      .post<ApiResponse<SupportMessageResponse>>(url, { guestToken, message: text })
+      .post<ApiResponse<SupportMessageResponse>>(url, { guestToken, message: composed })
       .subscribe({
         next: (res) => {
           this.supportSending = false;
@@ -135,6 +154,7 @@ export class AiChatWidgetComponent implements OnDestroy {
           if (m?.message) {
             this.supportMessages = this.supportMessages.slice(0, -1).concat([{ sender: 'CUSTOMER', text: m.message, createdAt: m.createdAt }]);
           }
+          this.clearSupportPendingImage();
           this.scrollSupportToBottom();
         },
         error: (err) => {
@@ -158,6 +178,7 @@ export class AiChatWidgetComponent implements OnDestroy {
   toggleSupport(): void {
     this.supportOpen = !this.supportOpen;
     this.supportError = '';
+    this.supportAttachMenuOpen = false;
     if (this.supportOpen) {
       this.open = false;
       this.ensureSupportConversation();
@@ -174,7 +195,115 @@ export class AiChatWidgetComponent implements OnDestroy {
   closeSupport(): void {
     this.supportOpen = false;
     this.supportError = '';
+    this.supportAttachMenuOpen = false;
     this.clearSupportPoll();
+  }
+
+  toggleSupportAttachMenu(): void {
+    if (!this.supportOpen) return;
+    this.supportAttachMenuOpen = !this.supportAttachMenuOpen;
+  }
+
+  pickSupportImage(): void {
+    this.supportAttachMenuOpen = false;
+    const el = this.supportFile?.nativeElement;
+    if (!el) return;
+    el.value = '';
+    el.click();
+  }
+
+  onSupportFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] || null;
+    if (!file) return;
+    this.supportPendingImageFile = file;
+    this.supportPendingImageName = file.name || 'Ảnh đã chọn';
+  }
+
+  clearSupportPendingImage(): void {
+    this.supportPendingImageFile = null;
+    this.supportPendingImageName = '';
+    try {
+      const el = this.supportFile?.nativeElement;
+      if (el) el.value = '';
+    } catch {
+    }
+  }
+
+  openMyOrders(): void {
+    this.supportAttachMenuOpen = false;
+    if (!this.isAuthenticated()) {
+      this.supportError = 'Vui lòng đăng nhập để chọn đơn hàng.';
+      return;
+    }
+    this.supportOrdersOpen = true;
+    this.loadMyOrders();
+  }
+
+  closeOrders(): void {
+    this.supportOrdersOpen = false;
+  }
+
+  selectOrder(o: OrderLite): void {
+    if (!o) return;
+    const snippet = `Đơn hàng của tôi: #${o.id}${o.status ? ` (${o.status})` : ''}${o.total ? ` - Tổng: ${o.total}` : ''}`;
+    this.supportInput = this.supportInput ? `${this.supportInput}\n${snippet}` : snippet;
+    this.supportOrdersOpen = false;
+  }
+
+  private loadMyOrders(): void {
+    this.supportError = '';
+    this.supportOrdersLoading = true;
+    this.supportOrders = [];
+
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      this.supportOrdersLoading = false;
+      this.supportError = 'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.';
+      return;
+    }
+
+    const url = `${environment.apiBaseUrl}/api/orders?userId=${encodeURIComponent(String(userId))}`;
+    this.http.get<ApiResponse<any[]>>(url).subscribe({
+      next: (res) => {
+        this.supportOrdersLoading = false;
+        if (!res?.success) {
+          this.supportError = res?.message || 'Không thể tải danh sách đơn hàng.';
+          return;
+        }
+        const list = Array.isArray(res?.data) ? res.data : [];
+        this.supportOrders = list
+          .filter((x: any) => x && x.id != null)
+          .map((x: any) => ({
+            id: Number(x.id),
+            status: String(x.status || '').trim(),
+            total: x.total != null ? String(x.total) : ''
+          }))
+          .filter((x: OrderLite) => Number.isFinite(x.id));
+      },
+      error: () => {
+        this.supportOrdersLoading = false;
+        this.supportError = 'Không thể tải danh sách đơn hàng.';
+      }
+    });
+  }
+
+  private composeSupportMessage(text: string): string {
+    const lines = [text];
+    if (this.supportPendingImageFile && this.supportPendingImageName) {
+      lines.push(`[Ảnh đính kèm: ${this.supportPendingImageName}]`);
+    }
+    return lines.join('\n');
+  }
+
+  private getCurrentUserId(): number | null {
+    try {
+      const raw = localStorage.getItem('fh_userId');
+      const n = raw != null ? Number(raw) : NaN;
+      return Number.isFinite(n) && n > 0 ? n : null;
+    } catch {
+      return null;
+    }
   }
 
   goLogin(): void {
@@ -304,12 +433,16 @@ export class AiChatWidgetComponent implements OnDestroy {
 
     this.close();
     this.closeSupport();
+    this.supportAttachMenuOpen = false;
+    this.supportOrdersOpen = false;
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.close();
     this.closeSupport();
+    this.supportAttachMenuOpen = false;
+    this.supportOrdersOpen = false;
   }
 
   private ensureSupportConversation(): void {

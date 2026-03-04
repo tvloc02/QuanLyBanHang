@@ -3,6 +3,11 @@
   gap: 18px;
 }
 
+.dash {
+  padding: 2px;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, 'Noto Sans', 'Helvetica Neue', sans-serif;
+}
+
 .hero {
   position: relative;
   display: grid;
@@ -191,6 +196,7 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  align-items: start;
 }
 
 .chart {
@@ -199,6 +205,14 @@ h1 {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(51, 92, 255, 0.05);
+  transform: translateZ(0);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+
+.chart:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.08);
+  border-color: rgba(37, 99, 235, 0.18);
 }
 
 .chart.wide {
@@ -256,9 +270,25 @@ h1 {
   padding: 18px;
 }
 
+.chart-body {
+  padding: 16px 18px 14px;
+}
+
 .svg-wrap {
   display: grid;
   gap: 10px;
+}
+
+.svg--roles {
+  max-height: 180px;
+}
+
+.bar-track {
+  fill: rgba(15, 23, 42, 0.04);
+}
+
+.bar-zero {
+  fill: rgba(148, 163, 184, 0.65);
 }
 
 .svg {
@@ -279,11 +309,62 @@ h1 {
   fill: url(#ordGradient);
 }
 
+
+.svg--roles .bar {
+  shape-rendering: geometricPrecision;
+}
+
+.svg--roles .bar:hover {
+  filter: brightness(1.05);
+}
+
 .xlabels {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
   margin-top: 12px;
+}
+
+.xlabels--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(51, 92, 255, 0.12);
+  background: rgba(51, 92, 255, 0.04);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.txt {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(107, 114, 128, 1);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .xlab {
@@ -406,6 +487,115 @@ h1 {
   font-size: 13px;
   text-align: center;
   padding: 14px;
+}
+
+.table {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(51, 92, 255, 0.08);
+  background: #fff;
+}
+
+.tr {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(51, 92, 255, 0.08);
+  background: #fff;
+  align-items: center;
+  transition: background 0.18s ease;
+}
+
+.tr:not(.head):hover {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.tr:not(.head):nth-child(even) {
+  background: rgba(15, 23, 42, 0.012);
+}
+
+.tr.head {
+  background: linear-gradient(135deg, rgba(51, 92, 255, 0.04) 0%, rgba(51, 92, 255, 0.02) 100%);
+}
+
+.tr:last-child {
+  border-bottom: none;
+}
+
+.td {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(17, 24, 39, 1);
+}
+
+.tr.head .td {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(107, 114, 128, 1);
+}
+
+.td-right {
+  text-align: right;
+}
+
+.seg {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(15, 23, 42, 0.04);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.seg--potential {
+  background: rgba(59, 130, 246, 0.10);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: rgba(29, 78, 216, 1);
+}
+
+.seg--close {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: rgba(29, 78, 216, 1);
+}
+
+.seg--silver {
+  background: rgba(100, 116, 139, 0.10);
+  border-color: rgba(100, 116, 139, 0.25);
+  color: rgba(51, 65, 85, 1);
+}
+
+.seg--gold {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: rgba(146, 64, 14, 1);
+}
+
+.seg--diamond {
+  background: rgba(168, 85, 247, 0.10);
+  border-color: rgba(168, 85, 247, 0.24);
+  color: rgba(126, 34, 206, 1);
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  color: rgba(29, 78, 216, 1);
+  font-weight: 800;
+  font-size: 12px;
 }
 
 @media (max-width: 1100px) {

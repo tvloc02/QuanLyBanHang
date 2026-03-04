@@ -27,30 +27,66 @@ export class AdminUsersComponent {
   createLoading = false;
   viewOpen = false;
   selectedUser: AdminUserResponse | null = null;
-  form: { fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean } = {
+  branches: Array<{ id: number; name: string; code: string }> = [];
+
+  form: { fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean; branchId?: number | null } = {
     fullName: '',
     email: '',
     username: '',
     phone: '',
     role: 'STAFF',
-    enabled: true
+    enabled: true,
+    branchId: null
   };
 
   // Edit modal state
   editOpen = false;
   editLoading = false;
-  editForm: { id?: number; fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean } = {
+  editForm: { id?: number; fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean; branchId?: number | null } = {
     id: undefined,
     fullName: '',
     email: '',
     username: '',
     phone: '',
     role: 'STAFF',
-    enabled: true
+    enabled: true,
+    branchId: null
   };
 
   constructor(private adminData: AdminDataService) {
+    this.loadBranches();
     this.load();
+  }
+
+  branchLabel(branchId?: number | null): string {
+    if (!branchId) return '-';
+    const b = (this.branches || []).find((x) => x.id === branchId);
+    if (!b) return `#${branchId}`;
+    const code = (b.code || '').trim();
+    const name = (b.name || '').trim();
+    return code ? `${code} - ${name}` : name || `#${branchId}`;
+  }
+
+  branchCode(branchId?: number | null): string {
+    if (!branchId) return '-';
+    const b = (this.branches || []).find((x) => x.id === branchId);
+    if (!b) return `#${branchId}`;
+    const code = (b.code || '').trim();
+    return code || `#${branchId}`;
+  }
+
+  private loadBranches(): void {
+    this.adminData.getBranches().subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        this.branches = rows
+          .filter((x) => !!x && typeof x.id === 'number')
+          .map((x) => ({ id: x.id, name: String(x.name || ''), code: String(x.code || '') }));
+      },
+      error: () => {
+        this.branches = [];
+      }
+    });
   }
 
   get totalCount(): number {
@@ -251,7 +287,7 @@ export class AdminUsersComponent {
   }
 
   openCreate(): void {
-    this.form = { fullName: '', email: '', username: '', phone: '', role: 'STAFF', enabled: true };
+    this.form = { fullName: '', email: '', username: '', phone: '', role: 'STAFF', enabled: true, branchId: null };
     this.createOpen = true;
   }
 
@@ -262,13 +298,16 @@ export class AdminUsersComponent {
   submitCreate(): void {
     this.createLoading = true;
     this.error = '';
+
+    const branchId = this.form.role === 'ADMIN' ? null : (this.form.branchId ?? null);
     this.adminData.createUser({
       fullName: this.form.fullName?.trim() || undefined,
       email: this.form.email?.trim() || undefined,
       username: this.form.username?.trim() || undefined,
       phone: this.form.phone?.trim() || undefined,
       roles: [this.form.role],
-      enabled: !!this.form.enabled
+      enabled: !!this.form.enabled,
+      branchId
     }).subscribe({
       next: (res) => {
         this.createLoading = false;
@@ -298,6 +337,7 @@ export class AdminUsersComponent {
       : (row.roles || []).includes('MANAGER')
       ? 'MANAGER'
       : 'STAFF';
+    const branchId = role === 'ADMIN' ? null : (row.branchId ?? null);
     this.editForm = {
       id: row.id,
       fullName: row.fullName || '',
@@ -305,7 +345,8 @@ export class AdminUsersComponent {
       username: row.username || '',
       phone: row.phone || '',
       role,
-      enabled: row.enabled !== false
+      enabled: row.enabled !== false,
+      branchId
     };
     this.editOpen = true;
   }
@@ -383,13 +424,16 @@ export class AdminUsersComponent {
     if (!this.editForm.id) return;
     this.editLoading = true;
     this.error = '';
+
+    const branchId = this.editForm.role === 'ADMIN' ? null : (this.editForm.branchId ?? null);
     this.adminData.updateUser(this.editForm.id, {
       fullName: this.editForm.fullName?.trim() || undefined,
       email: this.editForm.email?.trim() || undefined,
       username: this.editForm.username?.trim() || undefined,
       phone: this.editForm.phone?.trim() || undefined,
       roles: [this.editForm.role],
-      enabled: !!this.editForm.enabled
+      enabled: !!this.editForm.enabled,
+      branchId
     }).subscribe({
       next: (res) => {
         this.editLoading = false;

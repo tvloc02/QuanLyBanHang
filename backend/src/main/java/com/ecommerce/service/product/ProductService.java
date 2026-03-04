@@ -204,6 +204,9 @@ public class ProductService {
         product.setOldPrice(req.getOldPrice());
         product.setStock(req.getStock());
         product.setCategoryId(req.getCategoryId());
+        product.setProductTypeId(req.getProductTypeId());
+        product.setGender(req.getGender());
+        product.setAttributesJson(req.getAttributesJson());
 
         // Multi-category support
         if (req.getCategoryIds() != null) {
@@ -341,6 +344,9 @@ public class ProductService {
         res.setOldPrice(p.getOldPrice());
         res.setStock(p.getStock());
         res.setCategoryId(p.getCategoryId());
+        res.setProductTypeId(p.getProductTypeId());
+        res.setGender(p.getGender());
+        res.setAttributesJson(p.getAttributesJson());
         res.setCategoryIds(p.getCategoryIds());
         res.setCategory(p.getCategory());
         res.setBrand(p.getBrand());

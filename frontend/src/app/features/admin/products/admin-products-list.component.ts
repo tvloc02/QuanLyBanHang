@@ -96,6 +96,18 @@ export class AdminProductsListComponent {
     this.load();
   }
 
+  get totalProducts(): number {
+    return (this.products || []).length;
+  }
+
+  get activeProducts(): number {
+    return (this.products || []).filter((p) => (p as any)?.active !== false).length;
+  }
+
+  get inactiveProducts(): number {
+    return (this.products || []).filter((p) => (p as any)?.active === false).length;
+  }
+
   resolveApiUrl(input?: string | null): string {
     const url = (input || '').toString().trim();
     if (!url) return '';

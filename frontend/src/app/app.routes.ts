@@ -10,6 +10,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent)
   },
   {
+    path: 'forgot-password',
+    loadComponent: () => import('./features/auth/forgot-password.component').then((m) => m.ForgotPasswordComponent)
+  },
+  {
     path: 'register',
     loadComponent: () => import('./features/auth/register.component').then((m) => m.RegisterComponent)
   },
@@ -19,7 +23,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent)
+        loadComponent: () => import('./features/order-lookup/order-lookup.component').then((m) => m.OrderLookupComponent)
       },
       {
         path: 'checkout',
@@ -47,7 +51,7 @@ export const routes: Routes = [
       },
       {
         path: 'news',
-        loadComponent: () => import('./features/placeholder/placeholder.component').then((m) => m.PlaceholderComponent)
+        loadComponent: () => import('./features/news/news.component').then((m) => m.NewsComponent)
       },
       {
         path: 'profile',
@@ -120,6 +124,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/branches/admin-branches.component').then((m) => m.AdminBranchesComponent)
       },
       {
+        path: 'shipping',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
+        loadComponent: () => import('./features/admin/shipping/admin-shipping.component').then((m) => m.AdminShippingComponent)
+      },
+      {
+        path: 'shipping-settings',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
+        loadComponent: () => import('./features/admin/shipping-settings/admin-shipping-settings.component').then((m) => m.AdminShippingSettingsComponent)
+      },
+      {
         path: 'sale-page',
         canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
         loadComponent: () => import('./features/admin/sale-page/admin-sale-page.component').then((m) => m.AdminSalePageComponent)
@@ -129,12 +143,21 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/reviews/admin-reviews.component').then((m) => m.AdminReviewsComponent)
       },
       {
+        path: 'profile',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER', 'STAFF'])],
+        loadComponent: () => import('./features/admin/profile/admin-profile.component').then((m) => m.AdminProfileComponent)
+      },
+      {
         path: 'settings',
         canActivate: [rolesGuard(['ADMIN'])],
         children: [
           {
             path: '',
             loadComponent: () => import('./features/admin/settings/admin-settings.component').then((m) => m.AdminSettingsComponent)
+          },
+          {
+            path: 'product-types',
+            loadComponent: () => import('./features/admin/settings/admin-product-types-settings.component').then((m) => m.AdminProductTypesSettingsComponent)
           },
           {
             path: 'mail',
@@ -147,6 +170,11 @@ export const routes: Routes = [
           {
             path: 'home-sections',
             loadComponent: () => import('./features/admin/settings/admin-home-sections.component').then((m) => m.AdminHomeSectionsComponent)
+          }
+          ,
+          {
+            path: 'news-banner',
+            loadComponent: () => import('./features/admin/settings/admin-news-banner-settings.component').then((m) => m.AdminNewsBannerSettingsComponent)
           }
         ]
       }

@@ -1,0 +1,67 @@
+<main class="lookup-page">
+  <div class="container">
+    <div class="lookup-head">
+      <div class="lookup-head__title">Tra cứu đơn hàng</div>
+      <div class="lookup-head__sub">Nhập mã đơn và số điện thoại nhận hàng để xem trạng thái</div>
+    </div>
+
+    <div class="panel">
+      <div class="form">
+        <div class="field">
+          <div class="label">Mã đơn hàng</div>
+          <input class="input" [(ngModel)]="orderId" placeholder="VD: 1001" />
+        </div>
+        <div class="field">
+          <div class="label">Số điện thoại</div>
+          <input class="input" [(ngModel)]="phone" placeholder="SĐT lúc đặt hàng" />
+        </div>
+        <button type="button" class="primary" (click)="lookup()" [disabled]="loading">
+          {{ loading ? 'Đang tra cứu...' : 'TRA CỨU' }}
+        </button>
+      </div>
+
+      <div class="error" *ngIf="error">{{ error }}</div>
+
+      <div class="result" *ngIf="result">
+        <div class="result-head">
+          <div class="result-title">Đơn #{{ result.orderId }}</div>
+          <div class="result-status">{{ result.status }}</div>
+        </div>
+
+        <div class="result-grid">
+          <div class="info">
+            <div class="row">
+              <span>Ngày tạo</span>
+              <b>{{ result.createdAt ? (result.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}</b>
+            </div>
+            <div class="row">
+              <span>Số điện thoại</span>
+              <b>{{ result.shippingPhone || '—' }}</b>
+            </div>
+            <div class="row total">
+              <span>Tổng tiền</span>
+              <b>{{ formatMoney(result.total) }}đ</b>
+            </div>
+          </div>
+
+          <div class="items" *ngIf="result.items && result.items.length > 0">
+            <div class="items-title">Sản phẩm</div>
+            <div class="item" *ngFor="let it of result.items">
+              <div class="name">{{ it.productName || 'Sản phẩm' }}</div>
+              <div class="meta">
+                <span>SL: <b>{{ it.quantity || 0 }}</b></span>
+                <span>Đơn giá: <b>{{ formatMoney(it.unitPrice) }}đ</b></span>
+                <span>Thành tiền: <b>{{ formatMoney(it.totalPrice) }}đ</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="ghost" (click)="goShopping()">← Quay lại mua sắm</button>
+          <a class="ghost" routerLink="/sale">Xem trang Sale</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

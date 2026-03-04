@@ -21,12 +21,14 @@ import com.ecommerce.repository.CategoryRepository;
 import com.ecommerce.repository.CouponRepository;
 import com.ecommerce.repository.OrderRepository;
 import com.ecommerce.repository.ReviewRepository;
+import com.ecommerce.repository.BranchRepository;
 import com.ecommerce.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZoneOffset;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +55,15 @@ import org.springframework.http.MediaType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -64,6 +75,8 @@ public class AdminDataController {
 
     private final CouponRepository couponRepository;
 
+    private final BranchRepository branchRepository;
+
     private final UserRepository userRepository;
 
     private final ReviewRepository reviewRepository;
@@ -73,6 +86,7 @@ public class AdminDataController {
         OrderRepository orderRepository,
         CategoryRepository categoryRepository,
         CouponRepository couponRepository,
+        BranchRepository branchRepository,
         UserRepository userRepository,
         ReviewRepository reviewRepository,
         PasswordEncoder passwordEncoder
@@ -80,9 +94,275 @@ public class AdminDataController {
         this.orderRepository = orderRepository;
         this.categoryRepository = categoryRepository;
         this.couponRepository = couponRepository;
+        this.branchRepository = branchRepository;
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostMapping(path = "/categories/parse-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> parseCategoriesExcel(
+        @RequestParam("file") MultipartFile file
+    ) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("File trống"));
+        }
+
+        try (InputStream is = file.getInputStream(); Workbook wb = new XSSFWorkbook(is)) {
+            Sheet sheet = wb.getNumberOfSheets() > 0 ? wb.getSheetAt(0) : null;
+            if (sheet == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Không tìm thấy sheet trong file"));
+            }
+
+            Map<String, Map<String, Object>> lv2BySlug = new HashMap<>();
+
+            for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String lv2Name = cellString(row.getCell(0));
+                String lv2Slug = cellString(row.getCell(1));
+                String lv3Name = cellString(row.getCell(2));
+                String lv3Slug = cellString(row.getCell(3));
+
+                // Optional header auto-skip
+                if (i == sheet.getFirstRowNum()) {
+                    String h = (lv2Name + " " + lv3Name).toLowerCase(Locale.ROOT);
+                    if (h.contains("lv2") || h.contains("cap") || h.contains("name")) {
+                        continue;
+                    }
+                }
+
+                if (lv2Name == null || lv2Name.isBlank()) {
+                    continue;
+                }
+
+                String normLv2Slug = normalizeSlug(lv2Slug, lv2Name);
+                Map<String, Object> lv2Node = lv2BySlug.get(normLv2Slug);
+                if (lv2Node == null) {
+                    lv2Node = new HashMap<>();
+                    lv2Node.put("name", lv2Name.trim());
+                    lv2Node.put("slug", normLv2Slug);
+                    lv2Node.put("lv3", new ArrayList<Map<String, String>>());
+                    lv2BySlug.put(normLv2Slug, lv2Node);
+                }
+
+                if (lv3Name != null && !lv3Name.isBlank()) {
+                    String normLv3Slug = normalizeSlug(lv3Slug, lv3Name);
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, String>> lv3List = (List<Map<String, String>>) lv2Node.get("lv3");
+                    boolean exists = false;
+                    for (Map<String, String> x : lv3List) {
+                        if (x == null) continue;
+                        if (java.util.Objects.equals(x.get("slug"), normLv3Slug)) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        lv3List.add(Map.of(
+                            "name", lv3Name.trim(),
+                            "slug", normLv3Slug
+                        ));
+                    }
+                }
+            }
+
+            List<Map<String, Object>> out = new ArrayList<>(lv2BySlug.values());
+            out.sort((a, b) -> String.valueOf(a.get("name")).compareToIgnoreCase(String.valueOf(b.get("name"))));
+            return ResponseEntity.ok(ApiResponse.ok(out));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Không thể đọc file: " + e.getMessage()));
+        }
+    }
+
+    public static class AdminCategoryExcelNode {
+        private String name;
+        private String slug;
+        private List<AdminCategoryExcelNode> lv3;
+
+        public AdminCategoryExcelNode() {}
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getSlug() {
+            return slug;
+        }
+
+        public void setSlug(String slug) {
+            this.slug = slug;
+        }
+
+        public List<AdminCategoryExcelNode> getLv3() {
+            return lv3;
+        }
+
+        public void setLv3(List<AdminCategoryExcelNode> lv3) {
+            this.lv3 = lv3;
+        }
+    }
+
+    @PostMapping(path = "/categories/build-excel")
+    public ResponseEntity<Resource> buildCategoriesExcel(
+        @RequestBody List<AdminCategoryExcelNode> nodes
+    ) {
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Categories");
+            Row h = sheet.createRow(0);
+            h.createCell(0).setCellValue("lv2_name");
+            h.createCell(1).setCellValue("lv2_slug");
+            h.createCell(2).setCellValue("lv3_name");
+            h.createCell(3).setCellValue("lv3_slug");
+
+            int rowIdx = 1;
+            List<AdminCategoryExcelNode> safe = nodes != null ? nodes : List.of();
+            for (AdminCategoryExcelNode lv2 : safe) {
+                if (lv2 == null || lv2.getName() == null || lv2.getName().trim().isEmpty()) continue;
+                String lv2Name = lv2.getName().trim();
+                String lv2Slug = normalizeSlug(lv2.getSlug(), lv2Name);
+
+                List<AdminCategoryExcelNode> lv3s = lv2.getLv3() != null ? lv2.getLv3() : List.of();
+                if (lv3s.isEmpty()) {
+                    Row r = sheet.createRow(rowIdx++);
+                    r.createCell(0).setCellValue(lv2Name);
+                    r.createCell(1).setCellValue(lv2Slug);
+                    continue;
+                }
+                for (AdminCategoryExcelNode lv3 : lv3s) {
+                    if (lv3 == null || lv3.getName() == null || lv3.getName().trim().isEmpty()) continue;
+                    String lv3Name = lv3.getName().trim();
+                    String lv3Slug = normalizeSlug(lv3.getSlug(), lv3Name);
+
+                    Row r = sheet.createRow(rowIdx++);
+                    r.createCell(0).setCellValue(lv2Name);
+                    r.createCell(1).setCellValue(lv2Slug);
+                    r.createCell(2).setCellValue(lv3Name);
+                    r.createCell(3).setCellValue(lv3Slug);
+                }
+            }
+
+            for (int c = 0; c < 4; c++) sheet.autoSizeColumn(c);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            wb.write(baos);
+            byte[] bytes = baos.toByteArray();
+
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header("Content-Disposition", "attachment; filename=categories_build.xlsx")
+                .body(new ByteArrayResource(bytes));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/categories/import-template-excel")
+    public ResponseEntity<Resource> downloadCategoryImportTemplate() {
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Categories");
+            Row h = sheet.createRow(0);
+            h.createCell(0).setCellValue("lv2_name");
+            h.createCell(1).setCellValue("lv2_slug");
+            h.createCell(2).setCellValue("lv3_name");
+            h.createCell(3).setCellValue("lv3_slug");
+
+            Row r1 = sheet.createRow(1);
+            r1.createCell(0).setCellValue("Áo");
+            r1.createCell(1).setCellValue("ao");
+            r1.createCell(2).setCellValue("Áo sơ mi");
+            r1.createCell(3).setCellValue("ao-so-mi");
+
+            Row r2 = sheet.createRow(2);
+            r2.createCell(0).setCellValue("Áo");
+            r2.createCell(2).setCellValue("Áo thun");
+
+            for (int c = 0; c < 4; c++) sheet.autoSizeColumn(c);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            wb.write(baos);
+            byte[] bytes = baos.toByteArray();
+
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header("Content-Disposition", "attachment; filename=categories_template.xlsx")
+                .body(new ByteArrayResource(bytes));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/categories/export-excel")
+    public ResponseEntity<Resource> exportCategoriesExcel(@RequestParam("rootId") Long rootId) {
+        try {
+            if (rootId == null) {
+                return ResponseEntity.badRequest().build();
+            }
+            Category root = categoryRepository.findById(rootId).orElse(null);
+            if (root == null || root.getParentId() != null) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            List<Category> all = categoryRepository.findAll();
+            Map<Long, List<Category>> byParent = new HashMap<>();
+            for (Category c : all) {
+                Long pid = c.getParentId();
+                byParent.computeIfAbsent(pid, k -> new ArrayList<>()).add(c);
+            }
+            List<Category> lv2 = byParent.getOrDefault(rootId, List.of());
+            for (List<Category> list : byParent.values()) {
+                list.sort((a, b) -> String.valueOf(a.getName()).compareToIgnoreCase(String.valueOf(b.getName())));
+            }
+
+            try (Workbook wb = new XSSFWorkbook()) {
+                Sheet sheet = wb.createSheet("Categories");
+                Row h = sheet.createRow(0);
+                h.createCell(0).setCellValue("lv2_name");
+                h.createCell(1).setCellValue("lv2_slug");
+                h.createCell(2).setCellValue("lv3_name");
+                h.createCell(3).setCellValue("lv3_slug");
+
+                int rowIdx = 1;
+                for (Category c2 : lv2) {
+                    List<Category> lv3 = byParent.getOrDefault(c2.getId(), List.of());
+                    if (lv3.isEmpty()) {
+                        Row r = sheet.createRow(rowIdx++);
+                        r.createCell(0).setCellValue(s(c2.getName()));
+                        r.createCell(1).setCellValue(s(c2.getSlug()));
+                        continue;
+                    }
+                    for (Category c3 : lv3) {
+                        Row r = sheet.createRow(rowIdx++);
+                        r.createCell(0).setCellValue(s(c2.getName()));
+                        r.createCell(1).setCellValue(s(c2.getSlug()));
+                        r.createCell(2).setCellValue(s(c3.getName()));
+                        r.createCell(3).setCellValue(s(c3.getSlug()));
+                    }
+                }
+
+                for (int c = 0; c < 4; c++) sheet.autoSizeColumn(c);
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                wb.write(baos);
+                byte[] bytes = baos.toByteArray();
+
+                return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .header("Content-Disposition", "attachment; filename=categories_" + rootId + ".xlsx")
+                    .body(new ByteArrayResource(bytes));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    private static String s(String v) {
+        return v == null ? "" : v;
     }
 
     private static boolean isCustomer(User u) {
@@ -334,6 +614,156 @@ public class AdminDataController {
         }
     }
 
+    @PostMapping(path = "/categories/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> importCategoriesExcel(
+        @RequestParam("rootId") Long rootId,
+        @RequestParam("file") MultipartFile file
+    ) {
+        if (rootId == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Thiếu rootId"));
+        }
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("File trống"));
+        }
+        Category root = categoryRepository.findById(rootId).orElse(null);
+        if (root == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Danh mục lớn không tồn tại: " + rootId));
+        }
+        if (root.getParentId() != null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("rootId phải là danh mục cấp 1"));
+        }
+
+        int created = 0;
+        int updated = 0;
+        int skipped = 0;
+
+        try (InputStream is = file.getInputStream(); Workbook wb = new XSSFWorkbook(is)) {
+            Sheet sheet = wb.getNumberOfSheets() > 0 ? wb.getSheetAt(0) : null;
+            if (sheet == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Không tìm thấy sheet trong file"));
+            }
+
+            for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String lv2Name = cellString(row.getCell(0));
+                String lv2Slug = cellString(row.getCell(1));
+                String lv3Name = cellString(row.getCell(2));
+                String lv3Slug = cellString(row.getCell(3));
+
+                // Optional header auto-skip
+                if (i == sheet.getFirstRowNum()) {
+                    String h = (lv2Name + " " + lv3Name).toLowerCase(Locale.ROOT);
+                    if (h.contains("lv2") || h.contains("cap") || h.contains("name")) {
+                        continue;
+                    }
+                }
+
+                if (lv2Name == null || lv2Name.isBlank()) {
+                    skipped++;
+                    continue;
+                }
+
+                // Upsert Lv2 under root
+                String normLv2Slug = normalizeSlug(lv2Slug, lv2Name);
+                Category lv2 = categoryRepository.findBySlug(normLv2Slug).orElse(null);
+                if (lv2 == null) {
+                    lv2 = new Category();
+                    lv2.setName(lv2Name.trim());
+                    lv2.setSlug(normLv2Slug);
+                    lv2.setParentId(rootId);
+                    lv2.setActive(Boolean.TRUE);
+                    validateParentDepth(lv2.getParentId(), null);
+                    validateSlugUnique(lv2.getSlug(), null);
+                    categoryRepository.save(lv2);
+                    created++;
+                } else {
+                    // if same slug but belongs elsewhere, reject to avoid corrupting tree
+                    if (lv2.getParentId() == null || !java.util.Objects.equals(lv2.getParentId(), rootId)) {
+                        return ResponseEntity.badRequest().body(ApiResponse.fail("Slug danh mục cấp 2 đã tồn tại ở danh mục khác: " + normLv2Slug));
+                    }
+                    boolean changed = false;
+                    if (!java.util.Objects.equals(lv2.getName(), lv2Name.trim())) {
+                        lv2.setName(lv2Name.trim());
+                        changed = true;
+                    }
+                    if (changed) {
+                        validateParentDepth(lv2.getParentId(), lv2.getId());
+                        categoryRepository.save(lv2);
+                        updated++;
+                    }
+                }
+
+                // Upsert Lv3 under lv2 if provided
+                if (lv3Name != null && !lv3Name.isBlank()) {
+                    String normLv3Slug = normalizeSlug(lv3Slug, lv3Name);
+                    Category lv3 = categoryRepository.findBySlug(normLv3Slug).orElse(null);
+                    if (lv3 == null) {
+                        lv3 = new Category();
+                        lv3.setName(lv3Name.trim());
+                        lv3.setSlug(normLv3Slug);
+                        lv3.setParentId(lv2.getId());
+                        lv3.setActive(Boolean.TRUE);
+                        validateParentDepth(lv3.getParentId(), null);
+                        validateSlugUnique(lv3.getSlug(), null);
+                        categoryRepository.save(lv3);
+                        created++;
+                    } else {
+                        if (lv3.getParentId() == null || !java.util.Objects.equals(lv3.getParentId(), lv2.getId())) {
+                            return ResponseEntity.badRequest().body(ApiResponse.fail("Slug danh mục cấp 3 đã tồn tại ở danh mục khác: " + normLv3Slug));
+                        }
+                        boolean changed = false;
+                        if (!java.util.Objects.equals(lv3.getName(), lv3Name.trim())) {
+                            lv3.setName(lv3Name.trim());
+                            changed = true;
+                        }
+                        if (changed) {
+                            validateParentDepth(lv3.getParentId(), lv3.getId());
+                            categoryRepository.save(lv3);
+                            updated++;
+                        }
+                    }
+                }
+            }
+
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "created", created,
+                "updated", updated,
+                "skipped", skipped
+            )));
+        } catch (BadRequestException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(ex.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Import thất bại: " + e.getMessage()));
+        }
+    }
+
+    private static String cellString(Cell cell) {
+        if (cell == null) return null;
+        CellType t = cell.getCellType();
+        if (t == CellType.BLANK) return null;
+        if (t == CellType.STRING) {
+            String v = cell.getStringCellValue();
+            return v != null ? v.trim() : null;
+        }
+        if (t == CellType.NUMERIC) {
+            double d = cell.getNumericCellValue();
+            long asLong = (long) d;
+            if (Math.abs(d - asLong) < 0.0000001) return String.valueOf(asLong);
+            return String.valueOf(d);
+        }
+        if (t == CellType.BOOLEAN) {
+            return String.valueOf(cell.getBooleanCellValue());
+        }
+        try {
+            String v = cell.toString();
+            return v != null ? v.trim() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @PostMapping(path = "/uploads", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadImage(
         @RequestParam("file") MultipartFile file
@@ -454,6 +884,26 @@ public class AdminDataController {
             }
         }
 
+        // Branch mapping (required for STAFF/MANAGER)
+        boolean requireBranch = u.getRoles() != null
+            && (u.getRoles().contains(UserRole.MANAGER) || u.getRoles().contains(UserRole.STAFF));
+        if (req.getBranchId() != null) {
+            if (!branchRepository.existsById(req.getBranchId())) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Chi nhánh không tồn tại"));
+            }
+            u.setBranchId(req.getBranchId());
+        }
+        if (requireBranch) {
+            if (u.getBranchId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Chi nhánh là bắt buộc cho Nhân viên/Quản lý"));
+            }
+        } else {
+            // Clear branch if user is not STAFF/MANAGER
+            if (req.getRoles() != null) {
+                u.setBranchId(null);
+            }
+        }
+
         u.setUpdatedAt(Instant.now());
         try {
             User saved = userRepository.save(u);
@@ -468,6 +918,7 @@ public class AdminDataController {
                 saved.getEnabled(),
                 saved.getCreatedAt()
             );
+            res.setBranchId(saved.getBranchId());
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (DataIntegrityViolationException e) {
             String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
@@ -531,6 +982,7 @@ public class AdminDataController {
                     saved.getEnabled(),
                     saved.getCreatedAt()
                 );
+                res.setBranchId(saved.getBranchId());
                 return ResponseEntity.ok(ApiResponse.ok(res));
             })
             .orElseGet(() -> ResponseEntity.badRequest().body(ApiResponse.fail("Không tìm thấy người dùng")));
@@ -572,7 +1024,9 @@ public class AdminDataController {
          }
          var existing = categoryRepository.findBySlug(slug);
          if (existing.isPresent() && (selfId == null || !java.util.Objects.equals(existing.get().getId(), selfId))) {
-             throw new BadRequestException("Slug already exists");
+             Long id = existing.get().getId();
+             String name = existing.get().getName();
+             throw new BadRequestException("Slug đã tồn tại: " + slug + " (id=" + id + ", name=" + name + ")");
          }
      }
 
@@ -684,7 +1138,7 @@ public class AdminDataController {
                     }
                 }
 
-                return new AdminUserResponse(
+                AdminUserResponse out = new AdminUserResponse(
                     u.getId(),
                     u.getFullName(),
                     u.getEmail(),
@@ -698,6 +1152,8 @@ public class AdminDataController {
                     total6m,
                     avgMonthly
                 );
+                out.setBranchId(u.getBranchId());
+                return out;
             })
             .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(result));
@@ -829,6 +1285,19 @@ public class AdminDataController {
         }
         u.setRoles(roles);
 
+        boolean requireBranch = roles.contains(UserRole.MANAGER) || roles.contains(UserRole.STAFF);
+        if (requireBranch) {
+            if (req.getBranchId() == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Chi nhánh là bắt buộc cho Nhân viên/Quản lý"));
+            }
+            if (!branchRepository.existsById(req.getBranchId())) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Chi nhánh không tồn tại"));
+            }
+            u.setBranchId(req.getBranchId());
+        } else {
+            u.setBranchId(null);
+        }
+
         User saved;
         try {
             saved = userRepository.save(u);
@@ -849,6 +1318,7 @@ public class AdminDataController {
             saved.getEnabled(),
             saved.getCreatedAt()
         );
+        res.setBranchId(saved.getBranchId());
         return ResponseEntity.ok(ApiResponse.ok(res));
     }
 

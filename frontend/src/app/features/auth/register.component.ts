@@ -1,25 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { AfterViewInit, Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { of } from 'rxjs';
 import { ToastService } from '../../shared/toast/toast.service';
-
-/**
- * Mock environment and service for Canvas preview.
- * Remove these when integrating into your actual project.
- */
-const environment = {
-  apiBaseUrl: 'https://api.fashionhub.com',
-  googleClientId: '6325124587-example.apps.googleusercontent.com'
-};
-
-class AuthService {
-  register(data: any) {
-    return of({ success: true, message: 'Đăng ký thành công' });
-  }
-}
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -34,10 +19,10 @@ class AuthService {
       <div class="auth-card">
         <div class="auth-header">
           <div class="brand-section">
-            <h1 class="brand-name">FASHION<span>HUB</span></h1>
+            <h1 class="brand-name"><span class="brand-lo">Lo</span><span class="brand-vin">Vin</span></h1>
             <p class="brand-tagline">Khởi đầu phong cách mới</p>
           </div>
-          <a routerLink="/" class="back-home">
+          <a routerLink="/sale" class="back-home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -93,12 +78,46 @@ class AuthService {
               <label>Mật khẩu</label>
               <div class="input-container">
                 <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" placeholder="Mật khẩu" />
+                <button
+                  type="button"
+                  class="toggle-password"
+                  (click)="togglePass()"
+                  [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                >
+                  <svg *ngIf="!showPassword()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M2 12s3.5-7 10-7s10 7 10 7s-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg *ngIf="showPassword()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 10.6a3 3 0 0 0 4.24 4.24" />
+                    <path d="M9.9 4.6A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a18.7 18.7 0 0 1-4.2 5.4" />
+                    <path d="M6.2 6.2C3.7 8.1 2 12 2 12s3.5 7 10 7c1 0 1.9-.1 2.8-.4" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div class="form-group">
               <label>Xác nhận</label>
               <div class="input-container">
                 <input [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="confirmPassword" placeholder="Nhập lại" />
+                <button
+                  type="button"
+                  class="toggle-password"
+                  (click)="togglePass()"
+                  [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                >
+                  <svg *ngIf="!showPassword()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M2 12s3.5-7 10-7s10 7 10 7s-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg *ngIf="showPassword()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 10.6a3 3 0 0 0 4.24 4.24" />
+                    <path d="M9.9 4.6A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a18.7 18.7 0 0 1-4.2 5.4" />
+                    <path d="M6.2 6.2C3.7 8.1 2 12 2 12s3.5 7 10 7c1 0 1.9-.1 2.8-.4" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -131,12 +150,6 @@ class AuthService {
           </div>
 
           <div class="social-row">
-            <button class="facebook-btn" (click)="socialAction()">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              Facebook
-            </button>
             <div class="google-wrapper">
               <div id="googleBtn"></div>
             </div>
@@ -153,7 +166,6 @@ class AuthService {
     :host {
       --primary: #c1121f;
       --primary-hover: #a4101a;
-      --facebook: #1877f2;
       --text-main: #1f2937;
       --text-muted: #6b7280;
       --border: #e5e7eb;
@@ -166,8 +178,8 @@ class AuthService {
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      padding: 30px 20px; /* Đẩy lên trên hơn để cân đối với header */
+      align-items: center;
+      padding: 40px 20px;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background-color: #f3f4f6;
     }
@@ -186,7 +198,7 @@ class AuthService {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 580px; /* Tăng chiều rộng để thoải mái hơn */
+      max-width: 640px;
       background: var(--bg-card);
       border-radius: 48px;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
@@ -203,21 +215,23 @@ class AuthService {
       padding: 32px 48px 0;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
     }
 
     .brand-name {
-      font-size: 22px;
+      font-size: 28px;
       font-weight: 900;
       letter-spacing: -0.5px;
       margin: 0;
       color: var(--text-main);
     }
 
-    .brand-name span { color: var(--primary); }
+    .brand-lo { color: var(--text-main); }
+
+    .brand-vin { color: var(--primary); }
 
     .brand-tagline {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
       margin-top: 1px;
       text-transform: uppercase;
@@ -240,8 +254,8 @@ class AuthService {
     }
 
     .form-title {
-      font-size: 24px;
-      font-weight: 850;
+      font-size: 26px;
+      font-weight: 800;
       color: var(--text-main);
       margin: 0 0 2px;
     }
@@ -278,27 +292,27 @@ class AuthService {
 
     .input-icon {
       position: absolute;
-      left: 14px;
+      left: 16px;
       color: var(--text-muted);
       display: flex;
     }
 
-    .input-icon svg { width: 16px; height: 16px; }
+    .input-icon svg { width: 18px; height: 18px; }
 
     .input-container input {
       width: 100%;
-      height: 46px;
+      height: 50px;
       padding: 0 16px;
       background: #f9fafb;
       border: 1.5px solid var(--border);
-      border-radius: 14px;
-      font-size: 14px;
+      border-radius: 18px;
+      font-size: 15px;
       color: var(--text-main);
       transition: all 0.2s;
     }
 
     .input-container:has(.input-icon) input {
-      padding-left: 42px;
+      padding-left: 48px;
     }
 
     .input-container input:focus {
@@ -306,6 +320,27 @@ class AuthService {
       border-color: var(--primary);
       background: #fff;
       box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.1);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      color: rgba(17, 24, 39, 0.7);
+      padding: 6px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    .toggle-password svg {
+      width: 18px;
+      height: 18px;
     }
 
     .gender-selection {
@@ -345,11 +380,11 @@ class AuthService {
 
     .register-button {
       width: 100%;
-      height: 50px;
+      height: 54px;
       background: var(--primary);
       color: white;
       border: none;
-      border-radius: 14px;
+      border-radius: 18px;
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
@@ -385,40 +420,29 @@ class AuthService {
 
     .social-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
       margin-bottom: 24px;
       align-items: center;
     }
 
-    .facebook-btn {
-      width: 100%;
-      height: 42px;
-      background: var(--facebook);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .facebook-btn svg {
-      width: 18px;
-      height: 18px;
-      flex: 0 0 auto;
-    }
-
     .google-wrapper {
       width: 100%;
-      height: 42px;
+      height: 54px;
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
       overflow: hidden;
+    }
+
+    #googleBtn {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      transform-origin: center;
+    }
+
+    #googleBtn iframe {
+      width: 100% !important;
     }
 
     .auth-footer {
@@ -461,8 +485,14 @@ export class RegisterComponent implements AfterViewInit {
   loading = signal(false);
 
   private router = inject(Router);
-  private http = inject(HttpClient);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+
+  private googleInitRetries = 0;
+
+  togglePass(): void {
+    this.showPassword.update(v => !v);
+  }
 
   ngAfterViewInit(): void {
     /** * Đảm bảo kiểm tra google tồn tại trước khi khởi tạo 
@@ -481,7 +511,15 @@ export class RegisterComponent implements AfterViewInit {
 
     try {
       const googleBtnEl = document.getElementById('googleBtn');
-      const width = this.getGoogleBtnWidth(googleBtnEl?.parentElement as HTMLElement | null);
+      const wrapperEl = googleBtnEl?.parentElement as HTMLElement | null;
+      const width = this.getGoogleBtnWidth(wrapperEl);
+
+      if (width < 320 && this.googleInitRetries < 20) {
+        this.googleInitRetries++;
+        setTimeout(() => this.initGoogle(), 120);
+        return;
+      }
+
       g.accounts.id.initialize({
         client_id: environment.googleClientId,
         callback: (resp: any) => console.log('Google Resp:', resp)
@@ -493,19 +531,36 @@ export class RegisterComponent implements AfterViewInit {
         width,
         text: 'signup_with'
       });
+
+      setTimeout(() => {
+        this.fitGoogleButtonToWidth(wrapperEl, googleBtnEl as HTMLElement | null);
+      }, 0);
     } catch (e) {
       console.warn('Google SDK Error:', e);
     }
   }
 
+  private fitGoogleButtonToWidth(wrapperEl: HTMLElement | null, googleBtnEl: HTMLElement | null): void {
+    if (!wrapperEl || !googleBtnEl) return;
+
+    const wrapperWidth = wrapperEl.getBoundingClientRect().width;
+    if (!isFinite(wrapperWidth) || wrapperWidth <= 0) return;
+
+    const iframe = googleBtnEl.querySelector('iframe') as HTMLIFrameElement | null;
+    const iframeWidth = iframe?.getBoundingClientRect?.().width;
+    if (typeof iframeWidth !== 'number' || !isFinite(iframeWidth) || iframeWidth <= 0) return;
+
+    const scaleX = wrapperWidth / iframeWidth;
+    const clamped = Math.max(1, Math.min(2, scaleX));
+
+    googleBtnEl.style.transformOrigin = 'center';
+    googleBtnEl.style.transform = `scaleX(${clamped})`;
+  }
+
   private getGoogleBtnWidth(el: HTMLElement | null): number {
     const w = el?.getBoundingClientRect?.().width;
     if (typeof w === 'number' && isFinite(w) && w > 0) return Math.floor(w);
-    return 220;
-  }
-
-  socialAction(): void {
-    this.toast.info('Hệ thống đang được bảo trì.');
+    return 520;
   }
 
   submit(): void {
@@ -513,15 +568,36 @@ export class RegisterComponent implements AfterViewInit {
       this.toast.error('Vui lòng điền đầy đủ các thông tin bắt buộc.');
       return;
     }
+
     if (this.password !== this.confirmPassword) {
       this.toast.error('Mật khẩu xác nhận không trùng khớp.');
       return;
     }
     this.loading.set(true);
-    setTimeout(() => {
-      this.loading.set(false);
-      this.toast.success('Đăng ký thành công');
-      this.router.navigateByUrl('/login');
-    }, 1500);
+    this.auth
+      .register({
+        firstName: this.firstName,
+        lastName: this.lastName,
+        phone: this.phone,
+        email: this.email,
+        password: this.password,
+        confirmPassword: this.confirmPassword,
+        gender: this.gender
+      })
+      .subscribe({
+        next: (res: any) => {
+          this.loading.set(false);
+          if (!res?.success) {
+            this.toast.error(res?.message || 'Đăng ký thất bại.');
+            return;
+          }
+          this.toast.success('Đăng ký thành công');
+          this.router.navigateByUrl('/login');
+        },
+        error: (err: any) => {
+          this.loading.set(false);
+          this.toast.error(err?.error?.message || 'Đăng ký thất bại.');
+        }
+      });
   }
 }

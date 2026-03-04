@@ -1,210 +1,221 @@
  package com.ecommerce.model.entity;
- 
- import com.ecommerce.model.enums.UserRole;
- import jakarta.persistence.CollectionTable;
- import jakarta.persistence.Column;
- import jakarta.persistence.ElementCollection;
- import jakarta.persistence.Entity;
- import jakarta.persistence.EnumType;
- import jakarta.persistence.Enumerated;
- import jakarta.persistence.FetchType;
- import jakarta.persistence.GeneratedValue;
- import jakarta.persistence.GenerationType;
- import jakarta.persistence.Id;
- import jakarta.persistence.JoinColumn;
- import jakarta.persistence.Table;
- import java.time.Instant;
- import java.util.HashSet;
- import java.util.Set;
- 
- @Entity
- @Table(name = "users")
- public class User {
 
-     @Id
-     @GeneratedValue(strategy = GenerationType.IDENTITY)
-     private Long id;
+import com.ecommerce.model.enums.UserRole;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
-     private String fullName;
+@Entity
+@Table(name = "users")
+public class User {
 
-     @Column(unique = true)
-     private String email;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-     @Column(unique = true)
-     private String username;
+    private String fullName;
 
-     private String password;
+    @Column(unique = true)
+    private String email;
 
-     private String phone;
+    @Column(unique = true)
+    private String username;
 
-     private String province;
+    private String password;
 
-     private String district;
+    private String phone;
 
-     private String ward;
+    private String province;
 
-     private String addressDetail;
+    private String district;
 
-     private Double latitude;
+    private String ward;
 
-     private Double longitude;
+    private String addressDetail;
 
-     @ElementCollection(fetch = FetchType.EAGER)
-     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-     @Enumerated(EnumType.STRING)
-     private Set<UserRole> roles = new HashSet<>();
+    private Double latitude;
 
-     private String oauthProvider;
+    private Double longitude;
 
-     private String oauthProviderId;
+    @Column(name = "branch_id")
+    private Long branchId;
 
-     private Boolean enabled;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    private Set<UserRole> roles = new HashSet<>();
 
-     private Instant createdAt;
+    private String oauthProvider;
 
-     private Instant updatedAt;
+    private String oauthProviderId;
 
-     public Long getId() {
-         return id;
-     }
+    private Boolean enabled;
 
-     public void setId(Long id) {
-         this.id = id;
-     }
+    private Instant createdAt;
 
-     public String getFullName() {
-         return fullName;
-     }
+    private Instant updatedAt;
 
-     public void setFullName(String fullName) {
-         this.fullName = fullName;
-     }
+    public Long getId() {
+        return id;
+    }
 
-     public String getEmail() {
-         return email;
-     }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-     public void setEmail(String email) {
-         this.email = email;
-     }
+    public String getFullName() {
+        return fullName;
+    }
 
-     public String getUsername() {
-         return username;
-     }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-     public void setUsername(String username) {
-         this.username = username;
-     }
+    public String getEmail() {
+        return email;
+    }
 
-     public String getPassword() {
-         return password;
-     }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-     public void setPassword(String password) {
-         this.password = password;
-     }
+    public String getUsername() {
+        return username;
+    }
 
-     public String getPhone() {
-         return phone;
-     }
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
-     public void setPhone(String phone) {
-         this.phone = phone;
-     }
+    public String getPassword() {
+        return password;
+    }
 
-     public String getProvince() {
-         return province;
-     }
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-     public void setProvince(String province) {
-         this.province = province;
-     }
+    public String getPhone() {
+        return phone;
+    }
 
-     public String getDistrict() {
-         return district;
-     }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-     public void setDistrict(String district) {
-         this.district = district;
-     }
+    public String getProvince() {
+        return province;
+    }
 
-     public String getWard() {
-         return ward;
-     }
+    public void setProvince(String province) {
+        this.province = province;
+    }
 
-     public void setWard(String ward) {
-         this.ward = ward;
-     }
+    public String getDistrict() {
+        return district;
+    }
 
-     public String getAddressDetail() {
-         return addressDetail;
-     }
+    public void setDistrict(String district) {
+        this.district = district;
+    }
 
-     public void setAddressDetail(String addressDetail) {
-         this.addressDetail = addressDetail;
-     }
+    public String getWard() {
+        return ward;
+    }
 
-     public Double getLatitude() {
-         return latitude;
-     }
+    public void setWard(String ward) {
+        this.ward = ward;
+    }
 
-     public void setLatitude(Double latitude) {
-         this.latitude = latitude;
-     }
+    public String getAddressDetail() {
+        return addressDetail;
+    }
 
-     public Double getLongitude() {
-         return longitude;
-     }
+    public void setAddressDetail(String addressDetail) {
+        this.addressDetail = addressDetail;
+    }
 
-     public void setLongitude(Double longitude) {
-         this.longitude = longitude;
-     }
+    public Double getLatitude() {
+        return latitude;
+    }
 
-     public Set<UserRole> getRoles() {
-         return roles;
-     }
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
 
-     public void setRoles(Set<UserRole> roles) {
-         this.roles = roles;
-     }
+    public Double getLongitude() {
+        return longitude;
+    }
 
-     public String getOauthProvider() {
-         return oauthProvider;
-     }
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
 
-     public void setOauthProvider(String oauthProvider) {
-         this.oauthProvider = oauthProvider;
-     }
+    public Long getBranchId() {
+        return branchId;
+    }
 
-     public String getOauthProviderId() {
-         return oauthProviderId;
-     }
+    public void setBranchId(Long branchId) {
+        this.branchId = branchId;
+    }
 
-     public void setOauthProviderId(String oauthProviderId) {
-         this.oauthProviderId = oauthProviderId;
-     }
+    public Set<UserRole> getRoles() {
+        return roles;
+    }
 
-     public Boolean getEnabled() {
-         return enabled;
-     }
+    public void setRoles(Set<UserRole> roles) {
+        this.roles = roles;
+    }
 
-     public void setEnabled(Boolean enabled) {
-         this.enabled = enabled;
-     }
+    public String getOauthProvider() {
+        return oauthProvider;
+    }
 
-     public Instant getCreatedAt() {
-         return createdAt;
-     }
+    public void setOauthProvider(String oauthProvider) {
+        this.oauthProvider = oauthProvider;
+    }
 
-     public void setCreatedAt(Instant createdAt) {
-         this.createdAt = createdAt;
-     }
+    public String getOauthProviderId() {
+        return oauthProviderId;
+    }
 
-     public Instant getUpdatedAt() {
-         return updatedAt;
-     }
+    public void setOauthProviderId(String oauthProviderId) {
+        this.oauthProviderId = oauthProviderId;
+    }
 
-     public void setUpdatedAt(Instant updatedAt) {
-         this.updatedAt = updatedAt;
-     }
- }
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}

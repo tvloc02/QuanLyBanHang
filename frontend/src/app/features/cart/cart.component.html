@@ -18,6 +18,10 @@
 
         <div class="cart-table">
           <div class="cart-row cart-row--head">
+            <div class="c-checkbox">
+              <input type="checkbox" id="selectAll" (change)="toggleSelectAll()" [checked]="isAllSelected()">
+              <label for="selectAll"></label>
+            </div>
             <div class="c-product">Sản phẩm</div>
             <div class="c-price">Đơn giá</div>
             <div class="c-qty">Số lượng</div>
@@ -25,7 +29,11 @@
             <div class="c-action"></div>
           </div>
 
-          <div class="cart-row" *ngFor="let it of items">
+          <div class="cart-row" *ngFor="let it of items; let i = index">
+            <div class="c-checkbox">
+              <input type="checkbox" [id]="'item-' + i" [(ngModel)]="it.selected" (change)="updateSelection()">
+              <label [for]="'item-' + i"></label>
+            </div>
             <div class="c-product">
               <div class="product">
                 <div class="thumb">
@@ -69,20 +77,92 @@
       </div>
 
       <aside class="summary">
-        <div class="sum-title">Tóm tắt</div>
-        <div class="sum-row">
-          <span>Tạm tính</span>
-          <b>{{ formatMoney(subtotal) }}đ</b>
+        <div class="sum-title">Tóm tắt đơn hàng</div>
+        
+        <!-- Mã giảm giá -->
+        <div class="discount-section">
+          <div class="discount-input-group">
+            <input type="text" placeholder="Nhập mã giảm giá" class="discount-input" [(ngModel)]="discountCode" (keyup.enter)="applyDiscount()">
+            <button type="button" class="discount-btn" (click)="applyDiscount()">Áp dụng</button>
+          </div>
+          <div class="discount-message" *ngIf="discountMessage">
+            {{ discountMessage }}
+          </div>
         </div>
-        <div class="sum-row">
-          <span>Vận chuyển</span>
-          <b>0đ</b>
+
+        <!-- Địa chỉ giao hàng -->
+        <div class="address-section">
+          <div class="section-header">
+            <span>Địa chỉ giao hàng</span>
+            <button type="button" class="add-address-btn" (click)="showAddAddress = true">+ Thêm địa chỉ</button>
+          </div>
+          <div class="address-list" *ngIf="addresses.length > 0">
+            <div class="address-item" *ngFor="let addr of addresses; let i = index" 
+                 [class.selected]="selectedAddressIndex === i" (click)="selectAddress(i)">
+              <div class="address-radio">
+                <input type="radio" [name]="'address'" [id]="'addr-' + i" [checked]="selectedAddressIndex === i">
+                <label [for]="'addr-' + i"></label>
+              </div>
+              <div class="address-info">
+                <div class="address-name">{{ addr.name }} ({{ addr.phone }})</div>
+                <div class="address-detail">{{ addr.address }}</div>
+                <div class="address-type" *ngIf="addr.type">{{ addr.type }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="no-address" *ngIf="addresses.length === 0">
+            Chưa có địa chỉ nào. Vui lòng thêm địa chỉ giao hàng.
+          </div>
         </div>
-        <div class="sum-row total">
-          <span>Tổng cộng</span>
-          <b>{{ formatMoney(subtotal) }}đ</b>
+
+        <!-- Phương thức thanh toán -->
+        <div class="payment-section">
+          <div class="section-header">Phương thức thanh toán</div>
+          <div class="payment-methods">
+            <div class="payment-method" *ngFor="let method of paymentMethods; let i = index"
+                 [class.selected]="selectedPaymentMethod === i" (click)="selectPaymentMethod(i)">
+              <div class="payment-radio">
+                <input type="radio" [name]="'payment'" [id]="'pay-' + i" [checked]="selectedPaymentMethod === i">
+                <label [for]="'pay-' + i"></label>
+              </div>
+              <div class="payment-info">
+                <div class="payment-name">{{ method.name }}</div>
+                <div class="payment-desc">{{ method.description }}</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <button type="button" class="primary" (click)="checkout()">TIẾN HÀNH THANH TOÁN</button>
+
+        <!-- Chi tiết giá -->
+        <div class="price-details">
+          <div class="sum-row">
+            <span>Tạm tính ({{ selectedItemsCount }} sản phẩm)</span>
+            <b>{{ formatMoney(subtotal) }}đ</b>
+          </div>
+          <div class="sum-row" *ngIf="originalTotal > subtotal">
+            <span>Giá gốc</span>
+            <b class="original-price">{{ formatMoney(originalTotal) }}đ</b>
+          </div>
+          <div class="sum-row discount-row" *ngIf="discountAmount > 0">
+            <span>Giảm giá</span>
+            <b class="discount-amount">-{{ formatMoney(discountAmount) }}đ</b>
+          </div>
+          <div class="sum-row">
+            <span>Phí vận chuyển</span>
+            <b>{{ formatMoney(shippingFee) }}đ</b>
+          </div>
+          <div class="sum-row total">
+            <span>Tổng cộng</span>
+            <b>{{ formatMoney(totalAmount) }}đ</b>
+          </div>
+          <div class="savings" *ngIf="originalTotal > totalAmount">
+            <span>💰 Bạn đã tiết kiệm được {{ formatMoney(originalTotal - totalAmount) }}đ</span>
+          </div>
+        </div>
+        
+        <button type="button" class="primary checkout-btn" (click)="checkout()" [disabled]="selectedItemsCount === 0 || !selectedAddress">
+          TIẾN HÀNH THANH TOÁN ({{ selectedItemsCount }} sản phẩm)
+        </button>
       </aside>
     </div>
   </div>

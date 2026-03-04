@@ -1,4 +1,4 @@
-<main class="bg-[var(--fh-bg)]">
+<main class="bg-[var(--fh-bg)]" [style.fontFamily]="saleFontFamily || null" [style.--fh-primary]="salePrimaryColor || null">
   <section *ngIf="heroEnabled" class="mx-auto w-full max-w-[1440px] px-3 pt-4">
     <div class="relative overflow-hidden border border-[var(--fh-border)] bg-black shadow-sm">
       <div
@@ -89,28 +89,50 @@
     <div class="rounded-2xl border border-[var(--fh-border)] bg-white px-5 py-6 shadow-sm sm:px-8">
       <div class="text-center text-lg font-black tracking-wide text-[var(--fh-primary)]">{{ vouchersTitle }}</div>
 
-      <div *ngIf="vouchers.length > 0" class="mt-6 grid gap-4 md:grid-cols-3">
-        <div *ngFor="let v of vouchers" class="voucher-ticket">
-          <div class="voucher-ticket__main">
-            <div class="text-xs font-extrabold text-[var(--fh-primary)]">{{ v.title }}</div>
-            <div class="mt-1 text-xs font-semibold text-[var(--fh-text)]">
-              Nhập mã <span class="font-black">{{ v.code }}</span>
-            </div>
-            <div class="mt-1 text-[11px] font-semibold text-[var(--fh-muted)]">
-              {{ v.note }}
-            </div>
-          </div>
+      <div *ngIf="vouchers.length > 0" class="sale-vouchers mt-6">
+        <button
+          *ngIf="vouchers.length > 3"
+          type="button"
+          class="sale-vouchers__nav left"
+          (click)="scrollVouchers('left')"
+          aria-label="Prev vouchers"
+        >
+          ‹
+        </button>
 
-          <div class="voucher-ticket__cta">
-            <button
-              type="button"
-              class="inline-flex h-9 items-center justify-center rounded-md bg-[var(--fh-primary)] px-3 text-[11px] font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
-              (click)="copyVoucher(v.code)"
-            >
-              {{ isVoucherCopied(v.code) ? 'Đã sao chép' : (v.buttonText || 'Sao chép mã') }}
-            </button>
+        <div id="sale-voucher-scroll" class="sale-vouchers__track">
+          <div *ngFor="let v of vouchers" class="sale-vouchers__item voucher-ticket">
+            <div class="voucher-ticket__main">
+              <div class="text-xs font-extrabold text-[var(--fh-primary)]">{{ v.title }}</div>
+              <div class="mt-1 text-xs font-semibold text-[var(--fh-text)]">
+                Nhập mã <span class="font-black">{{ v.code }}</span>
+              </div>
+              <div class="mt-1 text-[11px] font-semibold text-[var(--fh-muted)]">
+                {{ v.note }}
+              </div>
+            </div>
+
+            <div class="voucher-ticket__cta">
+              <button
+                type="button"
+                class="inline-flex h-9 items-center justify-center rounded-md bg-[var(--fh-primary)] px-3 text-[11px] font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+                (click)="copyVoucher(v.code)"
+              >
+                {{ isVoucherCopied(v.code) ? 'Đã sao chép' : (v.buttonText || 'Sao chép mã') }}
+              </button>
+            </div>
           </div>
         </div>
+
+        <button
+          *ngIf="vouchers.length > 3"
+          type="button"
+          class="sale-vouchers__nav right"
+          (click)="scrollVouchers('right')"
+          aria-label="Next vouchers"
+        >
+          ›
+        </button>
       </div>
 
       <div *ngIf="vouchers.length === 0" class="mt-6 rounded-2xl border border-[var(--fh-border)] bg-[rgba(15,23,42,0.02)] px-4 py-5 text-center">
@@ -200,15 +222,16 @@
           <button
             *ngFor="let p of featuredProducts"
             type="button"
-            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            class="group overflow-hidden rounded-md border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
             (click)="goToProduct(p)"
           >
-            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onProductImageError(p)" />
             <div class="p-3">
               <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
-              <div class="mt-2 flex items-end gap-2">
-                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+              <div class="mt-1 text-[13px] font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</div>
+              <div class="mt-1 flex items-center gap-2">
                 <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+                <span *ngIf="getDiscountLabel(p)" class="text-[11px] font-black text-[var(--fh-primary)]">{{ getDiscountLabel(p) }}</span>
               </div>
             </div>
           </button>
@@ -229,15 +252,16 @@
           <button
             *ngFor="let p of hotProducts"
             type="button"
-            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            class="group overflow-hidden rounded-md border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
             (click)="goToProduct(p)"
           >
-            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onProductImageError(p)" />
             <div class="p-3">
               <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
-              <div class="mt-2 flex items-end gap-2">
-                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+              <div class="mt-1 text-[13px] font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</div>
+              <div class="mt-1 flex items-center gap-2">
                 <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+                <span *ngIf="getDiscountLabel(p)" class="text-[11px] font-black text-[var(--fh-primary)]">{{ getDiscountLabel(p) }}</span>
               </div>
             </div>
           </button>
@@ -268,15 +292,16 @@
           <button
             *ngFor="let p of cartSavingProducts"
             type="button"
-            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            class="group overflow-hidden rounded-md border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
             (click)="goToProduct(p)"
           >
-            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onProductImageError(p)" />
             <div class="p-3">
               <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
-              <div class="mt-2 flex items-end gap-2">
-                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+              <div class="mt-1 text-[13px] font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</div>
+              <div class="mt-1 flex items-center gap-2">
                 <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+                <span *ngIf="getDiscountLabel(p)" class="text-[11px] font-black text-[var(--fh-primary)]">{{ getDiscountLabel(p) }}</span>
               </div>
             </div>
           </button>
@@ -297,15 +322,16 @@
           <button
             *ngFor="let p of exclusiveProducts"
             type="button"
-            class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            class="group overflow-hidden rounded-md border border-[var(--fh-border)] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
             (click)="goToProduct(p)"
           >
-            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'" [alt]="p.name" />
+            <img class="h-[170px] w-full object-cover bg-slate-100" [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onProductImageError(p)" />
             <div class="p-3">
               <div class="line-clamp-2 text-[13px] font-black leading-snug text-[var(--fh-text)] group-hover:text-[var(--fh-primary)]">{{ p.name }}</div>
-              <div class="mt-2 flex items-end gap-2">
-                <span class="text-sm font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+              <div class="mt-1 text-[13px] font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</div>
+              <div class="mt-1 flex items-center gap-2">
                 <span *ngIf="p.oldPrice" class="text-[11px] font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+                <span *ngIf="getDiscountLabel(p)" class="text-[11px] font-black text-[var(--fh-primary)]">{{ getDiscountLabel(p) }}</span>
               </div>
             </div>
           </button>
@@ -314,17 +340,17 @@
     </section>
   </ng-container>
 
-  <section class="mx-auto w-full max-w-[1440px] px-3 pb-10" id="sale-products">
+  <section *ngIf="productsEnabled" class="mx-auto w-full max-w-[1440px] px-3 pb-10" id="sale-products">
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <div>
-        <div class="text-xl font-black tracking-tight text-[var(--fh-text)]">Sản phẩm đang giảm giá</div>
-        <div class="mt-1 text-sm font-semibold text-[var(--fh-muted)]">Tự động lọc theo oldPrice/discountPercent</div>
+        <div class="text-xl font-black tracking-tight text-[var(--fh-text)]">{{ productsTitle }}</div>
+        <div class="mt-1 text-sm font-semibold text-[var(--fh-muted)]">{{ productsSubtitle }}</div>
       </div>
       <a
         class="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-3 text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
         routerLink="/"
       >
-        ← Về trang chủ
+        Tra cứu đơn hàng
       </a>
     </div>
 
@@ -339,34 +365,34 @@
 
     <div *ngIf="!loading && !error && products.length === 0" class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
       <div class="text-base font-black text-[var(--fh-text)]">Chưa có sản phẩm Sale</div>
-      <div class="mt-1 text-sm font-semibold text-[var(--fh-muted)]">Hãy cấu hình giảm giá cho sản phẩm (oldPrice/discountPercent) trong admin.</div>
     </div>
 
     <div *ngIf="!loading && !error && products.length > 0" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <div
         *ngFor="let p of products"
-        class="group overflow-hidden rounded-2xl border border-[var(--fh-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+        class="group overflow-hidden rounded-md border border-[var(--fh-border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
       >
         <button type="button" class="relative block w-full overflow-hidden" (click)="goToProduct(p)">
           <img
             class="h-[240px] w-full object-cover bg-slate-100 transition duration-300 group-hover:scale-[1.04]"
-            [src]="p.imageUrl || 'https://via.placeholder.com/600x800?text=Product'"
+            [src]="p.imageUrl || productPlaceholderImage"
             [alt]="p.name"
+            (error)="onProductImageError(p)"
           />
 
-          <span *ngIf="p.badge" class="absolute left-3 top-3 inline-flex items-center rounded-full bg-[rgba(17,24,39,0.82)] px-3 py-1 text-[11px] font-extrabold tracking-wide text-white">
+          <span *ngIf="p.badge" class="absolute left-3 top-3 inline-flex items-center rounded-md bg-[rgba(17,24,39,0.82)] px-2.5 py-1 text-[11px] font-extrabold tracking-wide text-white">
             {{ p.badge }}
           </span>
           <span
             *ngIf="getDiscountLabel(p)"
-            class="absolute right-3 top-3 inline-flex items-center rounded-full bg-[var(--fh-primary)] px-3 py-1 text-[11px] font-black tracking-wide text-[var(--fh-primary-contrast)] shadow"
+            class="absolute right-3 top-3 inline-flex items-center rounded-md bg-[var(--fh-primary)] px-2.5 py-1 text-[11px] font-black tracking-wide text-[var(--fh-primary-contrast)] shadow"
           >
             {{ getDiscountLabel(p) }}
           </span>
         </button>
 
         <div class="p-4">
-          <button type="button" class="line-clamp-2 w-full text-left text-[15px] font-black leading-snug text-[var(--fh-text)] transition hover:text-[var(--fh-primary)]" (click)="goToProduct(p)">
+          <button type="button" class="line-clamp-2 text-left text-[15px] font-black leading-snug text-[var(--fh-text)] transition hover:text-[var(--fh-primary)]" (click)="goToProduct(p)">
             {{ p.name }}
           </button>
 
@@ -376,22 +402,23 @@
             <span *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
           </div>
 
-          <div class="mt-3 flex items-end gap-2">
-            <span class="text-base font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</span>
+          <div class="mt-2 text-base font-black text-[var(--fh-primary)]">{{ formatMoney(p.price) }}đ</div>
+          <div class="mt-1 flex items-center gap-2">
             <span *ngIf="p.oldPrice" class="text-xs font-bold text-[var(--fh-muted)] line-through">{{ formatMoney(p.oldPrice) }}đ</span>
+            <span *ngIf="getDiscountLabel(p)" class="text-xs font-black text-[var(--fh-primary)]">{{ getDiscountLabel(p) }}</span>
           </div>
 
-          <div class="mt-4 grid grid-cols-2 gap-2">
+          <div class="mt-4 flex gap-2">
             <button
               type="button"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--fh-border)] bg-white text-sm font-extrabold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.35)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+              class="inline-flex h-10 flex-[0.95] items-center justify-center gap-2 rounded-md border border-[rgba(193,18,31,0.35)] bg-white text-[13px] font-extrabold text-[var(--fh-primary)] shadow-sm transition hover:bg-[rgba(193,18,31,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
               (click)="addToCart(p)"
             >
               <span>Thêm giỏ</span>
             </button>
             <button
               type="button"
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--fh-primary)] bg-[var(--fh-primary)] text-sm font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
+              class="inline-flex h-10 flex-[1.05] items-center justify-center gap-2 rounded-md border border-[var(--fh-primary)] bg-[var(--fh-primary)] text-[13px] font-extrabold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(14,165,233,0.35)]"
               (click)="buyNow(p)"
             >
               <span>Mua ngay</span>

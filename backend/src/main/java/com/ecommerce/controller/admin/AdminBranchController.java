@@ -16,6 +16,7 @@ import com.ecommerce.repository.BranchProductStockRepository;
 import com.ecommerce.repository.BranchRepository;
 import com.ecommerce.repository.ProductRepository;
 import com.ecommerce.repository.UserRepository;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -381,19 +382,43 @@ public class AdminBranchController {
 
     private void syncBranchManagers(Long branchId, List<Long> managerIds) {
         if (branchId == null) return;
+        List<BranchManager> existing = branchManagerRepository.findByBranchId(branchId);
         branchManagerRepository.deleteByBranchId(branchId);
 
+        Set<Long> oldUserIds = new HashSet<>();
+        for (BranchManager bm : existing) {
+            if (bm != null && bm.getUserId() != null) oldUserIds.add(bm.getUserId());
+        }
+
         List<Long> ids = managerIds != null ? managerIds : List.of();
+        Set<Long> newUserIds = new HashSet<>();
         for (Long userId : ids) {
             if (userId == null) continue;
+            newUserIds.add(userId);
             userRepository.findById(userId).ifPresent(u -> {
                 if (u.getRoles() == null || !u.getRoles().contains(UserRole.MANAGER)) {
                     return;
                 }
+                u.setBranchId(branchId);
+                u.setUpdatedAt(Instant.now());
+                userRepository.save(u);
                 BranchManager bm = new BranchManager();
                 bm.setBranchId(branchId);
                 bm.setUserId(userId);
                 branchManagerRepository.save(bm);
+            });
+        }
+
+        for (Long oldId : oldUserIds) {
+            if (oldId == null) continue;
+            if (newUserIds.contains(oldId)) continue;
+            userRepository.findById(oldId).ifPresent(u -> {
+                if (u.getRoles() == null || !u.getRoles().contains(UserRole.MANAGER)) return;
+                if (u.getBranchId() != null && Objects.equals(u.getBranchId(), branchId)) {
+                    u.setBranchId(null);
+                    u.setUpdatedAt(Instant.now());
+                    userRepository.save(u);
+                }
             });
         }
     }

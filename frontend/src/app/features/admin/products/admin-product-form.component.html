@@ -1,20 +1,42 @@
-<div class="page">
-  <div class="page-head">
-    <div class="title">
-      <div class="title-main">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }}</div>
-      <div class="title-sub">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/kích cỡ' }}</div>
-    </div>
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 7h-7V4a2 2 0 0 0-2-2H4v7h3v11a2 2 0 0 0 2 2h11V7Z" />
+            <path d="M9 11h7" />
+            <path d="M9 15h7" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }}</h1>
+          <p class="text-blue-100 text-sm sm:text-base">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/kích cỡ' }}</p>
+        </div>
+      </div>
 
-    <div class="head-actions">
-      <button class="btn ghost" type="button" (click)="back()">← Quay lại</button>
-      <button class="btn" type="button" (click)="submit()" [disabled]="saving">
-        {{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}
-      </button>
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+          type="button"
+          (click)="back()"
+        >
+          <span>← Quay lại</span>
+        </button>
+        <button
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
+          type="button"
+          (click)="submit()"
+          [disabled]="saving"
+        >
+          <span>{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="alert error" *ngIf="error">{{ error }}</div>
-  <div class="alert success" *ngIf="success">{{ success }}</div>
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">{{ error }}</div>
+  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl font-semibold">{{ success }}</div>
 
   <div class="layout" [class.disabled]="loading">
     <form class="form" [formGroup]="form" (ngSubmit)="$event.preventDefault(); submit()">
@@ -40,23 +62,19 @@
             </div>
 
             <div class="field">
+              <label class="label">Loại sản phẩm *</label>
+              <select class="input" formControlName="productTypeId" [disabled]="productTypesLoading">
+                <option [ngValue]="null">-- Chọn loại sản phẩm --</option>
+                <option *ngFor="let pt of activeProductTypes" [ngValue]="pt.id">{{ pt.name }}</option>
+              </select>
+            </div>
+
+            <div class="field">
               <label class="label">Trạng thái</label>
               <label class="switch">
                 <input type="checkbox" formControlName="active" />
                 <span>{{ form.value.active === false ? 'Ẩn' : 'Bật' }}</span>
               </label>
-            </div>
-          </div>
-
-          <div class="grid2">
-            <div class="field">
-              <label class="label">Giá *</label>
-              <input class="input" type="number" formControlName="price" />
-            </div>
-
-            <div class="field">
-              <label class="label">Giá cũ</label>
-              <input class="input" type="number" formControlName="oldPrice" />
             </div>
           </div>
 
@@ -74,14 +92,13 @@
 
           <div class="variant-toolbar">
             <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Tạo biến thể theo màu</button>
-            <button class="btn ghost" type="button" (click)="copyPriceFromFirstVariant()" [disabled]="variants.length < 2">Copy giá từ màu đầu</button>
             <div class="variant-toolbar__meta">Tổng tồn: <code>{{ form.value.stock }}</code></div>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-head">Danh mục (cấp 3) *</div>
+        <div class="card-head">Danh mục *</div>
         <div class="card-body">
           <div class="cat-toolbar">
             <button class="btn ghost" type="button" (click)="openCategoryModal()">Chọn danh mục</button>
@@ -108,7 +125,7 @@
           <div class="cat-body">
             <div class="cat-search">
               <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="Tìm danh mục..." />
-              <div class="cat-search-hint">Chỉ tick ở danh mục con (cấp 3).</div>
+              <div class="cat-search-hint">Bạn có thể tick ở cả cấp 1/2/3.</div>
             </div>
 
             <div class="cat-tree">
@@ -133,7 +150,7 @@
                     </div>
 
                     <div class="cat-right">
-                      <label class="cat-check" *ngIf="isLeafCategory(node)">
+                      <label class="cat-check">
                         <input type="checkbox" [checked]="selectedCategoryIds.has(node.id)" (change)="toggleCategory(node)" />
                         <span>Chọn</span>
                       </label>
@@ -155,59 +172,72 @@
       </div>
 
       <div class="card">
-        <div class="card-head">Biến thể theo màu</div>
+        <div class="card-head">Tồn kho theo chi nhánh (Size + Màu)</div>
         <div class="card-body">
-          <div class="variants" formArrayName="variants" *ngIf="variants.length > 0">
-            <div class="variant" *ngFor="let vg of variants.controls; let i = index" [formGroupName]="i">
-              <div class="variant__head">
-                <div class="variant__title">Màu: <code>{{ vg.get('color')?.value }}</code></div>
-                <label class="switch">
-                  <input type="checkbox" formControlName="active" />
-                  <span>{{ vg.get('active')?.value === false ? 'Ẩn' : 'Bật' }}</span>
-                </label>
-              </div>
-
-              <div class="grid2">
-                <div class="field">
-                  <label class="label">Giá (màu)</label>
-                  <input class="input" type="number" formControlName="price" />
-                </div>
-                <div class="field">
-                  <label class="label">Giá cũ</label>
-                  <input class="input" type="number" formControlName="oldPrice" />
-                </div>
-              </div>
-
-              <div class="field" formArrayName="images">
-                <label class="label">Ảnh theo màu</label>
-                <div class="images">
-                  <div class="img-row" *ngFor="let ic of variantImages(i).controls; let j = index">
-                    <button class="thumb-btn" type="button" *ngIf="variantPreview(i, j)" (click)="openCropVariant(i, j)">
-                      <img class="thumb-img" [src]="variantPreview(i, j)" alt="preview" />
-                    </button>
-                    <input type="hidden" [formControlName]="j" />
-                    <input class="file-input" type="file" accept="image/*" [id]="'variantFile' + i + '_' + j" (change)="onVariantFileSelect(i, j, $event)" />
-                    <label class="btn ghost file-btn" [for]="'variantFile' + i + '_' + j">Chọn ảnh</label>
-                    <button class="btn ghost danger" type="button" (click)="removeVariantImage(i, j)" style="margin-left:8px">Xóa</button>
-                  </div>
-                  <button class="btn ghost" type="button" (click)="addVariantImage(i)">+ Thêm ảnh</button>
-                </div>
-              </div>
-
-              <div class="field" formArrayName="stocks">
-                <label class="label">Tồn kho theo kích cỡ</label>
-                <div class="stock-grid">
-                  <div class="stock-row" *ngFor="let sc of variantStocks(i).controls; let k = index" [formGroupName]="k">
-                    <div class="stock-size">{{ sc.get('size')?.value }}</div>
-                    <input class="input" type="number" formControlName="stock" (input)="recalculateTotalStock()" />
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="matrix-wrap" *ngIf="(variantBranchRows || []).length > 0 && (branches || []).length > 0">
+            <table class="matrix-table">
+              <thead>
+                <tr>
+                  <th>Màu</th>
+                  <th>Size</th>
+                  <th>Giá</th>
+                  <th>Giá cũ</th>
+                  <th *ngFor="let b of branches">{{ b.code }}</th>
+                  <th>Tổng</th>
+                  <th>Ảnh</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of variantBranchRows; let ri = index">
+                  <td class="matrix-color">{{ row.color }}</td>
+                  <td class="matrix-size">{{ row.size }}</td>
+                  <td>
+                    <input
+                      class="input matrix-input"
+                      type="number"
+                      [(ngModel)]="row.price"
+                      (input)="onVariantRowPriceChanged(row)"
+                      [ngModelOptions]="{ standalone: true }"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      class="input matrix-input"
+                      type="number"
+                      [(ngModel)]="row.oldPrice"
+                      (input)="onVariantRowPriceChanged(row)"
+                      [ngModelOptions]="{ standalone: true }"
+                    />
+                  </td>
+                  <td *ngFor="let cell of row.stocks">
+                    <input
+                      class="input matrix-input"
+                      type="number"
+                      [(ngModel)]="cell.stock"
+                      (input)="onVariantBranchMatrixChanged()"
+                      [ngModelOptions]="{ standalone: true }"
+                    />
+                  </td>
+                  <td class="matrix-total"><code>{{ row.total }}</code></td>
+                  <td class="matrix-image">
+                    <div class="matrix-image-cell">
+                      <img class="matrix-thumb" *ngIf="matrixImagePreview(row.imageUrl)" [src]="matrixImagePreview(row.imageUrl)" alt="preview" />
+                      <input class="file-input" type="file" accept="image/*" [id]="'matrixImg' + ri" (change)="onMatrixImageFileSelect(ri, $event)" />
+                      <label class="btn ghost file-btn" [for]="'matrixImg' + ri">Chọn ảnh</label>
+                      <button class="btn ghost danger" type="button" (click)="clearMatrixImage(ri)" *ngIf="row.imageUrl" style="margin-left:8px">Xóa</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <div class="empty" *ngIf="variants.length === 0">
-            Chưa có biến thể. Bạn có thể nhập <b>kích cỡ/màu sắc</b> rồi bấm <b>“Tạo biến thể theo màu”</b>.
+          <div class="empty" *ngIf="(branches || []).length === 0">
+            Chưa có chi nhánh.
+          </div>
+
+          <div class="empty" *ngIf="(branches || []).length > 0 && (variantBranchRows || []).length === 0">
+            Chưa có dòng size + màu. Vui lòng tạo biến thể theo màu trước.
           </div>
         </div>
       </div>

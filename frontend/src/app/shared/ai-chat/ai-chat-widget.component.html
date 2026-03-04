@@ -1,12 +1,11 @@
 <div class="ai-chat" #wrap>
   <div class="ai-chat__fabs">
     <button type="button" class="ai-chat__fab is-support" (click)="toggleSupport()" aria-label="Chat với nhân viên">
-      <span class="ai-chat__fab-text">💬</span>
+      <span class="ai-chat__fab-icon" aria-hidden="true">💬</span>
     </button>
 
     <button type="button" class="ai-chat__fab" (click)="toggle()" aria-label="Chat AI">
-      <span class="ai-chat__fab-dot" *ngIf="!open"></span>
-      <span class="ai-chat__fab-text">AI</span>
+      <span class="ai-chat__fab-icon" aria-hidden="true">✨</span>
     </button>
   </div>
 
@@ -62,6 +61,33 @@
     </div>
 
     <div class="ai-chat__body" #supportList>
+      <div class="ai-chat__overlay" *ngIf="supportOrdersOpen" (click)="closeOrders()">
+        <div class="ai-chat__overlay-card" role="dialog" aria-modal="true" aria-label="Chọn đơn hàng" (click)="$event.stopPropagation()">
+          <div class="ai-chat__overlay-head">
+            <div class="ai-chat__overlay-title">Chọn đơn hàng</div>
+            <button type="button" class="ai-chat__close" (click)="closeOrders()" aria-label="Đóng">✕</button>
+          </div>
+
+          <div class="ai-chat__overlay-body">
+            <div class="ai-chat__empty" *ngIf="supportOrdersLoading">Đang tải đơn hàng...</div>
+            <div class="ai-chat__empty" *ngIf="!supportOrdersLoading && supportOrders.length === 0">Bạn chưa có đơn hàng nào.</div>
+
+            <button
+              type="button"
+              class="ai-chat__order-item"
+              *ngFor="let o of supportOrders"
+              (click)="selectOrder(o)"
+            >
+              <div class="ai-chat__order-top">
+                <div class="ai-chat__order-id">#{{ o.id }}</div>
+                <div class="ai-chat__order-status">{{ o.status }}</div>
+              </div>
+              <div class="ai-chat__order-sub">Tổng: {{ o.total }}</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="ai-chat__empty" *ngIf="supportMessages.length === 0">
         Hãy nhập tin nhắn để nhân viên hỗ trợ.
       </div>
@@ -78,6 +104,28 @@
     </div>
 
     <div class="ai-chat__foot">
+      <div class="ai-chat__support-actions">
+        <button type="button" class="ai-chat__icon-btn" (click)="toggleSupportAttachMenu()" aria-label="Tùy chọn đính kèm">＋</button>
+
+        <div class="ai-chat__attach-menu" *ngIf="supportAttachMenuOpen">
+          <button type="button" class="ai-chat__attach-item" (click)="pickSupportImage()">Đính kèm ảnh</button>
+          <button type="button" class="ai-chat__attach-item" (click)="openMyOrders()" [disabled]="!isAuthenticated()">Đơn hàng của tôi</button>
+        </div>
+
+        <input
+          #supportFile
+          type="file"
+          accept="image/*"
+          class="ai-chat__file"
+          (change)="onSupportFileChange($any($event))"
+        />
+      </div>
+
+      <div class="ai-chat__attach-preview" *ngIf="supportPendingImageName">
+        <span class="ai-chat__attach-name">{{ supportPendingImageName }}</span>
+        <button type="button" class="ai-chat__attach-remove" (click)="clearSupportPendingImage()" aria-label="Bỏ ảnh">✕</button>
+      </div>
+
       <textarea
         class="ai-chat__input"
         rows="1"

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { Observable } from 'rxjs';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -57,6 +58,7 @@ export interface AdminUserResponse {
   roles: string[];
   enabled?: boolean | null;
   createdAt?: string | null;
+  branchId?: number | null;
   customerSegment?: string | null;
   accountAgeMonths?: number | null;
   totalSpendLast6Months?: number | null;
@@ -96,6 +98,16 @@ export interface AdminNotificationSettingsResponse {
   notifyNewOrder?: boolean | null;
   notifyOrderStatus?: boolean | null;
   notifyLowStock?: boolean | null;
+  updatedAt?: string | null;
+}
+
+export interface AdminProductTypeResponse {
+  id: number;
+  code: string;
+  name: string;
+  active?: boolean | null;
+  fieldsJson?: string | null;
+  createdAt?: string | null;
   updatedAt?: string | null;
 }
 
@@ -218,6 +230,43 @@ export class AdminDataService {
     );
   }
 
+  importCategoriesExcel(rootId: number, file: File) {
+    const form = new FormData();
+    form.append('rootId', String(rootId));
+    form.append('file', file, file.name || 'categories.xlsx');
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiBaseUrl}/api/admin/categories/import-excel`,
+      form
+    );
+  }
+
+  downloadCategoriesImportTemplateExcel() {
+    return this.http.get(`${environment.apiBaseUrl}/api/admin/categories/import-template-excel`, {
+      responseType: 'blob'
+    }) as Observable<Blob>;
+  }
+
+  exportCategoriesExcel(rootId: number) {
+    return this.http.get(`${environment.apiBaseUrl}/api/admin/categories/export-excel?rootId=${rootId}`, {
+      responseType: 'blob'
+    }) as Observable<Blob>;
+  }
+
+  parseCategoriesExcel(file: File) {
+    const form = new FormData();
+    form.append('file', file, file.name || 'categories.xlsx');
+    return this.http.post<ApiResponse<any[]>>(
+      `${environment.apiBaseUrl}/api/admin/categories/parse-excel`,
+      form
+    );
+  }
+
+  buildCategoriesExcel(tree: Array<{ name: string; slug?: string; lv3?: Array<{ name: string; slug?: string }> }>) {
+    return this.http.post(`${environment.apiBaseUrl}/api/admin/categories/build-excel`, tree, {
+      responseType: 'blob'
+    }) as Observable<Blob>;
+  }
+
   getCoupons() {
     return this.http.get<ApiResponse<AdminCouponResponse[]>>(`${environment.apiBaseUrl}/api/admin/coupons`);
   }
@@ -275,6 +324,30 @@ export class AdminDataService {
     );
   }
 
+  listProductTypes() {
+    return this.http.get<ApiResponse<AdminProductTypeResponse[]>>(`${environment.apiBaseUrl}/api/admin/product-types`);
+  }
+
+  createProductType(data: { code: string; name: string; active?: boolean | null; fieldsJson?: string | null }) {
+    return this.http.post<ApiResponse<AdminProductTypeResponse>>(
+      `${environment.apiBaseUrl}/api/admin/product-types`,
+      data
+    );
+  }
+
+  updateProductType(id: number, data: { code?: string; name?: string; active?: boolean | null; fieldsJson?: string | null }) {
+    return this.http.put<ApiResponse<AdminProductTypeResponse>>(
+      `${environment.apiBaseUrl}/api/admin/product-types/${id}`,
+      data
+    );
+  }
+
+  deleteProductType(id: number) {
+    return this.http.delete<ApiResponse<boolean>>(
+      `${environment.apiBaseUrl}/api/admin/product-types/${id}`
+    );
+  }
+
   getHomeSections() {
     return this.http.get<ApiResponse<HomeSectionResponse[]>>(`${environment.apiBaseUrl}/api/admin/home-sections`);
   }
@@ -319,14 +392,14 @@ export class AdminDataService {
     return this.http.get<ApiResponse<AdminUserResponse[]>>(`${environment.apiBaseUrl}/api/admin/customers`);
   }
 
-  createUser(data: { fullName?: string; email?: string; username?: string; phone?: string; roles: string[]; enabled?: boolean }) {
+  createUser(data: { fullName?: string; email?: string; username?: string; phone?: string; roles: string[]; enabled?: boolean; branchId?: number | null }) {
     return this.http.post<ApiResponse<AdminUserResponse>>(
       `${environment.apiBaseUrl}/api/admin/users`,
       data
     );
   }
 
-  updateUser(id: number, data: { fullName?: string; email?: string; username?: string; phone?: string; roles?: string[]; enabled?: boolean }) {
+  updateUser(id: number, data: { fullName?: string; email?: string; username?: string; phone?: string; roles?: string[]; enabled?: boolean; branchId?: number | null }) {
     return this.http.put<ApiResponse<AdminUserResponse>>(
       `${environment.apiBaseUrl}/api/admin/users/${id}`,
       data

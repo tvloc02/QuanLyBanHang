@@ -57,6 +57,55 @@
    bottom: -9px;
  }
 
+ .sale-vouchers {
+   position: relative;
+ }
+
+ .sale-vouchers__track {
+   display: flex;
+   gap: 14px;
+   overflow-x: auto;
+   scroll-behavior: smooth;
+   padding: 2px 46px 8px;
+   scrollbar-width: none;
+ }
+
+ .sale-vouchers__track::-webkit-scrollbar {
+   display: none;
+ }
+
+ .sale-vouchers__item {
+   flex: 0 0 auto;
+   width: 340px;
+ }
+
+ .sale-vouchers__nav {
+   position: absolute;
+   top: 50%;
+   transform: translateY(-50%);
+   width: 34px;
+   height: 34px;
+   border-radius: 12px;
+   border: 1px solid var(--fh-border);
+   background: rgba(255, 255, 255, 0.92);
+   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.10);
+   cursor: pointer;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   font-weight: 1000;
+   color: var(--fh-primary);
+   z-index: 2;
+ }
+
+ .sale-vouchers__nav.left {
+   left: 8px;
+ }
+
+ .sale-vouchers__nav.right {
+   right: 8px;
+ }
+
  .sale-category-scroll-wrapper {
    position: relative;
  }

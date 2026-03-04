@@ -1,7 +1,7 @@
 <main class="page">
   <div class="container">
     <div class="breadcrumbs">
-      <a routerLink="/">Trang chủ</a>
+      <a routerLink="/sale">Trang chủ</a>
       <span class="sep">/</span>
       <a *ngIf="product?.category" [routerLink]="['/category', product?.category]">{{ product?.category }}</a>
       <span class="sep" *ngIf="product?.category">/</span>
@@ -23,16 +23,16 @@
           <button
             type="button"
             class="thumb"
-            *ngFor="let img of images"
+            *ngFor="let img of images; let i = index"
             [class.active]="img === activeImage"
             (click)="selectImage(img)"
           >
-            <img [src]="img" [alt]="product.name" />
+            <img [src]="img || productPlaceholderImage" [alt]="product.name" (error)="onThumbImageError(i)" />
           </button>
         </div>
 
         <div class="hero">
-          <img class="hero-img" [src]="activeImage" [alt]="product.name" />
+          <img class="hero-img" [src]="activeImage || productPlaceholderImage" [alt]="product.name" (error)="onHeroImageError()" />
         </div>
       </div>
 
@@ -170,7 +170,7 @@
       <div class="related-grid">
         <a class="card" *ngFor="let p of related" (click)="goToProduct(p.slug)">
           <div class="img">
-            <img [src]="p.imageUrl || 'https://via.placeholder.com/300x400?text=Product'" [alt]="p.name" />
+            <img [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onRelatedImageError(p)" />
             <span class="badge" *ngIf="p.badge">{{ p.badge }}</span>
             <span class="disc" *ngIf="p.discountPercent">-{{ p.discountPercent }}%</span>
           </div>

@@ -8,7 +8,7 @@
   --fh-primary-contrast: #ffffff;
   --fh-accent: #0ea5e9;
 
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -21,7 +21,7 @@
 /* Lưới chứa sidebar + nội dung chính */
 .adm-body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 300px 1fr;
   min-height: 0;
 }
 
@@ -33,14 +33,15 @@
   position: sticky;
   top: var(--adm-topbar-h);
   height: calc(100vh - var(--adm-topbar-h));
-  background: transparent;
-  border-right: 0;
-  padding: 0;
+  background: #ffffff !important;
+  border-right: 1px solid rgba(237, 241, 247, 1) !important;
+  padding: 10px 10px !important;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px !important;
   min-height: 0;
   overflow: hidden;
+  box-shadow: none !important;
 }
 
 .adm-sidebar.collapsed {
@@ -87,40 +88,44 @@
 }
 
 .adm-search {
-  padding: 0 4px;
+  padding: 0 6px !important;
 }
 
 .adm-search-input {
   width: 100%;
-  height: 38px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(245, 247, 251, 1);
+  height: 36px;
+  border-radius: 10px !important;
+  border: 1px solid rgba(232, 236, 244, 1) !important;
+  background: rgba(247, 249, 252, 1) !important;
   padding: 0 12px;
   outline: none;
   font-weight: 500;
   font-size: 13px;
+  color: rgba(46, 58, 89, 1);
 }
 
 .adm-search-input:focus {
-  border-color: rgba(37, 99, 235, 0.6);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  background: #fff !important;
+  border-color: rgba(51, 102, 255, 0.55) !important;
+  box-shadow: 0 0 0 4px rgba(51, 102, 255, 0.12) !important;
 }
 
 .adm-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px 4px;
-  overflow: auto;
+  gap: 4px;
+  padding: 8px 6px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.9) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
 
 .adm-nav::-webkit-scrollbar {
   width: 6px;
+  height: 0;
 }
 
 .adm-nav::-webkit-scrollbar-track {
@@ -128,12 +133,12 @@
 }
 
 .adm-nav::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.9);
+  background: rgba(148, 163, 184, 0.35);
   border-radius: 999px;
 }
 
 .adm-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.95);
+  background: rgba(100, 116, 139, 0.55);
 }
 
 .adm-nav::-webkit-scrollbar-button {
@@ -154,28 +159,28 @@
   font-weight: 900;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: rgba(107, 114, 128, 1);
-  padding: 0 10px;
+  color: rgba(143, 155, 179, 1);
+  padding: 8px 10px 2px;
   margin-top: 6px;
 }
 
 .nav-accordion {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px !important;
-  border-radius: 18px !important;
-  color: rgba(30, 41, 59, 0.95);
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
+  color: rgba(46, 58, 89, 1);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 200ms;
+  font-weight: 800;
+  font-size: 13px;
+  transition: background 140ms ease, color 140ms ease;
   cursor: pointer;
 }
 
@@ -185,34 +190,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent !important;
-  color: rgba(37, 99, 235, 1);
+  color: rgba(143, 155, 179, 1);
   flex-shrink: 0;
 }
 
 .adm-sidebar .ic svg {
   fill: none !important;
   stroke: currentColor !important;
-  stroke-width: 1.8;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .nav-item:hover {
-  background: rgba(37, 99, 235, 0.06) !important;
+  background: rgba(247, 249, 252, 1) !important;
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #4f7bff, #3f62ff);
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  color: #ffffff;
-  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
+  background: rgba(237, 241, 255, 1) !important;
+  border: 0 !important;
+  color: rgba(51, 102, 255, 1) !important;
+  box-shadow: none !important;
 }
 
 .nav-item.active .ic {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: transparent !important;
+  color: rgba(51, 102, 255, 1) !important;
 }
 
 .nav-section {
@@ -226,32 +231,25 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 14px 16px !important;
-  border-radius: 18px !important;
+  padding: 10px 12px !important;
+  border-radius: 10px !important;
   border: 0;
   background: transparent;
   cursor: pointer;
-  color: rgba(30, 41, 59, 0.95);
-  font-weight: 700;
-  font-size: 14px;
-  transition: all 200ms;
-}
-
-.nav-item.active {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  color: #ffffff;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+  color: rgba(46, 58, 89, 1);
+  font-weight: 900;
+  font-size: 13px;
+  transition: background 140ms ease, color 140ms ease;
 }
 
 .nav-head:hover {
-  background: rgba(37, 99, 235, 0.06);
+  background: rgba(247, 249, 252, 1) !important;
 }
 
 .nav-section.active > .nav-head {
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.28);
-  color: rgba(29, 78, 216, 1);
+  background: rgba(237, 241, 255, 1) !important;
+  border: 0 !important;
+  color: rgba(51, 102, 255, 1) !important;
 }
 
 .nav-head .ic {
@@ -260,23 +258,37 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent !important;
-  color: rgba(37, 99, 235, 1);
+  color: rgba(143, 155, 179, 1);
   flex-shrink: 0;
 }
 
 .nav-section.active > .nav-head .ic {
-  background: rgba(37, 99, 235, 0.12);
-  color: rgba(29, 78, 216, 1);
+  background: transparent !important;
+  color: rgba(51, 102, 255, 1) !important;
 }
 
 .nav-head .chev {
   margin-left: auto;
-  font-size: 12px;
-  opacity: 0.7;
-  transform: rotate(0deg);
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  opacity: 0.9;
   transition: transform 140ms ease, opacity 140ms ease;
+  color: rgba(143, 155, 179, 1);
+}
+
+.nav-head .chev::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .nav-section.open > .nav-head .chev {
@@ -286,8 +298,8 @@
 .nav-body {
   display: none;
   position: relative;
-  padding-left: 22px;
-  margin-left: 12px;
+  padding-left: 16px;
+  margin-left: 8px;
 }
 
 .nav-body::before {
@@ -298,7 +310,7 @@
   bottom: 6px;
   width: 3px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.14);
+  background: rgba(232, 236, 244, 1);
 }
 
 .nav-section.open > .nav-body {
@@ -310,13 +322,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px !important;
-  border-radius: 16px !important;
-  color: rgba(51, 65, 85, 0.95);
+  padding: 9px 10px !important;
+  border-radius: 10px !important;
+  color: rgba(46, 58, 89, 1);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 200ms;
+  font-weight: 800;
+  font-size: 13px;
+  transition: background 140ms ease, color 140ms ease;
 }
 
 .item .ic {
@@ -327,7 +339,7 @@
   justify-content: center;
   border-radius: 10px;
   background: transparent !important;
-  color: rgba(37, 99, 235, 1);
+  color: rgba(143, 155, 179, 1);
   flex-shrink: 0;
 }
 
@@ -338,18 +350,18 @@
 }
 
 .item:hover {
-  background: rgba(37, 99, 235, 0.06);
+  background: rgba(247, 249, 252, 1) !important;
 }
 
 .item.active {
-  background: rgba(37, 99, 235, 0.10);
-  border: 1px solid rgba(37, 99, 235, 0.22);
-  color: rgba(29, 78, 216, 1);
+  background: rgba(237, 241, 255, 1) !important;
+  border: 0 !important;
+  color: rgba(51, 102, 255, 1) !important;
 }
 
 .item.active .ic {
-  background: rgba(37, 99, 235, 0.14);
-  color: rgba(29, 78, 216, 1);
+  background: transparent !important;
+  color: rgba(51, 102, 255, 1) !important;
 }
 
 .adm-footer {

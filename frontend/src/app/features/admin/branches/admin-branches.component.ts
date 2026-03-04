@@ -67,6 +67,7 @@ export class AdminBranchesComponent {
   pageIndex = 0;
 
   managerOptions: AdminUserResponse[] = [];
+  managerQ = '';
 
   private addressDataAll: ProvinceNode[] = [];
   provinceOptions: string[] = [];
@@ -151,6 +152,57 @@ export class AdminBranchesComponent {
     this.load();
   }
 
+  get filteredManagerOptions(): AdminUserResponse[] {
+    const q = String(this.managerQ || '').trim().toLowerCase();
+    const rows = this.managerOptions || [];
+    if (!q) return rows;
+    return rows.filter((u) => {
+      const hay = `${u.id} ${u.fullName || ''} ${u.username || ''} ${u.email || ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  isManagerChecked(userId: number): boolean {
+    const ids = Array.isArray(this.form.managerUserIds) ? this.form.managerUserIds : [];
+    return ids.includes(userId);
+  }
+
+  toggleManager(userId: number, checked: boolean): void {
+    const ids = Array.isArray(this.form.managerUserIds) ? [...this.form.managerUserIds] : [];
+    const idx = ids.indexOf(userId);
+    if (checked) {
+      if (idx === -1) ids.push(userId);
+    } else {
+      if (idx >= 0) ids.splice(idx, 1);
+    }
+    this.form.managerUserIds = ids;
+  }
+
+  get managerPickerSummary(): string {
+    const ids = Array.isArray(this.form.managerUserIds) ? this.form.managerUserIds : [];
+    if (!ids.length) return 'Chưa chọn quản lý';
+    const names = ids
+      .map((id) => this.managerOptions.find((u) => u.id === id))
+      .filter(Boolean)
+      .map((u) => String((u as any)?.fullName || (u as any)?.username || (u as any)?.email || '').trim())
+      .filter(Boolean);
+    if (!names.length) return `${ids.length} quản lý`;
+    if (names.length <= 2) return names.join(', ');
+    return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+  }
+
+  get totalBranches(): number {
+    return (this.rows || []).length;
+  }
+
+  get activeBranches(): number {
+    return (this.rows || []).filter((r) => r && r.active !== false).length;
+  }
+
+  get inactiveBranches(): number {
+    return (this.rows || []).filter((r) => r && r.active === false).length;
+  }
+
   get canPickDistrict(): boolean {
     return !!String(this.form.province || '').trim();
   }
@@ -218,7 +270,10 @@ export class AdminBranchesComponent {
         const rows = Array.isArray(res?.data) ? res.data : [];
         this.managerOptions = rows.filter((u) => {
           const rolesRaw = Array.isArray((u as any)?.roles) ? (u as any).roles : [];
-          const roles = rolesRaw.map((r: any) => String(r || '').trim().toUpperCase()).filter((x: string) => !!x);
+          const roles = rolesRaw
+            .map((r: any) => String(r || '').trim().toUpperCase())
+            .filter((x: string) => !!x)
+            .map((x: string) => (x.startsWith('ROLE_') ? x.slice('ROLE_'.length) : x));
           return roles.includes('MANAGER');
         });
       },
@@ -601,7 +656,28 @@ export class AdminBranchesComponent {
     if (Array.isArray(names) && names.length) {
       return names.filter((x: any) => !!String(x || '').trim()).join(', ');
     }
-    return r.managerName || (r.managerUserId ? '#' + r.managerUserId : '-');
+
+    if (r.managerName) return r.managerName;
+
+    const idsRaw = (r as any)?.managerUserIds;
+    const ids = Array.isArray(idsRaw) ? idsRaw.map((x: any) => Number(x)).filter((x: any) => Number.isFinite(x)) : [];
+    if (ids.length) {
+      const resolved = ids
+        .map((id) => this.managerOptions.find((u) => u.id === id))
+        .filter(Boolean)
+        .map((u) => String((u as any)?.fullName || (u as any)?.username || (u as any)?.email || '').trim())
+        .filter(Boolean);
+      if (resolved.length) return resolved.join(', ');
+      return ids.map((id) => '#' + id).join(', ');
+    }
+
+    if (r.managerUserId) {
+      const u = this.managerOptions.find((x) => x.id === r.managerUserId) || null;
+      const label = u ? String(u.fullName || u.username || u.email || '').trim() : '';
+      return label || '#' + r.managerUserId;
+    }
+
+    return '-';
   }
 
   formatAddress(r: AdminBranchResponse): string {
@@ -620,6 +696,16 @@ export class AdminBranchesComponent {
 
   get totalRecords(): number {
     return this.filteredRows.length;
+  }
+
+  get rangeStart(): number {
+    if (this.totalRecords <= 0) return 0;
+    return this.pageIndex * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    if (this.totalRecords <= 0) return 0;
+    return Math.min((this.pageIndex + 1) * this.pageSize, this.totalRecords);
   }
 
   get totalPages(): number {
@@ -707,6 +793,7 @@ export class AdminBranchesComponent {
       active: true
     };
     this.applyAddressOptionsFromForm();
+    this.managerQ = '';
     this.createOpen = true;
   }
 
@@ -788,6 +875,7 @@ export class AdminBranchesComponent {
     } else {
       this.applyAddressOptionsFromForm();
     }
+    this.managerQ = '';
     this.editOpen = true;
   }
 

@@ -101,6 +101,11 @@ export class SaleComponent implements OnInit {
   error = '';
   products: SaleProduct[] = [];
 
+  saleFontFamily: string | null = null;
+  salePrimaryColor: string | null = null;
+
+  productPlaceholderImage = 'https://via.placeholder.com/600x800?text=Product';
+
   heroEnabled = true;
   heroLabel = 'SALE ONLINE';
   heroBanners: Array<{ imageUrl: string; alt: string; title: string; titleColor?: string | null; note?: string; noteColor?: string | null; description?: string; buttonText?: string; route?: string | null }> = [
@@ -178,15 +183,21 @@ export class SaleComponent implements OnInit {
 
   private readonly copiedVoucherCodes = new Set<string>();
 
+  productsEnabled = true;
+  productsTitle = 'Sản phẩm đang giảm giá';
+  productsSubtitle = '';
+
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit(): void {
+    this.loadSaleTheme();
     this.loadSaleHero();
     this.loadCategories();
     this.loadVouchers();
     this.loadSaleCategoriesConfig();
     this.loadSaleSectionsNav();
     this.loadCuratedSections();
+    this.loadSaleProductsConfig();
     this.load();
   }
 
@@ -306,6 +317,13 @@ export class SaleComponent implements OnInit {
     return this.copiedVoucherCodes.has(String(code || '').trim());
   }
 
+  scrollVouchers(dir: 'left' | 'right'): void {
+    const el = document.getElementById('sale-voucher-scroll');
+    if (!el) return;
+    const step = Math.max(320, Math.round(el.clientWidth * 0.92));
+    el.scrollBy({ left: dir === 'left' ? -step : step, behavior: 'smooth' });
+  }
+
   private loadVouchers(): void {
     const url = `${environment.apiBaseUrl}/api/home-sections`;
     this.http.get<ApiResponse<HomeSectionResponse[]>>(url).subscribe({
@@ -347,6 +365,61 @@ export class SaleComponent implements OnInit {
       error: () => {
         this.vouchersEnabled = true;
         this.vouchers = [];
+      }
+    });
+  }
+
+  private loadSaleTheme(): void {
+    const url = `${environment.apiBaseUrl}/api/home-sections`;
+    this.http.get<ApiResponse<HomeSectionResponse[]>>(url).subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        const sec = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_THEME');
+
+        if (sec && sec.enabled === false) {
+          this.saleFontFamily = null;
+          this.salePrimaryColor = null;
+          return;
+        }
+
+        const items = Array.isArray(sec?.items) ? sec!.items! : [];
+        let fontFamily: string | null = null;
+        let primaryColor: string | null = null;
+
+        for (const it of items) {
+          if (!it) continue;
+          const code = String(it.code || '').trim().toUpperCase();
+          if (code === 'FONT_FAMILY') {
+            const v = String(it.title || '').trim();
+            fontFamily = v || null;
+          }
+          if (code === 'PRIMARY_COLOR') {
+            const v = String((it as any)?.titleColor || it.title || '').trim();
+            primaryColor = v || null;
+          }
+        }
+
+        this.saleFontFamily = fontFamily;
+        this.salePrimaryColor = primaryColor;
+      },
+      error: () => {
+        this.saleFontFamily = null;
+        this.salePrimaryColor = null;
+      }
+    });
+  }
+
+  private loadSaleProductsConfig(): void {
+    const url = `${environment.apiBaseUrl}/api/home-sections`;
+    this.http.get<ApiResponse<HomeSectionResponse[]>>(url).subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        const sec = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_PRODUCTS');
+        this.productsEnabled = sec ? sec.enabled !== false : true;
+        this.productsTitle = String(sec?.title || this.productsTitle);
+      },
+      error: () => {
+        this.productsEnabled = true;
       }
     });
   }
@@ -480,12 +553,21 @@ export class SaleComponent implements OnInit {
   }
 
   private normalizeImageUrl(raw: string): string {
-    const v = String(raw || '').trim();
+    const v = String(raw || '').trim().replace(/\\/g, '/');
     if (!v) return '';
+    if (v.startsWith('data:')) return v;
+    if (v.startsWith('blob:')) return v;
     if (v.startsWith('http://') || v.startsWith('https://')) return v;
     if (v.startsWith('//')) return `https:${v}`;
     if (v.startsWith('/')) return `${environment.apiBaseUrl}${v}`;
-    return v;
+    if (v.startsWith('assets/')) return v;
+    return `${environment.apiBaseUrl}/${v}`;
+  }
+
+  onProductImageError(p: SaleProduct): void {
+    if (!p) return;
+    if (p.imageUrl === this.productPlaceholderImage) return;
+    p.imageUrl = this.productPlaceholderImage;
   }
 
   private resolveCategoryImage(slug: string, label: string): string {
@@ -574,7 +656,7 @@ export class SaleComponent implements OnInit {
             slug,
             price: Number(p?.price || 0),
             oldPrice: p?.oldPrice !== undefined ? Number(p.oldPrice) : undefined,
-            imageUrl: p?.imageUrl ? String(p.imageUrl) : undefined,
+            imageUrl: p?.imageUrl ? this.normalizeImageUrl(String(p.imageUrl)) : undefined,
             badge: p?.badge ? String(p.badge) : undefined,
             discountPercent: p?.discountPercent !== undefined ? Number(p.discountPercent) : undefined,
             rating: p?.rating !== undefined ? Number(p.rating) : undefined,
@@ -665,7 +747,7 @@ export class SaleComponent implements OnInit {
             slug: String(x.slug || ''),
             price: Number(x.price || 0),
             oldPrice: x.oldPrice !== undefined ? Number(x.oldPrice) : undefined,
-            imageUrl: x.imageUrl ? String(x.imageUrl) : undefined,
+            imageUrl: x.imageUrl ? this.normalizeImageUrl(String(x.imageUrl)) : undefined,
             badge: x.badge ? String(x.badge) : undefined,
             discountPercent: x.discountPercent !== undefined ? Number(x.discountPercent) : undefined,
             rating: x.rating !== undefined ? Number(x.rating) : undefined,

@@ -18,6 +18,18 @@ export class AdminCustomersComponent {
     this.load();
   }
 
+  get totalCustomers(): number {
+    return (this.rows || []).length;
+  }
+
+  get activeCustomers(): number {
+    return (this.rows || []).filter((r) => r && r.enabled !== false).length;
+  }
+
+  get lockedCustomers(): number {
+    return (this.rows || []).filter((r) => r && r.enabled === false).length;
+  }
+
   segmentLabel(seg?: string | null): string {
     const s = (seg || '').toUpperCase();
     switch (s) {

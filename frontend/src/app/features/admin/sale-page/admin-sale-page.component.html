@@ -212,6 +212,7 @@
                 <div class="hint">Mỗi item là 1 Voucher (liên kết theo coupon). Có thể lên/xuống để đổi thứ tự.</div>
               </div>
               <div class="toolbar-right">
+                <button class="btn ghost" type="button" (click)="fillAllVouchers()" [disabled]="loading || saving">Tất cả voucher</button>
                 <button class="btn" type="button" (click)="addVoucher()">+ Voucher</button>
               </div>
             </div>
@@ -291,6 +292,84 @@
             </div>
 
             <div class="empty">Danh mục hiển thị sẽ lấy tự động từ hệ thống (categories/tree).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Giao diện (Theme)</div>
+            <div class="card-sub">Thiết lập font và màu cho trang /sale</div>
+          </div>
+          <div class="badge" [class.off]="!theme.enabled">{{ theme.enabled ? 'Đang bật' : 'Đang tắt' }}</div>
+        </div>
+
+        <div class="card-body">
+          <div class="form">
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Trạng thái</label>
+                <select class="input" [(ngModel)]="theme.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label">Màu chính (primary)</label>
+                <div class="color-row">
+                  <input class="color-chip" type="color" [(ngModel)]="theme.primaryColor" />
+                  <input class="input" [(ngModel)]="theme.primaryColor" placeholder="#c1121f" />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Font trang bán hàng</label>
+                <select class="input" [(ngModel)]="theme.fontFamily">
+                  <option value="">Mặc định</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Segoe UI">Segoe UI</option>
+                  <option value="Tahoma">Tahoma</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label">Font tuỳ chọn (ghi đè)</label>
+                <input class="input" [(ngModel)]="theme.fontFamily" placeholder="Ví dụ: Arial, sans-serif" />
+              </div>
+            </div>
+
+            <div class="empty">Trang /sale sẽ được tuỳ chọn font theo cấu hình này. Khu admin luôn dùng Arial.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Sản phẩm</div>
+            <div class="card-sub">Bật/tắt và đổi tiêu đề phần danh sách sản phẩm sale</div>
+          </div>
+          <div class="badge" [class.off]="!productsSection.enabled">{{ productsSection.enabled ? 'Đang bật' : 'Đang tắt' }}</div>
+        </div>
+
+        <div class="card-body">
+          <div class="form">
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Tiêu đề</label>
+                <input class="input" [(ngModel)]="productsSection.title" placeholder="Sản phẩm đang giảm giá" />
+              </div>
+              <div class="field">
+                <label class="label">Trạng thái</label>
+                <select class="input" [(ngModel)]="productsSection.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>

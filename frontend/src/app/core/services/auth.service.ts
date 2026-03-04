@@ -14,6 +14,16 @@ export interface AuthTokenResponse {
   roles?: string[];
 }
 
+export interface RegisterRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  gender?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly tokenKey = 'fh_token';
@@ -27,6 +37,10 @@ export class AuthService {
       usernameOrEmail,
       password
     });
+  }
+
+  register(req: RegisterRequest) {
+    return this.http.post<ApiResponse<AuthTokenResponse>>(`${environment.apiBaseUrl}/api/auth/register`, req);
   }
 
   setSession(data: AuthTokenResponse | null | undefined): void {

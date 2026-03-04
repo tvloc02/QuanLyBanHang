@@ -26,6 +26,8 @@ public class UserMeResponse {
 
     private Double longitude;
 
+    private Long branchId;
+
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -118,6 +120,14 @@ public class UserMeResponse {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public Long getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(Long branchId) {
+        this.branchId = branchId;
     }
 
     public Instant getCreatedAt() {

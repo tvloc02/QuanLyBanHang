@@ -26,28 +26,28 @@
         <div class="label">Tổng đơn hàng</div>
         <div class="ic">🧾</div>
       </div>
-      <div class="value">{{ stats?.orders ?? 0 }}</div>
+      <div class="value">{{ statsOrders }}</div>
     </div>
     <div class="card">
       <div class="card-top">
         <div class="label">Tổng sản phẩm</div>
         <div class="ic">📦</div>
       </div>
-      <div class="value">{{ stats?.products ?? 0 }}</div>
+      <div class="value">{{ statsProducts }}</div>
     </div>
     <div class="card">
       <div class="card-top">
         <div class="label">Tổng người dùng</div>
         <div class="ic">👥</div>
       </div>
-      <div class="value">{{ stats?.users ?? 0 }}</div>
+      <div class="value">{{ statsUsers }}</div>
     </div>
     <div class="card">
       <div class="card-top">
         <div class="label">Mã giảm giá</div>
         <div class="ic">🎟️</div>
       </div>
-      <div class="value">{{ stats?.coupons ?? 0 }}</div>
+      <div class="value">{{ statsCoupons }}</div>
     </div>
   </section>
 
@@ -89,6 +89,60 @@
     <div class="chart">
       <div class="chart-head">
         <div>
+          <div class="chart-title">Người dùng theo vai trò</div>
+          <div class="chart-sub">Quản lý & Nhân viên phân tầng theo chi nhánh</div>
+        </div>
+        <div class="chip">{{ formatInt(roleTotal) }}</div>
+      </div>
+
+      <div class="chart-body">
+        <div class="svg-wrap">
+          <svg class="svg svg--roles" viewBox="0 0 700 180" role="img" aria-label="Người dùng theo vai trò (phân tầng theo chi nhánh)">
+            <defs>
+              <ng-container *ngFor="let b of roleStackBars">
+                <clipPath [attr.id]="'roleClip-' + b.key">
+                  <rect [attr.x]="b.x" [attr.y]="b.trackY" [attr.width]="b.w" [attr.height]="b.trackH" rx="10" ry="10"></rect>
+                </clipPath>
+              </ng-container>
+            </defs>
+            <g>
+              <line x1="14" y1="166" x2="686" y2="166" stroke="rgba(0,0,0,0.12)" stroke-width="1" />
+
+              <ng-container *ngFor="let b of roleStackBars">
+                <rect class="bar-track" [attr.x]="b.x" [attr.y]="b.trackY" [attr.width]="b.w" [attr.height]="b.trackH" rx="10" ry="10"></rect>
+
+                <g [attr.clip-path]="'url(#roleClip-' + b.key + ')'">
+                  <ng-container *ngFor="let s of b.segments">
+                    <rect class="bar" [attr.x]="b.x" [attr.y]="s.y" [attr.width]="b.w" [attr.height]="s.h" [attr.fill]="s.color">
+                      <title>{{ s.label }}: {{ formatInt(s.value) }}</title>
+                    </rect>
+                  </ng-container>
+                </g>
+
+                <ng-container *ngIf="b.total === 0">
+                  <rect class="bar-zero" [attr.x]="b.x" [attr.y]="b.baseline - 3" [attr.width]="b.w" height="3" rx="10" ry="10"></rect>
+                </ng-container>
+              </ng-container>
+            </g>
+          </svg>
+
+          <div class="xlabels xlabels--3">
+            <div class="xlab" *ngFor="let p of roleSeries">{{ p.label }} ({{ formatInt(p.value) }})</div>
+          </div>
+
+          <div class="legend" *ngIf="roleBranchLegend?.length">
+            <div class="lg" *ngFor="let l of roleBranchLegend">
+              <span class="dot" [style.background]="l.color"></span>
+              <span class="txt">{{ l.label }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <div class="chart-head">
+        <div>
           <div class="chart-title">Số đơn 7 ngày</div>
           <div class="chart-sub">Số lượng đơn phát sinh theo ngày</div>
         </div>
@@ -123,10 +177,46 @@
     <div class="chart wide">
       <div class="chart-head">
         <div>
+          <div class="chart-title">Khách hàng theo vị thế</div>
+          <div class="chart-sub">Thân thiết / Tiềm năng / Bạc / Vàng / Kim cương</div>
+        </div>
+        <div class="chip">{{ formatInt(customersCount) }}</div>
+      </div>
+
+      <div class="chart-body">
+        <div class="table">
+          <div class="tr head">
+            <div class="td">Vị thế</div>
+            <div class="td td-right">Số lượng</div>
+          </div>
+          <div class="tr" *ngFor="let r of customerSegmentRows">
+            <div class="td">
+              <span
+                class="seg"
+                [class.seg--potential]="r.key === 'TIEM_NANG'"
+                [class.seg--close]="r.key === 'THAN_THIET'"
+                [class.seg--silver]="r.key === 'BAC'"
+                [class.seg--gold]="r.key === 'VANG'"
+                [class.seg--diamond]="r.key === 'KIM_CUONG'"
+              >
+                {{ r.label }}
+              </span>
+            </div>
+            <div class="td td-right">
+              <span class="count">{{ formatInt(r.count) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart wide">
+      <div class="chart-head">
+        <div>
           <div class="chart-title">Phân bổ trạng thái đơn</div>
           <div class="chart-sub">Tỷ trọng theo từng trạng thái</div>
         </div>
-        <div class="chip">{{ stats?.orders ?? 0 }} đơn</div>
+        <div class="chip">{{ statsOrders }} đơn</div>
       </div>
 
       <div class="chart-body">
@@ -149,14 +239,14 @@
     <div class="panel">
       <div class="panel-head">
         <div class="title">Danh mục</div>
-        <div class="tag">{{ stats?.categories ?? 0 }}</div>
+        <div class="tag">{{ statsCategories }}</div>
       </div>
       <div class="body">Theo dõi & quản lý danh mục sản phẩm.</div>
     </div>
     <div class="panel">
       <div class="panel-head">
         <div class="title">Đánh giá</div>
-        <div class="tag">{{ stats?.reviews ?? 0 }}</div>
+        <div class="tag">{{ statsReviews }}</div>
       </div>
       <div class="body">Tổng số đánh giá sản phẩm từ khách hàng.</div>
     </div>

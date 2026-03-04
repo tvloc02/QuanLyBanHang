@@ -18,6 +18,24 @@ export class AdminReviewsComponent {
     this.load();
   }
 
+  get totalReviews(): number {
+    return (this.rows || []).length;
+  }
+
+  get avgRating(): number {
+    const src = this.rows || [];
+    if (!src.length) return 0;
+    const sum = src.reduce((s, r) => {
+      const n = Number((r as any)?.rating ?? 0);
+      return s + (Number.isFinite(n) ? n : 0);
+    }, 0);
+    return sum / src.length;
+  }
+
+  get fiveStarCount(): number {
+    return (this.rows || []).filter((r) => Number((r as any)?.rating ?? 0) >= 5).length;
+  }
+
   load(): void {
     this.error = '';
     this.loading = true;
@@ -42,5 +60,11 @@ export class AdminReviewsComponent {
     const d = new Date(input);
     if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleString();
+  }
+
+  formatRating(input: any): string {
+    const n = Number(input);
+    if (!Number.isFinite(n)) return '0.0';
+    return n.toFixed(1);
   }
 }

@@ -16,6 +16,8 @@ public class AdminUserCreateRequest {
 
     private Boolean enabled;
 
+    private Long branchId;
+
     public AdminUserCreateRequest() {}
 
     public String getFullName() {
@@ -64,5 +66,13 @@ public class AdminUserCreateRequest {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Long getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(Long branchId) {
+        this.branchId = branchId;
     }
 }

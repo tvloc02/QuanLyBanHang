@@ -37,6 +37,15 @@ public class Product {
 
     private Long categoryId;
 
+    private Long productTypeId;
+
+    @Column(length = 32)
+    private String gender;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String attributesJson;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_category_ids", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "category_id")
@@ -116,6 +125,30 @@ public class Product {
 
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+
+    public Long getProductTypeId() {
+        return productTypeId;
+    }
+
+    public void setProductTypeId(Long productTypeId) {
+        this.productTypeId = productTypeId;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAttributesJson() {
+        return attributesJson;
+    }
+
+    public void setAttributesJson(String attributesJson) {
+        this.attributesJson = attributesJson;
+    }
 
     public List<Long> getCategoryIds() { return categoryIds; }
     public void setCategoryIds(List<Long> categoryIds) { this.categoryIds = categoryIds; }

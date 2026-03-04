@@ -109,6 +109,18 @@ export class AdminCouponsComponent {
     this.load();
   }
 
+  get totalCoupons(): number {
+    return (this.rows || []).length;
+  }
+
+  get activeCoupons(): number {
+    return (this.rows || []).filter((r) => r && (r as any).active !== false).length;
+  }
+
+  get inactiveCoupons(): number {
+    return (this.rows || []).filter((r) => r && (r as any).active === false).length;
+  }
+
   selectTab(tab: 'customer' | 'order'): void {
     this.activeTab = tab;
   }

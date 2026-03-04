@@ -42,6 +42,10 @@ export class AdminCategoriesComponent {
   error = '';
   viewRows: Array<{ node: AdminCategoryResponse; depth: number; hasChildren: boolean; expanded: boolean; pipes: boolean[]; isLast: boolean }> = [];
   all: AdminCategoryResponse[] = [];
+
+  pageSizeOptions = [20, 50, 100, 500];
+  pageSize = 20;
+  pageIndex = 0;
   createOpen = false;
   createLoading = false;
   createMode: 'root' | 'child' = 'root';
@@ -82,6 +86,12 @@ export class AdminCategoriesComponent {
   };
   editSlugEdited = false;
 
+  importOpen = false;
+  importLoading = false;
+  importRootId: number | null = null;
+  importFile: File | null = null;
+  importFileName = '';
+
   private byId = new Map<number, AdminCategoryResponse>();
   private depthById = new Map<number, number>();
   private heightById = new Map<number, number>();
@@ -90,6 +100,162 @@ export class AdminCategoriesComponent {
 
   constructor(private adminData: AdminDataService) {
     this.load();
+  }
+
+  get totalRecords(): number {
+    return (this.viewRows || []).length;
+  }
+
+  get totalPages(): number {
+    if (this.pageSize <= 0) return 1;
+    return Math.max(1, Math.ceil(this.totalRecords / this.pageSize));
+  }
+
+  get currentPage(): number {
+    const idx = Math.max(0, Math.min(this.pageIndex, this.totalPages - 1));
+    return idx + 1;
+  }
+
+  get rangeStart(): number {
+    if (this.totalRecords <= 0) return 0;
+    return this.pageIndex * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    if (this.totalRecords <= 0) return 0;
+    return Math.min((this.pageIndex + 1) * this.pageSize, this.totalRecords);
+  }
+
+  get pagedViewRows(): Array<{ node: AdminCategoryResponse; depth: number; hasChildren: boolean; expanded: boolean; pipes: boolean[]; isLast: boolean }> {
+    const rows = this.viewRows || [];
+    const idx = Math.max(0, Math.min(this.pageIndex, this.totalPages - 1));
+    const start = idx * this.pageSize;
+    return rows.slice(start, start + this.pageSize);
+  }
+
+  onPageSizeChange(size: number): void {
+    const s = Number(size);
+    this.pageSize = !Number.isFinite(s) || s <= 0 ? 20 : s;
+    this.pageIndex = 0;
+  }
+
+  prevPage(): void {
+    if (this.pageIndex <= 0) return;
+    this.pageIndex -= 1;
+  }
+
+  nextPage(): void {
+    const maxIdx = this.totalPages - 1;
+    if (this.pageIndex >= maxIdx) return;
+    this.pageIndex += 1;
+  }
+
+  get totalCategories(): number {
+    return (this.all || []).length;
+  }
+
+  get rootCount(): number {
+    return (this.all || []).filter((x) => x && x.parentId == null).length;
+  }
+
+  get activeCategories(): number {
+    return (this.all || []).filter((x) => x && (x as any).active !== false).length;
+  }
+
+  get hiddenCategories(): number {
+    return (this.all || []).filter((x) => x && (x as any).active === false).length;
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  async downloadTemplate(): Promise<void> {
+    this.error = '';
+    try {
+      const blob = await firstValueFrom(this.adminData.downloadCategoriesImportTemplateExcel());
+      this.downloadBlob(blob, 'categories_template.xlsx');
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể tải file mẫu.');
+    }
+  }
+
+  onCreateEditorImportFileSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const f = input?.files?.[0] || null;
+    if (!f) return;
+    this.importIntoCreateEditor(f);
+    input.value = '';
+  }
+
+  private async importIntoCreateEditor(file: File): Promise<void> {
+    this.error = '';
+    try {
+      const res = await firstValueFrom(this.adminData.parseCategoriesExcel(file));
+      if (!res?.success) {
+        this.error = res?.message || 'Import thất bại.';
+        return;
+      }
+      const items = Array.isArray(res.data) ? res.data : [];
+      this.lv2Forms = items
+        .filter((x: any) => x && x.name)
+        .map((x: any) => ({
+          name: String(x.name || ''),
+          slug: String(x.slug || ''),
+          slugEdited: true,
+          lv3: Array.isArray(x.lv3)
+            ? x.lv3
+                .filter((c: any) => c && c.name)
+                .map((c: any) => ({ name: String(c.name || ''), slug: String(c.slug || ''), slugEdited: true }))
+            : []
+        }));
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể import danh mục.');
+    }
+  }
+
+  async exportCreateEditorExcel(): Promise<void> {
+    this.error = '';
+    try {
+      const payload = (this.lv2Forms || [])
+        .filter((x) => x && String(x.name || '').trim())
+        .map((x) => ({
+          name: String(x.name || '').trim(),
+          slug: String(x.slug || '').trim(),
+          lv3: (x.lv3 || [])
+            .filter((c) => c && String(c.name || '').trim())
+            .map((c) => ({ name: String(c.name || '').trim(), slug: String(c.slug || '').trim() }))
+        }));
+
+      const blob = await firstValueFrom(this.adminData.buildCategoriesExcel(payload));
+      this.downloadBlob(blob, 'categories_create_export.xlsx');
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể export file.');
+    }
+  }
+
+  async exportExcel(rootId?: number | null): Promise<void> {
+    const rid = rootId ?? this.importRootId;
+    if (!rid) {
+      this.openImport();
+      return;
+    }
+    this.error = '';
+    try {
+      const blob = await firstValueFrom(this.adminData.exportCategoriesExcel(rid));
+      this.downloadBlob(blob, `categories_${rid}.xlsx`);
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể export danh mục.');
+    }
+  }
+
+  get rootCategories(): AdminCategoryResponse[] {
+    return (this.all || []).filter((x) => x.parentId == null);
   }
 
   private buildRootRows(): Array<{ node: AdminCategoryResponse; depth: number; hasChildren: boolean; expanded: boolean; pipes: boolean[]; isLast: boolean }> {
@@ -112,6 +278,7 @@ export class AdminCategoriesComponent {
       this.expanded.add(node.id);
     }
     this.viewRows = this.buildViewRows();
+    this.pageIndex = 0;
   }
 
   isExpanded(id: number): boolean {
@@ -131,6 +298,7 @@ export class AdminCategoriesComponent {
         this.all = Array.isArray(res.data) ? res.data : [];
         this.rebuildMeta();
         this.viewRows = this.buildRootRows();
+        this.pageIndex = 0;
       },
       error: (err: any) => {
         this.loading = false;
@@ -139,6 +307,59 @@ export class AdminCategoriesComponent {
         this.error = this.extractHttpErrorMessage(err, `Không thể tải danh mục${suffix}.`);
       }
     });
+  }
+
+  openImport(): void {
+    this.importOpen = true;
+    this.importLoading = false;
+    this.importRootId = null;
+    this.importFile = null;
+    this.importFileName = '';
+  }
+
+  openImportForRoot(rootId: number | null): void {
+    this.openImport();
+    if (rootId) {
+      this.importRootId = rootId;
+    }
+  }
+
+  cancelImport(): void {
+    this.importOpen = false;
+  }
+
+  onImportFileSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const f = input?.files?.[0] || null;
+    this.importFile = f;
+    this.importFileName = f?.name || '';
+  }
+
+  async submitImport(): Promise<void> {
+    if (!this.importRootId) {
+      this.error = 'Vui lòng chọn danh mục lớn.';
+      return;
+    }
+    if (!this.importFile) {
+      this.error = 'Vui lòng chọn file Excel (.xlsx).';
+      return;
+    }
+
+    this.importLoading = true;
+    this.error = '';
+    try {
+      const res = await firstValueFrom(this.adminData.importCategoriesExcel(this.importRootId, this.importFile));
+      if (!res?.success) {
+        this.error = res?.message || 'Import thất bại.';
+        return;
+      }
+      this.importOpen = false;
+      this.load();
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể import danh mục.');
+    } finally {
+      this.importLoading = false;
+    }
   }
 
   openCreate(): void {
