@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   AdminCouponResponse,
@@ -88,6 +89,8 @@ export class AdminSalePageComponent implements OnInit {
   loading = false;
   saving = false;
   error = '';
+  categoryConfigId: number | null = null;
+  categoryConfigName = '';
 
   coupons: AdminCouponResponse[] = [];
   categoryOptions: CategoryOption[] = [];
@@ -105,12 +108,57 @@ export class AdminSalePageComponent implements OnInit {
 
   private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
 
-  constructor(private adminData: AdminDataService, private http: HttpClient) {}
+  constructor(
+    private adminData: AdminDataService,
+    private http: HttpClient,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
+    const rawId =
+      this.route.snapshot.paramMap.get('id') ||
+      this.route.snapshot.queryParamMap.get('id') ||
+      this.route.pathFromRoot
+        .map((r) => r.snapshot.paramMap.get('id'))
+        .find((x) => !!x) ||
+      null;
+
+    const routePath = this.route.snapshot.routeConfig?.path || '';
+    this.categoryConfigId = routePath.includes('category-config') && rawId ? Number(rawId) : null;
     this.load();
     this.loadCoupons();
     this.loadCategoryTree();
+  }
+
+  private get isCategoryConfigMode(): boolean {
+    return Number.isFinite(Number(this.categoryConfigId)) && Number(this.categoryConfigId) > 0;
+  }
+
+  private get sectionScopePrefix(): string {
+    return this.isCategoryConfigMode ? `CATEGORY_${this.categoryConfigId}_` : 'SALE_';
+  }
+
+  private get layoutKey(): string {
+    return `${this.sectionScopePrefix}LAYOUT`;
+  }
+
+  get pageTitle(): string {
+    if (!this.isCategoryConfigMode) return 'Trang Sale';
+    return this.categoryConfigName ? this.categoryConfigName : `Cấu hình danh mục #${this.categoryConfigId}`;
+  }
+
+  get pageDescription(): string {
+    if (!this.isCategoryConfigMode) {
+      return 'Cấu hình nội dung hiển thị trên trang /sale: Banner, Voucher, danh mục tròn, sản phẩm.';
+    }
+    return 'Cấu hình nội dung hiển thị cho danh mục lớn: Banner, Voucher, danh mục tròn, sản phẩm.';
+  }
+
+  private scopedLegacyKey(type: SaleBlockType): string {
+    if (type === 'HERO') return `${this.sectionScopePrefix}HERO`;
+    if (type === 'VOUCHERS') return `${this.sectionScopePrefix}VOUCHERS`;
+    if (type === 'ROUND_CATEGORIES') return `${this.sectionScopePrefix}CATEGORIES`;
+    return `${this.sectionScopePrefix}PRODUCTS`;
   }
 
   trackByBlock = (_: number, block: SaleBlock) => block.id;
@@ -152,7 +200,7 @@ export class AdminSalePageComponent implements OnInit {
     this.error = '';
 
     const layoutPayload = {
-      title: 'Trang Sale',
+      title: this.isCategoryConfigMode ? `Cấu hình danh mục ${this.categoryConfigId}` : 'Trang Sale',
       enabled: true,
       items: this.blocks.map((block, index) => ({
         enabled: block.enabled,
@@ -169,7 +217,7 @@ export class AdminSalePageComponent implements OnInit {
     };
 
     const requests = [
-      this.adminData.updateHomeSection('SALE_LAYOUT', layoutPayload as any),
+      this.adminData.updateHomeSection(this.layoutKey, layoutPayload as any),
       ...this.blocks.map((block) =>
         this.adminData.updateHomeSection(this.sectionKey(block), this.buildBlockPayload(block) as any)
       ),
@@ -575,7 +623,7 @@ export class AdminSalePageComponent implements OnInit {
   }
 
   private parseDynamicBlocks(sections: HomeSectionResponse[]): SaleBlock[] {
-    const layout = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_LAYOUT');
+    const layout = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === this.layoutKey.toUpperCase());
     const layoutItems = Array.isArray(layout?.items) ? layout!.items! : [];
     const byKey = new Map<string, HomeSectionResponse>();
     for (const sec of sections) {
@@ -590,7 +638,7 @@ export class AdminSalePageComponent implements OnInit {
         const key = String(item?.route || '').trim().toUpperCase();
         if (!key || !['HERO', 'VOUCHERS', 'ROUND_CATEGORIES', 'PRODUCTS'].includes(type)) return null;
         const section = byKey.get(key);
-        return this.mapSectionToBlock(key.replace(/^SALE_BLOCK_/, ''), type, section, item?.title || null, item?.enabled !== false);
+        return this.mapSectionToBlock(key.replace(new RegExp(`^${this.sectionScopePrefix}BLOCK_`, 'i'), ''), type, section, item?.title || null, item?.enabled !== false);
       })
       .filter((x): x is SaleBlock => !!x);
 
@@ -598,10 +646,10 @@ export class AdminSalePageComponent implements OnInit {
   }
 
   private buildLegacyBlocks(sections: HomeSectionResponse[]): SaleBlock[] {
-    const hero = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_HERO');
-    const vouchers = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_VOUCHERS');
-    const categories = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_CATEGORIES');
-    const products = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_PRODUCTS');
+    const hero = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === this.scopedLegacyKey('HERO').toUpperCase());
+    const vouchers = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === this.scopedLegacyKey('VOUCHERS').toUpperCase());
+    const categories = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === this.scopedLegacyKey('ROUND_CATEGORIES').toUpperCase());
+    const products = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === this.scopedLegacyKey('PRODUCTS').toUpperCase());
 
     return [
       this.mapSectionToBlock('hero-1', 'HERO', hero, hero?.title || this.defaultTitle('HERO'), hero?.enabled !== false),
@@ -775,10 +823,10 @@ export class AdminSalePageComponent implements OnInit {
     const firstProducts =
       this.blocks.find((block) => block.type === 'PRODUCTS') || this.createBlock('PRODUCTS', 'products-legacy');
 
-    requests.push(this.adminData.updateHomeSection('SALE_HERO', this.buildBlockPayload(firstHero) as any));
-    requests.push(this.adminData.updateHomeSection('SALE_VOUCHERS', this.buildBlockPayload(firstVouchers) as any));
-    requests.push(this.adminData.updateHomeSection('SALE_CATEGORIES', this.buildBlockPayload(firstRound) as any));
-    requests.push(this.adminData.updateHomeSection('SALE_PRODUCTS', this.buildBlockPayload(firstProducts) as any));
+    requests.push(this.adminData.updateHomeSection(this.scopedLegacyKey('HERO'), this.buildBlockPayload(firstHero) as any));
+    requests.push(this.adminData.updateHomeSection(this.scopedLegacyKey('VOUCHERS'), this.buildBlockPayload(firstVouchers) as any));
+    requests.push(this.adminData.updateHomeSection(this.scopedLegacyKey('ROUND_CATEGORIES'), this.buildBlockPayload(firstRound) as any));
+    requests.push(this.adminData.updateHomeSection(this.scopedLegacyKey('PRODUCTS'), this.buildBlockPayload(firstProducts) as any));
 
     return requests;
   }
@@ -833,7 +881,7 @@ export class AdminSalePageComponent implements OnInit {
   }
 
   private sectionKey(block: SaleBlock): string {
-    return `SALE_BLOCK_${String(block.id || '').trim().toUpperCase()}`;
+    return `${this.sectionScopePrefix}BLOCK_${String(block.id || '').trim().toUpperCase()}`;
   }
 
   private heroRoute(it: HeroItemForm): string | null {
@@ -876,7 +924,13 @@ export class AdminSalePageComponent implements OnInit {
     this.http.get<ApiResponse<CategoryNode[]>>(url).subscribe({
       next: (res) => {
         const rows = Array.isArray(res?.data) ? res.data : [];
-        const out = this.flattenCategories(rows)
+        const flat = this.flattenCategories(rows);
+        if (this.isCategoryConfigMode) {
+          const current = flat.find((c) => Number(c?.id) === Number(this.categoryConfigId));
+          this.categoryConfigName = String(current?.name || '').trim();
+        }
+
+        const out = flat
           .map((c) => ({
             slug: String(c?.slug || '').trim(),
             label: String(c?.name || '').trim(),
