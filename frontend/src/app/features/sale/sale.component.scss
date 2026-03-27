@@ -1,60 +1,73 @@
 .container {
-  width: min(1440px, calc(100% - 24px));
+  width: 100%;
+  max-width: 1800px;
   margin: 0 auto;
+  padding-left: var(--fh-gutter);
+  padding-right: var(--fh-gutter);
 }
 
  #sale-hero-slider {
    -ms-overflow-style: none;
    scrollbar-width: none;
  }
-
  #sale-hero-slider::-webkit-scrollbar {
    display: none;
  }
 
- .voucher-ticket {
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.voucher-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 2px; /* Bo góc cực nhẹ */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+}
+
+.voucher-card:hover {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+}
+
+.voucher-card .divider {
+  display: none;
+}
+
+/* Thêm style cho các lỗ bấm (notches) */
+.voucher-card .notch-top,
+.voucher-card .notch-bottom {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: var(--fh-bg);
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  z-index: 10;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.voucher-card .notch-top {
+  top: -11px;
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.05);
+  clip-path: circle(50% at 50% 100%);
+}
+
+.voucher-card .notch-bottom {
+  bottom: -11px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  clip-path: circle(50% at 50% 0%);
+}
+
+
+ .sale-category-scroll-wrapper {
    position: relative;
-   display: grid;
-   grid-template-columns: 1fr auto;
-   align-items: stretch;
-   border: 1px solid var(--fh-border);
-   border-radius: 12px;
-   background: #fff;
-   overflow: hidden;
- }
-
- .voucher-ticket__main {
-   padding: 14px 14px;
- }
-
- .voucher-ticket__cta {
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   padding: 12px 12px;
-   min-width: 110px;
-   border-left: 1px dashed rgba(0, 0, 0, 0.18);
-   background: rgba(193, 18, 31, 0.03);
- }
-
- .voucher-ticket__cta::before,
- .voucher-ticket__cta::after {
-   content: '';
-   position: absolute;
-   right: 110px;
-   width: 18px;
-   height: 18px;
-   border-radius: 999px;
-   background: var(--fh-bg);
-   border: 1px solid var(--fh-border);
- }
-
- .voucher-ticket__cta::before {
-   top: -9px;
- }
-
- .voucher-ticket__cta::after {
-   bottom: -9px;
  }
 
  .sale-vouchers {
@@ -106,120 +119,95 @@
    right: 8px;
  }
 
- .sale-category-scroll-wrapper {
-   position: relative;
- }
+.sale-quick-tiles-scroll {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 40px 30px;
+  padding: 20px 0 0;
+}
 
- .sale-quick-tiles-scroll {
-   --tile-col-gap: 26px;
-   display: grid;
-   grid-auto-flow: column;
-   grid-template-rows: repeat(2, auto);
-   grid-auto-columns: 160px;
-   column-gap: var(--tile-col-gap);
-   row-gap: 26px;
-   overflow-x: auto;
-   padding: 18px 56px 14px;
-   scroll-behavior: smooth;
-   scrollbar-width: none;
-   justify-items: center;
- }
+.sale-quick-tiles-scroll::-webkit-scrollbar {
+  display: none;
+}
 
- .sale-quick-tiles-scroll::-webkit-scrollbar {
-   display: none;
- }
+.sale-quick-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: var(--fh-text);
+  width: 100%;
+}
 
- .sale-quick-tile {
-   display: grid;
-   justify-items: center;
-   gap: 10px;
-   text-decoration: none;
-   color: var(--fh-text);
-   width: 100%;
- }
+.sale-quick-tile-img {
+  width: min(100%, 182px);
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  overflow: hidden;
+  background: white; /* Đổi từ #f5f1e6 sang white */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  border: 1px solid #f3f4f6; /* Thêm viền nhẹ để nổi bật trên nền mặc định */
+}
 
- .sale-quick-tile-img {
-   width: 90px;
-   height: 90px;
-   border-radius: 999px;
-   overflow: hidden;
-   border: 1px solid var(--fh-border);
-   background: #f3f4f6;
- }
+.sale-quick-tile:hover .sale-quick-tile-img {
+  transform: scale(1.05);
+}
 
- .sale-quick-tile-img img {
-   width: 100%;
-   height: 100%;
-   object-fit: cover;
- }
+.sale-quick-tile-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  padding: 0;
+}
 
- .sale-quick-tile-label {
-   text-align: center;
-   font-weight: 700;
-   font-size: 12px;
-   line-height: 1.2;
-   max-width: 120px;
-   padding: 0 6px;
-   word-break: break-word;
- }
+.sale-quick-tile-label {
+  text-align: center;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.4;
+  color: #333;
+  transition: color 0.2s ease;
+}
 
- .sale-scroll-btn {
-   position: absolute;
-   top: 50%;
-   transform: translateY(-50%);
-   width: 32px;
-   height: 32px;
-   border-radius: 10px;
-   border: 1px solid var(--fh-border);
-   background: rgba(255, 255, 255, 0.9);
-   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-   cursor: pointer;
-   display: inline-flex;
-   align-items: center;
-   justify-content: center;
-   font-weight: 900;
-   color: var(--fh-primary);
-   z-index: 2;
- }
-
- .sale-scroll-btn.left {
-   left: 8px;
- }
-
- .sale-scroll-btn.right {
-   right: 8px;
- }
+.sale-quick-tile:hover .sale-quick-tile-label {
+  color: #991b1b;
+}
 
  @media (max-width: 1024px) {
    .sale-quick-tiles-scroll {
-     --tile-col-gap: 18px;
-     grid-auto-columns: 140px;
-     column-gap: var(--tile-col-gap);
-     row-gap: 18px;
-     padding: 16px 50px 12px;
+     grid-template-columns: repeat(4, minmax(0, 1fr));
+     gap: 28px 20px;
+     padding: 16px 0 0;
    }
    .sale-quick-tile-img {
-     width: 78px;
-     height: 78px;
+     width: min(100%, 146px);
+   }
+   .sale-quick-tile-label {
+     font-size: 16px;
    }
  }
 
  @media (max-width: 640px) {
    .sale-quick-tiles-scroll {
-     --tile-col-gap: 14px;
-     grid-auto-columns: 120px;
-     column-gap: var(--tile-col-gap);
-     row-gap: 14px;
-     padding: 14px 46px 10px;
+     grid-template-columns: repeat(2, minmax(0, 1fr));
+     gap: 22px 16px;
+     padding: 14px 0 0;
    }
    .sale-quick-tile-img {
-     width: 68px;
-     height: 68px;
+     width: min(100%, 120px);
+   }
+   .sale-quick-tile-label {
+     font-size: 15px;
    }
  }
 
 .sale-page {
-  padding: 22px 0 40px;
+  padding: 80px 0 120px;
   background: var(--fh-bg);
 }
 
@@ -311,8 +299,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
 }
 
 .card {
@@ -333,7 +321,7 @@
 
 .img img {
   width: 100%;
-  height: 240px;
+  height: 160px;
   object-fit: cover;
   background: #f3f4f6;
 }

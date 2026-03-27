@@ -14,6 +14,14 @@ export class AdminDashboardComponent {
   loading = false;
   error = '';
   stats: AdminStatsResponse | null = null;
+  now = new Date();
+  readonly heroQuotes = [
+    'Chuc ban mot ngay lam viec hieu qua va tran day nang luong!',
+    'Moi ngay la mot co hoi moi de tien bo hon hom qua.',
+    'Kien tri hom nay se tao nen thanh cong ngay mai.',
+    'Tap trung vao dieu quan trong, ket qua se tu den.',
+    'Lam tot tung viec nho, ban se dat duoc dieu lon.'
+  ];
 
   orders: AdminOrderSummaryResponse[] = [];
   users: AdminUserResponse[] = [];
@@ -35,6 +43,7 @@ export class AdminDashboardComponent {
     x: number;
     w: number;
     total: number;
+    totalY: number;
     trackY: number;
     trackH: number;
     baseline: number;
@@ -50,6 +59,50 @@ export class AdminDashboardComponent {
 
   constructor(private adminStats: AdminStatsService, private adminData: AdminDataService) {
     this.load();
+  }
+
+  get greeting(): string {
+    const hour = this.now.getHours();
+    if (hour < 12) return 'Chào buổi sáng';
+    if (hour < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
+  }
+
+  get currentDateTimeLabel(): string {
+    return new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(this.now);
+  }
+
+  get currentTimeWithSecondsLabel(): string {
+    return new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }).format(this.now);
+  }
+
+  get currentLongDateLabel(): string {
+    return new Intl.DateTimeFormat('vi-VN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(this.now);
+  }
+
+  get dailyQuote(): string {
+    return this.heroQuotes[this.now.getDate() % this.heroQuotes.length];
+  }
+
+  get orderCompletionPct(): number {
+    const delivered = this.statusStats.find((item) => item.key.toUpperCase() === 'DELIVERED')?.count || 0;
+    return this.statsOrders > 0 ? Math.round((delivered / this.statsOrders) * 100) : 0;
   }
 
   get statsOrders(): number {
@@ -453,6 +506,7 @@ export class AdminDashboardComponent {
         x,
         w: wBar,
         total,
+        totalY: total > 0 ? baseline - totalH - 10 : baseline - 10,
         trackY: pad,
         trackH: chartH,
         baseline,

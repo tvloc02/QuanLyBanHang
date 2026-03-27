@@ -67,7 +67,7 @@
           <tr *ngIf="!loading && rows.length === 0">
             <td colspan="10" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có khách hàng.</td>
           </tr>
-          <tr *ngFor="let r of rows" class="hover:bg-blue-50/40 transition-colors">
+          <tr *ngFor="let r of rows" class="hover:bg-blue-50/40 transition-colors divide-x divide-gray-200">
             <td class="px-4 py-3 text-center font-extrabold text-gray-900">#{{ r.id }}</td>
             <td class="px-4 py-3 text-left font-extrabold text-gray-900">{{ r.fullName || '-' }}</td>
             <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ r.email || '-' }}</td>

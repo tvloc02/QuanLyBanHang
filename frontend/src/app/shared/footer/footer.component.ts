@@ -12,4 +12,6 @@ import { RouterLink } from '@angular/router';
 export class FooterComponent {
   @Input() quoteTitle = '';
   @Input() quoteText = '';
+
+  @Input() branches: string[] = [];
 }

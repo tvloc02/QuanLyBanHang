@@ -19,6 +19,14 @@ interface CategoryNode {
   children?: CategoryNode[];
 }
 
+interface AdminProductTypeResponse {
+  id: number;
+  code: string;
+  name: string;
+  active?: boolean | null;
+  fieldsJson?: string | null;
+}
+
 interface AdminProductImportRowError {
   rowNumber: number;
   productCode?: string | null;
@@ -83,6 +91,10 @@ export class AdminProductsListComponent {
   importFileName = '';
   importResult: AdminProductImportResult | null = null;
 
+  productTypesLoading = false;
+  productTypes: AdminProductTypeResponse[] = [];
+  importProductTypeId: number | null = null;
+
   private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
 
   importCategoryFilter = '';
@@ -92,8 +104,37 @@ export class AdminProductsListComponent {
   importSelectedCategoryLeafs: CategoryNode[] = [];
   private importCategoriesLoaded = false;
 
+  get filteredImportCategoryTree(): CategoryNode[] {
+    const q = (this.importCategoryFilter || '').trim().toLowerCase();
+    const tree = this.trimCategoryTreeToLevel(this.importCategoryTree || [], 2);
+    if (!q) return tree;
+    return this.filterCategoryTree(tree, q);
+  }
+
   constructor(private http: HttpClient) {
     this.load();
+  }
+
+  private loadProductTypes(): void {
+    if (this.productTypesLoading) return;
+    this.productTypesLoading = true;
+    const url = `${environment.apiBaseUrl}/api/admin/product-types`;
+    this.http.get<ApiResponse<AdminProductTypeResponse[]>>(url).subscribe({
+      next: (res) => {
+        this.productTypesLoading = false;
+        this.productTypes = Array.isArray(res?.data) ? res.data : [];
+      },
+      error: () => {
+        this.productTypesLoading = false;
+        this.productTypes = [];
+      }
+    });
+  }
+
+  get importTemplateHref(): string {
+    const pt = this.importProductTypeId != null ? Number(this.importProductTypeId) : null;
+    const path = `/api/admin/products/template${pt ? `?productTypeId=${encodeURIComponent(String(pt))}` : ''}`;
+    return this.resolveApiUrl(path);
   }
 
   get totalProducts(): number {
@@ -309,9 +350,12 @@ export class AdminProductsListComponent {
     this.importFile = null;
     this.importFileName = '';
     this.importResult = null;
+    this.importProductTypeId = null;
     this.importSelectedCategoryIds.clear();
     this.importSelectedCategoryLeafs = [];
     this.importCategoryFilter = '';
+
+    this.loadProductTypes();
 
     if (!this.importCategoriesLoaded) {
       this.loadImportCategories();
@@ -341,7 +385,7 @@ export class AdminProductsListComponent {
       next: (res) => {
         if (!res?.success) return;
         this.importCategoryTree = Array.isArray(res.data) ? res.data : [];
-        this.importLeafCategories = this.flattenLeafCategories(this.importCategoryTree);
+        this.importLeafCategories = this.flattenCategoriesAtLevel(this.importCategoryTree, 2);
         this.refreshImportSelectedCategoryLeafs();
         this.importCategoriesLoaded = true;
       },
@@ -349,6 +393,38 @@ export class AdminProductsListComponent {
         this.importCategoriesLoaded = false;
       }
     });
+  }
+
+  private flattenCategoriesAtLevel(nodes: CategoryNode[], targetLevel: number, level = 0): CategoryNode[] {
+    const out: CategoryNode[] = [];
+    const walk = (n: CategoryNode, lv: number) => {
+      if (!n) return;
+      if (lv === targetLevel) {
+        out.push(n);
+        return;
+      }
+      const children = Array.isArray(n.children) ? n.children : [];
+      children.forEach((c) => walk(c, lv + 1));
+    };
+    (nodes || []).forEach((n) => walk(n, level));
+    return out;
+  }
+
+  private trimCategoryTreeToLevel(nodes: CategoryNode[], maxLevel: number, level = 0): CategoryNode[] {
+    const out: CategoryNode[] = [];
+    for (const n of nodes || []) {
+      if (!n) continue;
+      if (level >= maxLevel) {
+        out.push({ ...n, children: [] });
+        continue;
+      }
+      const children = Array.isArray(n.children) ? n.children : [];
+      out.push({
+        ...n,
+        children: this.trimCategoryTreeToLevel(children, maxLevel, level + 1)
+      });
+    }
+    return out;
   }
 
   private flattenLeafCategories(nodes: CategoryNode[]): CategoryNode[] {
@@ -362,6 +438,41 @@ export class AdminProductsListComponent {
       children.forEach(walk);
     };
     (nodes || []).forEach(walk);
+    return out;
+  }
+
+  isLevel3Category(level: number): boolean {
+    return Number(level) === 2;
+  }
+
+  categoryIndent(level: number): string {
+    const lv = Number(level);
+    const px = Number.isFinite(lv) && lv > 0 ? lv * 14 : 0;
+    return `${px}px`;
+  }
+
+  onImportCategoryRowClick(ev: Event, level: number): void {
+    if (this.isLevel3Category(level)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+
+  private filterCategoryTree(nodes: CategoryNode[], q: string): CategoryNode[] {
+    const out: CategoryNode[] = [];
+    for (const n of nodes || []) {
+      if (!n) continue;
+      const name = (n.name || '').toLowerCase();
+      const slug = (n.slug || '').toLowerCase();
+      const selfMatch = name.includes(q) || slug.includes(q);
+      const children = Array.isArray(n.children) ? n.children : [];
+      const matchedChildren = children.length > 0 ? this.filterCategoryTree(children, q) : [];
+      if (selfMatch || matchedChildren.length > 0) {
+        out.push({
+          ...n,
+          children: matchedChildren
+        });
+      }
+    }
     return out;
   }
 
@@ -402,15 +513,12 @@ export class AdminProductsListComponent {
     }
 
     const categoryIds = Array.from(this.importSelectedCategoryIds);
-    if (categoryIds.length === 0) {
-      this.importError = 'Vui lòng chọn ít nhất 1 danh mục.';
-      return;
-    }
 
     const form = new FormData();
     form.append('file', this.importFile);
     form.append('mode', this.importMode);
     categoryIds.forEach((id) => form.append('categoryIds', String(id)));
+    if (this.importProductTypeId != null) form.append('productTypeId', String(this.importProductTypeId));
 
     const url = `${environment.apiBaseUrl}/api/admin/products/import`;
     this.importing = true;
@@ -462,6 +570,21 @@ export class AdminProductsListComponent {
     const n = Number(input);
     if (!Number.isFinite(n)) return '-';
     return new Intl.NumberFormat('vi-VN').format(n);
+  }
+
+  getProductStatus(p: ProductResponse): 'green' | 'yellow' | 'red' {
+    const hasName = !!p.name && p.name.trim().length > 0;
+    const hasPrice = typeof p.price === 'number' && p.price > 0;
+    const hasImage = !!p.imageUrl || (Array.isArray(p.images) && p.images.length > 0);
+    const hasCategory = !!p.category && p.category !== 'Uncategorized';
+    const hasVariants = (Array.isArray(p.colors) && p.colors.length > 0) || (Array.isArray(p.sizes) && p.sizes.length > 0);
+
+    const criteria = [hasName, hasPrice, hasImage, hasCategory, hasVariants];
+    const metCount = criteria.filter(c => c).length;
+
+    if (metCount === criteria.length) return 'green';
+    if (metCount >= 3) return 'yellow';
+    return 'red';
   }
 
   async remove(p: ProductResponse): Promise<void> {

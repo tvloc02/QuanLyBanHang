@@ -14,8 +14,12 @@ import com.ecommerce.model.entity.Category;
 import com.ecommerce.model.entity.Product;
 import com.ecommerce.model.entity.ProductVariant;
 import com.ecommerce.model.entity.ProductVariantSizeStock;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import com.ecommerce.repository.CategoryRepository;
 import com.ecommerce.repository.ProductRepository;
+import com.ecommerce.repository.ProductVariantRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +36,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 @Service
@@ -40,10 +45,16 @@ public class ProductService {
     private final ProductRepository productRepository;
 
     private final CategoryRepository categoryRepository;
+    
+    private final ProductVariantRepository productVariantRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, ProductVariantRepository productVariantRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.productVariantRepository = productVariantRepository;
     }
 
     private String generateSku(String name) {
@@ -116,12 +127,75 @@ public class ProductService {
         return toResponse(saved);
     }
 
+    @Transactional
     public ProductResponse update(Long id, ProductUpsertRequest req) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        applyUpsert(product, req);
+        
+        // Only update basic product info - skip variants for now
+        updateBasicProductInfoOnly(product, req);
+        
         Product saved = productRepository.save(product);
         return toResponse(saved);
+    }
+    
+    private void updateBasicProductInfoOnly(Product product, ProductUpsertRequest req) {
+        if (req.getSku() != null && !req.getSku().trim().isEmpty()) {
+            product.setSku(req.getSku().trim());
+        }
+        product.setName(req.getName());
+        product.setSlug(req.getSlug());
+        product.setDescription(req.getDescription());
+        product.setPrice(req.getPrice());
+        product.setOldPrice(req.getOldPrice());
+        product.setStock(req.getStock());
+        product.setCategoryId(req.getCategoryId());
+        product.setProductTypeId(req.getProductTypeId());
+        product.setGender(req.getGender());
+        product.setWeightKg(req.getWeightKg());
+        product.setAttributesJson(req.getAttributesJson());
+        
+        // Multi-category support
+        if (req.getCategoryId() != null) {
+            Set<Long> allIds = new LinkedHashSet<>();
+            allIds.add(req.getCategoryId());
+            
+            Category current = categoryRepository.findById(req.getCategoryId()).orElse(null);
+            while (current != null && current.getParentId() != null) {
+                allIds.add(current.getParentId());
+                current = categoryRepository.findById(current.getParentId()).orElse(null);
+            }
+            
+            product.setCategoryIds(new ArrayList<>(allIds));
+        } else {
+            product.setCategoryIds(new ArrayList<>());
+        }
+        
+        if (req.getImages() != null) {
+            product.setImages(req.getImages());
+        }
+        
+        if (req.getImageUrl() != null && !req.getImageUrl().isBlank()) {
+            product.setImageUrl(req.getImageUrl());
+        } else if (product.getImages() != null && !product.getImages().isEmpty()) {
+            product.setImageUrl(product.getImages().get(0));
+        }
+        
+        if (req.getActive() != null) {
+            product.setActive(req.getActive());
+        }
+        
+        // Basic fields only
+        product.setCategory(req.getCategory());
+        product.setBrand(req.getBrand());
+        product.setBadge(req.getBadge());
+        product.setDiscountPercent(req.getDiscountPercent());
+        product.setRating(req.getRating());
+        product.setSoldCount(req.getSoldCount());
+        
+        // Only set these if they exist in request
+        if (req.getSizes() != null) product.setSizes(req.getSizes());
+        if (req.getColors() != null) product.setColors(req.getColors());
     }
 
     public void delete(Long id) {
@@ -161,6 +235,7 @@ public class ProductService {
         }
 
         List<ProductDto> dtoList = result.getContent().stream()
+                .filter(product -> product != null)
                 .map(ProductDto::fromEntity)
                 .toList();
 
@@ -170,6 +245,7 @@ public class ProductService {
         response.setPage(page);
         response.setTotalPages(result.getTotalPages());
         response.setLimit(limit);
+        
         return response;
     }
 
@@ -193,7 +269,7 @@ public class ProductService {
         };
     }
 
-    private static void applyUpsert(Product product, ProductUpsertRequest req) {
+    private void applyUpsert(Product product, ProductUpsertRequest req) {
         if (req.getSku() != null && !req.getSku().trim().isEmpty()) {
             product.setSku(req.getSku().trim());
         }
@@ -206,13 +282,40 @@ public class ProductService {
         product.setCategoryId(req.getCategoryId());
         product.setProductTypeId(req.getProductTypeId());
         product.setGender(req.getGender());
+        product.setWeightKg(req.getWeightKg());
         product.setAttributesJson(req.getAttributesJson());
 
-        // Multi-category support
-        if (req.getCategoryIds() != null) {
+        // Multi-category support: collect all parent IDs
+        if (req.getCategoryId() != null) {
+            Set<Long> allIds = new LinkedHashSet<>();
+            allIds.add(req.getCategoryId());
+            
+            // Tìm tất cả cha của danh mục này
+            Category current = categoryRepository.findById(req.getCategoryId()).orElse(null);
+            while (current != null && current.getParentId() != null) {
+                allIds.add(current.getParentId());
+                current = categoryRepository.findById(current.getParentId()).orElse(null);
+            }
+            
+            if (req.getCategoryIds() != null) {
+                for (Long x : req.getCategoryIds()) {
+                    if (x != null) allIds.add(x);
+                }
+            }
+            product.setCategoryIds(new ArrayList<>(allIds));
+            product.setCategoryId(req.getCategoryId());
+        } else if (req.getCategoryIds() != null) {
             Set<Long> cleaned = new LinkedHashSet<>();
             for (Long x : req.getCategoryIds()) {
-                if (x != null) cleaned.add(x);
+                if (x != null) {
+                    cleaned.add(x);
+                    // Tìm cha của từng danh mục được gửi lên
+                    Category current = categoryRepository.findById(x).orElse(null);
+                    while (current != null && current.getParentId() != null) {
+                        cleaned.add(current.getParentId());
+                        current = categoryRepository.findById(current.getParentId()).orElse(null);
+                    }
+                }
             }
             product.setCategoryIds(new ArrayList<>(cleaned));
             if (product.getCategoryId() == null && !product.getCategoryIds().isEmpty()) {
@@ -222,6 +325,7 @@ public class ProductService {
 
         product.setCategory(req.getCategory());
         product.setBrand(req.getBrand());
+        product.setWeightKg(req.getWeightKg());
         product.setBadge(req.getBadge());
         product.setDiscountPercent(req.getDiscountPercent());
         product.setRating(req.getRating());
@@ -259,8 +363,15 @@ public class ProductService {
                 if (v.getColor() == null || v.getColor().isBlank()) continue;
                 if (v.getPrice() == null) continue;
 
-                ProductVariant pv = new ProductVariant();
-                pv.setProduct(product);
+                // Find existing variant by color using fresh query to avoid stale objects
+                ProductVariant pv = productVariantRepository.findByProductIdAndColor(product.getId(), v.getColor().trim())
+                    .orElse(null);
+                
+                if (pv == null) {
+                    pv = new ProductVariant();
+                    pv.setProduct(product);
+                }
+                
                 pv.setColor(v.getColor().trim());
                 pv.setPrice(v.getPrice());
                 pv.setOldPrice(v.getOldPrice());
@@ -307,8 +418,21 @@ public class ProductService {
                 newVariants.add(pv);
             }
 
-            product.getVariants().clear();
-            product.getVariants().addAll(newVariants);
+            // Remove variants that are no longer in the request
+            Set<String> requestedColors = newVariants.stream()
+                .map(pv -> pv.getColor())
+                .collect(Collectors.toSet());
+            
+            product.getVariants().removeIf(existing -> !requestedColors.contains(existing.getColor()));
+            
+            // Add or update variants
+            for (ProductVariant pv : newVariants) {
+                if (pv.getId() == null) {
+                    // New variant, add to collection
+                    product.getVariants().add(pv);
+                }
+                // Existing variant will be updated automatically by JPA
+            }
 
             product.setColors(new ArrayList<>(colors));
             product.setSizes(new ArrayList<>(sizes));
@@ -350,6 +474,7 @@ public class ProductService {
         res.setCategoryIds(p.getCategoryIds());
         res.setCategory(p.getCategory());
         res.setBrand(p.getBrand());
+        res.setWeightKg(p.getWeightKg());
         res.setImageUrl(p.getImageUrl());
         res.setBadge(p.getBadge());
         res.setDiscountPercent(p.getDiscountPercent());

@@ -93,6 +93,11 @@ public class AdminProductVariantBranchStockController {
                 if (imageUrl.isEmpty()) imageUrl = null;
             }
 
+            Double weightKg = it.getWeightKg();
+            if (weightKg != null && weightKg < 0) {
+                weightKg = 0.0;
+            }
+
             BranchProductVariantStock row = stockRepository
                 .findByBranchIdAndProductIdAndColorAndSize(branchId, productId, color, size)
                 .orElseGet(() -> {
@@ -106,6 +111,7 @@ public class AdminProductVariantBranchStockController {
 
             row.setStock(stock);
             row.setImageUrl(imageUrl);
+            row.setWeightKg(weightKg);
             saved.add(stockRepository.save(row));
         }
 
@@ -121,6 +127,7 @@ public class AdminProductVariantBranchStockController {
         out.setSize(s.getSize());
         out.setStock(s.getStock() != null ? s.getStock() : 0);
         out.setImageUrl(s.getImageUrl());
+        out.setWeightKg(s.getWeightKg());
         out.setUpdatedAt(s.getUpdatedAt());
         return out;
     }

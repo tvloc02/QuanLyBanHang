@@ -46,6 +46,9 @@ public class ProductUpsertRequest {
     @NotBlank
     private String brand;
 
+    @PositiveOrZero
+    private Double weightKg;
+
     private String imageUrl;
 
     private String badge;
@@ -179,6 +182,14 @@ public class ProductUpsertRequest {
 
     public void setBrand(String brand) {
         this.brand = brand;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public String getImageUrl() {

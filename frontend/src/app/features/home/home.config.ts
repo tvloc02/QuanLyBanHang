@@ -106,7 +106,7 @@ export const HOME_CONFIG: HomeConfig = {
     border: '#e5e7eb'
   },
   topBarText: 'NĂM MỚI DEAL HỜI TỚI 50%  <<  SĂN NGAY  >>',
-  brandText: 'FASHIONHUB',
+  brandText: 'L.event',
   nav: [
     { label: 'Sale', sectionId: 'hero' },
     { label: 'Voucher', sectionId: 'vouchers' },
@@ -341,9 +341,9 @@ export const HOME_CONFIG: HomeConfig = {
     { title: 'Hành trình thiện thần', description: 'Chia sẻ hành trình cùng cộng đồng.', imageUrl: 'https://images.unsplash.com/photo-1520975682031-a4c2d7d185d1?auto=format&fit=crop&w=900&q=80', route: '/news' },
     { title: 'Tưng bừng chào đón', description: 'Ưu đãi mới mỗi ngày.', imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80', route: '/news' }
   ],
-  footerQuoteTitle: 'FASHIONHUB',
+  footerQuoteTitle: 'L.event',
   footerQuote:
-    'FashionHub trân trọng cảm ơn Quý Khách đã ủng hộ và góp phần tạo thêm cơ hội việc làm. Đây là bản giao diện demo, bạn có thể chỉnh màu/ảnh trong home.config.ts.'
+    'L.event trân trọng cảm ơn Quý Khách đã ủng hộ và góp phần tạo thêm cơ hội việc làm. Đây là bản giao diện demo, bạn có thể chỉnh màu/ảnh trong home.config.ts.'
 };
 
 const normalizeCategoryRoute = (route: string): string => {

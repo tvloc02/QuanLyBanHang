@@ -217,10 +217,23 @@ public class CouponService {
         BigDecimal ship = shippingFee == null ? BigDecimal.ZERO : shippingFee;
         if (ship.compareTo(BigDecimal.ZERO) < 0) ship = BigDecimal.ZERO;
         BigDecimal shipDiscount = BigDecimal.ZERO;
-        if (coupon.getShippingDiscountAmount() != null && coupon.getShippingDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+
+        // Nếu coupon có discountPercent và loại là dành cho vận chuyển (hoặc chung)
+        if (coupon.getDiscountPercent() != null && coupon.getDiscountPercent() > 0) {
+            // Tính toán giảm giá vận chuyển dựa trên phần trăm
+            shipDiscount = ship
+                    .multiply(BigDecimal.valueOf(coupon.getDiscountPercent()))
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        } else if (coupon.getShippingDiscountAmount() != null && coupon.getShippingDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
             shipDiscount = coupon.getShippingDiscountAmount();
-            if (shipDiscount.compareTo(ship) > 0) shipDiscount = ship;
         }
+
+        if (coupon.getMaxDiscountAmount() != null && shipDiscount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+            shipDiscount = coupon.getMaxDiscountAmount();
+        }
+
+        if (shipDiscount.compareTo(ship) > 0) shipDiscount = ship;
+        
         BigDecimal totalDiscount = productDiscount.add(shipDiscount);
 
         uc.setStatus(UserCouponStatus.USED);

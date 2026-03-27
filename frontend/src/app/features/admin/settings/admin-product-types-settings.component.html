@@ -16,6 +16,34 @@
       <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
         <button
           type="button"
+          (click)="downloadProductTypesTemplateExcel()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Tải file mẫu</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="exportProductTypesExcel()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Export Excel</span>
+        </button>
+
+        <input class="file-input" type="file" accept=".xlsx,.xls" id="ptImportExcel" (change)="importProductTypesExcel($any($event.target).files?.[0]); $any($event.target).value = null" />
+        <label
+          for="ptImportExcel"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+          [class.opacity-60]="loading || saving"
+          [class.pointer-events-none]="loading || saving"
+        >
+          <span>Import Excel</span>
+        </label>
+
+        <button
+          type="button"
           (click)="openCreate()"
           [disabled]="loading || saving"
           class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
@@ -47,18 +75,20 @@
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 90px">STT</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 160px">Code</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Tên</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Giới tính</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 140px">Trạng thái</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 180px">Thao tác</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 bg-white">
           <tr *ngIf="!loading && rows.length === 0">
-            <td colspan="5" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có loại sản phẩm.</td>
+            <td colspan="6" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có loại sản phẩm.</td>
           </tr>
           <tr *ngFor="let r of rows; let i = index" class="hover:bg-blue-50/40 transition-colors divide-x divide-gray-200">
             <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ i + 1 }}</td>
             <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ r.code }}</td>
-            <td class="px-4 py-3 text-left font-extrabold text-gray-900">{{ r.name }}</td>
+            <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ r.name }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ gendersLabelOfRow(r) }}</td>
             <td class="px-4 py-3 text-center">
               <span
                 class="inline-flex px-3 py-1 rounded-full text-xs font-extrabold"
@@ -145,33 +175,104 @@
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2" *ngIf="splitSizesByGender" style="margin-bottom:10px">
-            <button type="button" class="btn ghost" [class.active]="genderTab === 'UNISEX'" (click)="genderTab = 'UNISEX'">Unisex</button>
-            <button type="button" class="btn ghost" [class.active]="genderTab === 'NAM'" (click)="genderTab = 'NAM'">Nam</button>
-            <button type="button" class="btn ghost" [class.active]="genderTab === 'NU'" (click)="genderTab = 'NU'">Nữ</button>
+          <div class="group-actions" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <div class="group-add">
+              <input class="input" [(ngModel)]="groupDraft" placeholder="Thêm nhóm (VD: Bé trai, Bé gái...)" />
+              <button type="button" class="btn" (click)="addGroup()">Thêm nhóm</button>
+            </div>
+          </div>
+
+          <div class="group-tabs" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <button
+              *ngFor="let g of groups"
+              type="button"
+              class="btn ghost"
+              [class.active]="groupTab === g.key"
+              (click)="groupTab = g.key">
+              <span>{{ g.label }}</span>
+              <button
+                *ngIf="!g.builtIn"
+                type="button"
+                class="group-x"
+                (click)="$event.stopPropagation(); removeGroup(g.key)">
+                ✕
+              </button>
+            </button>
           </div>
 
           <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
-              <div class="text-sm font-extrabold text-gray-900">Danh sách size</div>
-              <div class="text-xs font-semibold text-gray-600">Dùng khi tạo biến thể/phiên bản sản phẩm</div>
+              <div class="text-sm font-extrabold text-gray-900">Ma trận size</div>
+              <div class="text-xs font-semibold text-gray-600">Size + khoảng chiều cao/cân nặng (min-max)</div>
             </div>
 
             <div class="p-4">
-              <div class="flex gap-2">
-                <input class="input" [(ngModel)]="sizeDraft" placeholder="VD: M" (keydown.enter)="addSize()" />
-                <button type="button" class="btn" (click)="addSize()">Thêm</button>
+              <div class="matrix-add">
+                <input class="input" [(ngModel)]="rowDraft.size" placeholder="Size (VD: M)" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMin" placeholder="Cao từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMax" placeholder="Cao đến" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMin" placeholder="Nặng từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMax" placeholder="Nặng đến" />
+                <button type="button" class="btn" (click)="addRow()">Thêm</button>
               </div>
 
-              <div class="mt-3" *ngIf="currentSizes.length === 0">
-                <div class="text-sm font-semibold text-gray-600">Chưa có size nào.</div>
+              <div class="mt-3" *ngIf="currentRows.length === 0">
+                <div class="text-sm font-semibold text-gray-600">Chưa có dòng nào.</div>
               </div>
 
-              <div class="flex flex-wrap gap-2 mt-3" *ngIf="currentSizes.length">
-                <span *ngFor="let s of currentSizes; let si = index" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-800 text-xs font-extrabold">
-                  <span>{{ s }}</span>
-                  <button type="button" class="text-blue-800" (click)="removeSize(si)">✕</button>
-                </span>
+              <div class="matrix-table" *ngIf="currentRows.length">
+                <div class="matrix-head">
+                  <div>Size</div>
+                  <div>Cao từ</div>
+                  <div>Cao đến</div>
+                  <div>Nặng từ</div>
+                  <div>Nặng đến</div>
+                  <div></div>
+                </div>
+                <div class="matrix-row" *ngFor="let r of currentRows; let i = index">
+                  <div class="cell">
+                    <input
+                      class="input"
+                      [ngModel]="r.size"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { size: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMax: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMax: $event })" />
+                  </div>
+                  <div class="cell actions">
+                    <button type="button" class="btn ghost" (click)="removeRow(i)">Xóa</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -232,33 +333,104 @@
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2" *ngIf="splitSizesByGender" style="margin-bottom:10px">
-            <button type="button" class="btn ghost" [class.active]="genderTab === 'UNISEX'" (click)="genderTab = 'UNISEX'">Unisex</button>
-            <button type="button" class="btn ghost" [class.active]="genderTab === 'NAM'" (click)="genderTab = 'NAM'">Nam</button>
-            <button type="button" class="btn ghost" [class.active]="genderTab === 'NU'" (click)="genderTab = 'NU'">Nữ</button>
+          <div class="group-actions" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <div class="group-add">
+              <input class="input" [(ngModel)]="groupDraft" placeholder="Thêm nhóm (VD: Bé trai, Bé gái...)" />
+              <button type="button" class="btn" (click)="addGroup()">Thêm nhóm</button>
+            </div>
+          </div>
+
+          <div class="group-tabs" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <button
+              *ngFor="let g of groups"
+              type="button"
+              class="btn ghost"
+              [class.active]="groupTab === g.key"
+              (click)="groupTab = g.key">
+              <span>{{ g.label }}</span>
+              <button
+                *ngIf="!g.builtIn"
+                type="button"
+                class="group-x"
+                (click)="$event.stopPropagation(); removeGroup(g.key)">
+                ✕
+              </button>
+            </button>
           </div>
 
           <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
-              <div class="text-sm font-extrabold text-gray-900">Danh sách size</div>
-              <div class="text-xs font-semibold text-gray-600">Dùng khi tạo biến thể/phiên bản sản phẩm</div>
+              <div class="text-sm font-extrabold text-gray-900">Ma trận size</div>
+              <div class="text-xs font-semibold text-gray-600">Size + khoảng chiều cao/cân nặng (min-max)</div>
             </div>
 
             <div class="p-4">
-              <div class="flex gap-2">
-                <input class="input" [(ngModel)]="sizeDraft" placeholder="VD: M" (keydown.enter)="addSize()" />
-                <button type="button" class="btn" (click)="addSize()">Thêm</button>
+              <div class="matrix-add">
+                <input class="input" [(ngModel)]="rowDraft.size" placeholder="Size (VD: M)" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMin" placeholder="Cao từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMax" placeholder="Cao đến" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMin" placeholder="Nặng từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMax" placeholder="Nặng đến" />
+                <button type="button" class="btn" (click)="addRow()">Thêm</button>
               </div>
 
-              <div class="mt-3" *ngIf="currentSizes.length === 0">
-                <div class="text-sm font-semibold text-gray-600">Chưa có size nào.</div>
+              <div class="mt-3" *ngIf="currentRows.length === 0">
+                <div class="text-sm font-semibold text-gray-600">Chưa có dòng nào.</div>
               </div>
 
-              <div class="flex flex-wrap gap-2 mt-3" *ngIf="currentSizes.length">
-                <span *ngFor="let s of currentSizes; let si = index" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-800 text-xs font-extrabold">
-                  <span>{{ s }}</span>
-                  <button type="button" class="text-blue-800" (click)="removeSize(si)">✕</button>
-                </span>
+              <div class="matrix-table" *ngIf="currentRows.length">
+                <div class="matrix-head">
+                  <div>Size</div>
+                  <div>Cao từ</div>
+                  <div>Cao đến</div>
+                  <div>Nặng từ</div>
+                  <div>Nặng đến</div>
+                  <div></div>
+                </div>
+                <div class="matrix-row" *ngFor="let r of currentRows; let i = index">
+                  <div class="cell">
+                    <input
+                      class="input"
+                      [ngModel]="r.size"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { size: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMax: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMax: $event })" />
+                  </div>
+                  <div class="cell actions">
+                    <button type="button" class="btn ghost" (click)="removeRow(i)">Xóa</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

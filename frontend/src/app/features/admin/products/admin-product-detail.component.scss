@@ -237,6 +237,55 @@
   color: rgba(107, 114, 128, 1);
 }
 
+.matrix-wrap {
+  width: 100%;
+  max-height: 560px;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(245, 247, 251, 1);
+}
+
+.matrix-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+}
+
+.matrix-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.matrix-table thead th {
+  background: #f9fafb;
+  font-weight: 800;
+  white-space: nowrap;
+  padding: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.matrix-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+.matrix-table--center th,
+.matrix-table--center td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.matrix-size {
+  font-weight: 800;
+}
+
 .btn {
   height: 36px;
   padding: 0 14px;

@@ -33,6 +33,8 @@ interface ProductDetailResponse {
   soldCount?: number;
   sizes?: string[];
   colors?: string[];
+  promotionTitle?: string;
+  promotionText?: string;
 }
 
 interface CartItem {
@@ -44,6 +46,8 @@ interface CartItem {
   quantity: number;
   size?: string;
   color?: string;
+  branchId?: number;
+  branchName?: string;
 }
 
 interface RelatedProduct {
@@ -55,6 +59,15 @@ interface RelatedProduct {
   badge?: string;
   discountPercent?: number;
   rating?: number;
+}
+
+interface BranchOption {
+  id: number;
+  name: string;
+  address?: string | null;
+  province?: string | null;
+  ward?: string | null;
+  stock?: number | null;
 }
 
 @Component({
@@ -85,6 +98,12 @@ export class ProductDetailComponent implements OnInit {
 
   related: RelatedProduct[] = [];
 
+  buySheetOpen = false;
+  branchOptions: BranchOption[] = [];
+  branchLoading = false;
+  branchError = '';
+  selectedBranchId: number | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -111,6 +130,8 @@ export class ProductDetailComponent implements OnInit {
         if (!res?.success || !res.data) {
           this.error = res?.message || 'Không thể tải sản phẩm.';
           this.loading = false;
+
+          this.loadBranchOptions();
           return;
         }
 
@@ -143,20 +164,16 @@ export class ProductDetailComponent implements OnInit {
 
         this.loading = false;
 
+        this.loadBranchOptions();
+
         if (p.category) {
           this.fetchRelated(p.category);
         }
       },
       error: () => {
-        this.product = this.mockProduct(this.productSlug);
-        if (this.product.imageUrl) this.product.imageUrl = this.normalizeImageUrl(String(this.product.imageUrl));
-        if (Array.isArray(this.product.images)) this.product.images = this.product.images.map((x) => this.normalizeImageUrl(String(x)));
-
-        this.images = this.product.images?.length ? this.product.images : [this.product.imageUrl || this.productPlaceholderImage];
-        this.activeImage = this.images[0] || this.productPlaceholderImage;
-        this.selectedSize = (this.product.sizes || [])[0] || '';
-        this.selectedColor = (this.product.colors || [])[0] || '';
         this.loading = false;
+        this.error = 'Không thể tải sản phẩm. Vui lòng thử lại.';
+        this.loadBranchOptions();
       }
     });
   }
@@ -193,8 +210,8 @@ export class ProductDetailComponent implements OnInit {
     });
   }
 
-  selectImage(url: string): void {
-    this.activeImage = url;
+  selectImage(img: string): void {
+    this.activeImage = img;
   }
 
   onHeroImageError(): void {
@@ -220,18 +237,28 @@ export class ProductDetailComponent implements OnInit {
 
   selectColor(c: string): void {
     this.selectedColor = c;
+    this.loadBranchOptions();
   }
 
   selectSize(s: string): void {
     this.selectedSize = s;
+    this.loadBranchOptions();
   }
 
   decQty(): void {
     this.quantity = Math.max(1, this.quantity - 1);
+    this.loadBranchOptions();
   }
 
   incQty(): void {
     this.quantity = Math.min(99, this.quantity + 1);
+    this.loadBranchOptions();
+  }
+
+  onQuantityInputChange(): void {
+    const q = Number(this.quantity);
+    this.quantity = Number.isFinite(q) ? Math.min(99, Math.max(1, Math.floor(q))) : 1;
+    this.loadBranchOptions();
   }
 
   setTab(tab: 'desc' | 'reviews'): void {
@@ -241,6 +268,15 @@ export class ProductDetailComponent implements OnInit {
   addToCart(): void {
     if (!this.product) return;
 
+    if (!this.selectedBranchId) {
+      this.branchError = 'Vui lòng chọn chi nhánh để mua.';
+      return;
+    }
+    const selectedBranchName =
+      this.selectedBranchId != null
+        ? this.branchOptions.find((x) => x.id === this.selectedBranchId)?.name || ''
+        : '';
+
     const item: CartItem = {
       id: this.product.id,
       name: this.product.name,
@@ -249,12 +285,18 @@ export class ProductDetailComponent implements OnInit {
       price: Number(this.product.price || 0),
       quantity: this.quantity,
       size: this.selectedSize || undefined,
-      color: this.selectedColor || undefined
+      color: this.selectedColor || undefined,
+      branchId: this.selectedBranchId || undefined,
+      branchName: selectedBranchName || undefined
     };
 
     const cart = this.readCart();
     const idx = cart.findIndex(
-      (x) => x.id === item.id && (x.size || '') === (item.size || '') && (x.color || '') === (item.color || '')
+      (x) =>
+        x.id === item.id &&
+        (x.size || '') === (item.size || '') &&
+        (x.color || '') === (item.color || '') &&
+        Number(x.branchId || 0) === Number(item.branchId || 0)
     );
 
     if (idx >= 0) {
@@ -267,7 +309,95 @@ export class ProductDetailComponent implements OnInit {
   }
 
   buyNow(): void {
+    if (!this.product) return;
+    this.openBuySheet();
+  }
+
+  private openBuySheet(): void {
+    if (!this.product) return;
+    this.buySheetOpen = true;
+    this.branchError = '';
+    this.branchOptions = [];
+    this.selectedBranchId = null;
+    this.loadBranchOptions();
+  }
+
+  closeBuySheet(): void {
+    this.buySheetOpen = false;
+  }
+
+  private loadBranchOptions(): void {
+    if (!this.product) return;
+    if (this.branchLoading) return;
+    this.branchLoading = true;
+    this.branchError = '';
+
+    const pid = Number(this.product.id);
+    const qty = Number(this.quantity || 1);
+
+    if (!Number.isFinite(pid) || pid <= 0) {
+      this.branchLoading = false;
+      this.branchOptions = [];
+      this.selectedBranchId = null;
+      this.branchError = 'Không xác định được sản phẩm để tải kho/chi nhánh.';
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('productId', String(pid));
+    params.set('quantity', String(Math.max(1, qty)));
+    if (this.selectedColor?.trim()) params.set('color', this.selectedColor.trim());
+    if (this.selectedSize?.trim()) params.set('size', this.selectedSize.trim());
+    const url = `${environment.apiBaseUrl}/api/branches/options?${params.toString()}`;
+    this.http.get<ApiResponse<BranchOption[]>>(url).subscribe({
+      next: (res) => {
+        this.branchLoading = false;
+        const list = Array.isArray(res?.data) ? res.data : [];
+        this.branchOptions = list
+          .map((x: any) => ({
+            id: Number(x?.id),
+            name: String(x?.name || ''),
+            address: x?.address != null ? String(x.address) : null,
+            province: x?.province != null ? String(x.province) : null,
+            ward: x?.ward != null ? String(x.ward) : null,
+            stock: x?.stock != null ? Number(x.stock) : null
+          }))
+          .filter((x: BranchOption) => Number.isFinite(x.id) && !!x.name);
+
+        if (this.branchOptions.length === 0) {
+          this.selectedBranchId = null;
+          this.branchError = 'Không có kho/chi nhánh nào đủ tồn kho.';
+          return;
+        }
+
+        // If current selection is not available for the new quantity => force user to re-select.
+        if (this.selectedBranchId != null) {
+          const ok = this.branchOptions.some((x) => x.id === this.selectedBranchId);
+          if (!ok) this.selectedBranchId = null;
+        }
+      },
+      error: (err) => {
+        this.branchLoading = false;
+        this.branchOptions = [];
+        this.selectedBranchId = null;
+        const status = (err as any)?.status;
+        const msg = (err as any)?.error?.message || (err as any)?.message;
+        const statusLabel = typeof status === 'number' ? ` (HTTP ${status})` : '';
+        this.branchError = `Không tải được danh sách kho/chi nhánh.${statusLabel}${msg ? `: ${String(msg)}` : ''}`;
+      }
+    });
+  }
+
+  confirmBuyNow(): void {
+    if (!this.product) return;
+    if (!this.selectedBranchId) {
+      this.branchError = 'Vui lòng chọn chi nhánh để mua.';
+      return;
+    }
+
+    localStorage.setItem('checkout_branchId', String(this.selectedBranchId));
     this.addToCart();
+    this.buySheetOpen = false;
     this.router.navigateByUrl('/checkout');
   }
 
@@ -319,33 +449,6 @@ export class ProductDetailComponent implements OnInit {
     } catch {
       return [];
     }
-  }
-
-  private mockProduct(slug: string): ProductDetailResponse {
-    return {
-      id: Math.floor(Math.random() * 100000) + 1,
-      name: `Sản phẩm ${slug}`,
-      slug,
-      description:
-        'Đây là mô tả demo cho sản phẩm. Bạn có thể dùng nội dung này để trình bày chất liệu, form dáng, hướng dẫn bảo quản, và chính sách đổi trả.',
-      price: 199000,
-      oldPrice: 299000,
-      stock: 18,
-      category: 'demo',
-      brand: 'FashionHub',
-      imageUrl: 'https://via.placeholder.com/900x1100?text=Product',
-      images: [
-        'https://via.placeholder.com/900x1100?text=Product+1',
-        'https://via.placeholder.com/900x1100?text=Product+2',
-        'https://via.placeholder.com/900x1100?text=Product+3'
-      ],
-      badge: 'New',
-      discountPercent: 20,
-      rating: 4.6,
-      soldCount: 128,
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: ['Hồng', 'Đen', 'Trắng']
-    };
   }
 
   private normalizeImageUrl(raw: string): string {

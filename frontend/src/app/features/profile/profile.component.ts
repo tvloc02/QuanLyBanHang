@@ -2,28 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { LocationService } from '../../core/services/location.service';
 import { UserDataService, UserMeResponse } from '../../core/services/user-data.service';
 
 import * as L from 'leaflet';
 
-type AddressMode = 'DEPTH3' | 'VN2';
-
-type ProfileSection = 'profile' | 'bank' | 'address' | 'password' | 'notifications';
-
-interface WardNode {
-  name: string;
-}
-
-interface DistrictNode {
-  name: string;
-  wards: WardNode[];
-}
-
-interface ProvinceNode {
-  name: string;
-  districts: DistrictNode[];
-}
+type ProfileSection = 'profile' | 'bank' | 'address' | 'password' | 'notifications' | 'voucher';
 
 interface Vn2Province {
   code: string;
@@ -35,10 +20,19 @@ interface Vn2Commune {
   name: string;
 }
 
+interface Address {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  type?: string;
+  isPrimary?: boolean;
+}
+
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, FormsModule],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
 })
@@ -56,6 +50,23 @@ export class ProfileComponent implements OnInit, OnDestroy {
   me: UserMeResponse | null = null;
 
   activeSection: ProfileSection = 'profile';
+
+  // Voucher properties
+  vouchers: any[] = [];
+  voucherFilter: 'all' | 'available' | 'used' | 'expired' = 'all';
+  voucherCode = '';
+  voucherLoading = false;
+  voucherError = '';
+  voucherSuccess = '';
+
+  get filteredVouchers(): any[] {
+    if (!this.vouchers || this.voucherFilter === 'all') return this.vouchers || [];
+    return this.vouchers.filter(v => v.status === this.voucherFilter.toUpperCase());
+  }
+
+  get safeFilteredVouchers(): any[] {
+    return this.filteredVouchers || [];
+  }
 
   avatarPreviewUrl: string | null = null;
   private avatarObjectUrl: string | null = null;
@@ -85,15 +96,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
     return out;
   })();
 
-  addressMode: AddressMode = 'DEPTH3';
-
   addressLoading = false;
   addressError = '';
-
-  depth3Provinces: ProvinceNode[] = [];
-  depth3ProvinceOptions: string[] = [];
-  depth3DistrictOptions: string[] = [];
-  depth3WardOptions: string[] = [];
+  showAddAddressForm = false;
+  addresses: Address[] = [];
+  newAddress: Partial<Address> = {
+    name: '',
+    phone: '',
+    address: '',
+    type: '',
+    isPrimary: false
+  };
 
   vn2Loading = false;
   vn2ProvinceOptions: Vn2Province[] = [];
@@ -138,10 +151,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     latitude: [null as number | null],
     longitude: [null as number | null],
 
-    depth3ProvinceName: [''],
-    depth3DistrictName: [''],
-    depth3WardName: [''],
-
     vn2ProvinceCode: [''],
     vn2CommuneCode: ['']
   });
@@ -150,11 +159,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private userData: UserDataService,
     private locations: LocationService
-  ) {}
+  ) {
+    // Initialize vouchers to prevent undefined
+    this.vouchers = [];
+  }
 
   ngOnInit(): void {
     this.load();
-    this.loadAddressDepth3();
+    this.loadAddresses();
     this.loadVn2Provinces();
     this.configureLeafletDefaultIcon();
   }
@@ -204,12 +216,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.avatarPreviewUrl = this.avatarObjectUrl;
   }
 
-  setAddressMode(mode: AddressMode): void {
-    this.addressMode = mode;
-    this.addressError = '';
-    this.applyAddressModeToForm();
-  }
-
   load(): void {
     this.loading = true;
     this.error = '';
@@ -231,9 +237,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
           longitude: typeof d?.longitude === 'number' ? d!.longitude! : null
         });
 
-        const dist = String(d?.district || '').trim();
-        this.addressMode = dist ? 'DEPTH3' : 'VN2';
-        this.applyAddressModeToForm();
+        this.applyVn2ToForm();
       },
       error: (err) => {
         this.loading = false;
@@ -246,7 +250,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.success = '';
     this.error = '';
 
-    if (this.form.invalid) {
+    if (this.activeSection !== 'address' && this.form.invalid) {
       this.form.markAllAsTouched();
       this.showToast('error', 'Vui lòng nhập đầy đủ họ tên và số điện thoại.');
       return;
@@ -255,27 +259,20 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.saving = true;
     const v = this.form.value;
 
-    // Build province/district/ward strings based on the chosen mode.
-    let province = (v.province || '') as string;
-    let district = (v.district || '') as string;
-    let ward = (v.ward || '') as string;
+    const prov = this.vn2ProvinceOptions.find((x) => x.code === String(v.vn2ProvinceCode || ''));
+    const com = this.vn2CommuneOptions.find((x) => x.code === String(v.vn2CommuneCode || ''));
 
-    if (this.addressMode === 'DEPTH3') {
-      province = String(v.depth3ProvinceName || '').trim() || province;
-      district = String(v.depth3DistrictName || '').trim() || district;
-      ward = String(v.depth3WardName || '').trim() || ward;
-    } else {
-      const prov = this.vn2ProvinceOptions.find((x) => x.code === String(v.vn2ProvinceCode || ''));
-      const com = this.vn2CommuneOptions.find((x) => x.code === String(v.vn2CommuneCode || ''));
-      province = String(prov?.name || '').trim() || province;
-      district = '';
-      ward = String(com?.name || '').trim() || ward;
-    }
+    let province = String(prov?.name || v.province || '').trim();
+    const district = '';
+    const ward = String(com?.name || v.ward || '').trim();
+
+    const fullNameToSend = String(v.fullName || '').trim() || String(this.me?.fullName || '').trim();
+    const phoneToSend = String(v.phone || '').trim() || String(this.me?.phone || '').trim();
 
     this.userData
       .updateMe({
-        fullName: v.fullName || null,
-        phone: v.phone || null,
+        fullName: fullNameToSend || null,
+        phone: phoneToSend || null,
         province: province || null,
         district: district || null,
         ward: ward || null,
@@ -296,9 +293,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
             latitude: typeof d?.latitude === 'number' ? d!.latitude! : null,
             longitude: typeof d?.longitude === 'number' ? d!.longitude! : null
           });
-          const dist = String(d?.district || '').trim();
-          this.addressMode = dist ? 'DEPTH3' : 'VN2';
-          this.applyAddressModeToForm();
+          this.applyVn2ToForm();
           this.showToast('success', 'Đã lưu thông tin.');
         },
         error: (err) => {
@@ -306,34 +301,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
           this.showToast('error', err?.error?.message || 'Không thể lưu thông tin.');
         }
       });
-  }
-
-  onDepth3ProvinceChange(name: string): void {
-    const provName = String(name || '').trim();
-    const prov = this.depth3Provinces.find((p) => p.name === provName);
-    this.depth3DistrictOptions = (prov?.districts || []).map((d) => d.name);
-    this.depth3WardOptions = [];
-    this.form.patchValue({
-      depth3ProvinceName: provName,
-      depth3DistrictName: '',
-      depth3WardName: ''
-    });
-  }
-
-  onDepth3DistrictChange(name: string): void {
-    const provName = String(this.form.value.depth3ProvinceName || '').trim();
-    const distName = String(name || '').trim();
-    const prov = this.depth3Provinces.find((p) => p.name === provName);
-    const dist = prov?.districts?.find((d) => d.name === distName);
-    this.depth3WardOptions = (dist?.wards || []).map((w) => w.name);
-    this.form.patchValue({
-      depth3DistrictName: distName,
-      depth3WardName: ''
-    });
-  }
-
-  onDepth3WardChange(name: string): void {
-    this.form.patchValue({ depth3WardName: String(name || '').trim() });
   }
 
   onVn2ProvinceChange(code: string): void {
@@ -482,41 +449,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.form.patchValue({ addressDetail: displayName });
     }
 
-    if (this.addressMode === 'VN2') {
-      const prov = this.bestMatchByName(this.vn2ProvinceOptions, rawProvince);
-      if (prov) {
-        this.pendingVn2CommuneName = rawWard || rawDistrict;
-        this.form.patchValue({ province: prov.name, district: '', vn2ProvinceCode: prov.code, vn2CommuneCode: '' });
-        this.onVn2ProvinceChange(prov.code);
-      } else {
-        this.form.patchValue({ province: rawProvince, district: '', ward: rawWard || rawDistrict });
-      }
-      return;
+    const prov = this.bestMatchByName(this.vn2ProvinceOptions, rawProvince);
+    if (prov) {
+      this.pendingVn2CommuneName = rawWard || rawDistrict;
+      this.form.patchValue({ province: prov.name, district: '', vn2ProvinceCode: prov.code, vn2CommuneCode: '' });
+      this.onVn2ProvinceChange(prov.code);
+    } else {
+      this.form.patchValue({ province: rawProvince, district: '', ward: rawWard || rawDistrict });
     }
-
-    const provinceName = this.bestMatch(this.depth3ProvinceOptions, rawProvince) || rawProvince;
-    this.form.patchValue({ province: provinceName });
-    this.onDepth3ProvinceChange(provinceName);
-
-    const distName = this.bestMatch(this.depth3DistrictOptions, rawDistrict) || rawDistrict;
-    this.form.patchValue({ district: distName });
-    this.onDepth3DistrictChange(distName);
-
-    const wardName = this.bestMatch(this.depth3WardOptions, rawWard) || rawWard;
-    this.form.patchValue({ ward: wardName });
-    this.onDepth3WardChange(wardName);
-  }
-
-  private bestMatch(options: string[], value: string): string {
-    const q = String(value || '').trim();
-    if (!q) return '';
-    const ql = q.toLowerCase();
-    const exact = options.find((x) => x.toLowerCase() === ql);
-    if (exact) return exact;
-    const inc = options.find((x) => x.toLowerCase().includes(ql));
-    if (inc) return inc;
-    const rev = options.find((x) => ql.includes(x.toLowerCase()));
-    return rev || '';
   }
 
   private bestMatchByName<T extends { name: string }>(options: T[], value: string): T | null {
@@ -629,23 +569,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  private loadAddressDepth3(): void {
-    this.addressError = '';
-    this.locations.getVnDepth3().subscribe({
-      next: (res) => {
-        const rows = Array.isArray((res as any)?.data) ? (res as any).data : [];
-        this.depth3Provinces = this.normalizeDepth3(rows);
-        this.depth3ProvinceOptions = this.depth3Provinces.map((p) => p.name);
-        this.applyAddressModeToForm();
-      },
-      error: () => {
-        this.depth3Provinces = [];
-        this.depth3ProvinceOptions = [];
-        this.addressError = 'Không thể tải danh sách địa chỉ (3 cấp).';
-      }
-    });
-  }
-
   private loadVn2Provinces(): void {
     this.locations.getVn2Provinces().subscribe({
       next: (res) => {
@@ -655,7 +578,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
           .map((x: any) => ({ code: String(x?.code || '').trim(), name: String(x?.name || '').trim() }))
           .filter((x: Vn2Province) => !!x.code && !!x.name)
           .sort((a: Vn2Province, b: Vn2Province) => a.name.localeCompare(b.name));
-        this.applyAddressModeToForm();
+        this.applyVn2ToForm();
       },
       error: () => {
         this.vn2ProvinceOptions = [];
@@ -663,56 +586,202 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  private applyAddressModeToForm(): void {
+  private applyVn2ToForm(): void {
     const province = String(this.form.value.province || '').trim();
-    const district = String(this.form.value.district || '').trim();
     const ward = String(this.form.value.ward || '').trim();
-
-    if (this.addressMode === 'DEPTH3') {
-      // Try best-effort re-select dropdowns from current saved strings.
-      const prov = this.depth3Provinces.find((p) => p.name === province) || null;
-      this.depth3DistrictOptions = (prov?.districts || []).map((d) => d.name);
-
-      const dist = prov?.districts?.find((d) => d.name === district) || null;
-      this.depth3WardOptions = (dist?.wards || []).map((w) => w.name);
-
-      this.form.patchValue({
-        depth3ProvinceName: prov ? prov.name : province,
-        depth3DistrictName: dist ? dist.name : district,
-        depth3WardName: ward
-      });
-      return;
-    }
 
     const vn2Prov = this.vn2ProvinceOptions.find((p) => p.name === province) || null;
     this.form.patchValue({
       vn2ProvinceCode: vn2Prov ? vn2Prov.code : '',
       vn2CommuneCode: ''
     });
+
     if (vn2Prov) {
       this.pendingVn2CommuneName = ward;
       this.onVn2ProvinceChange(vn2Prov.code);
     }
   }
 
-  private normalizeDepth3(data: any[]): ProvinceNode[] {
-    if (!Array.isArray(data)) return [];
-    return data
-      .map((p: any) => {
-        const pName = String(p?.name || '').trim();
-        const districtsRaw = Array.isArray(p?.districts) ? p.districts : [];
-        const districts: DistrictNode[] = districtsRaw
-          .map((d: any) => {
-            const dName = String(d?.name || '').trim();
-            const wardsRaw = Array.isArray(d?.wards) ? d.wards : [];
-            const wards: WardNode[] = wardsRaw
-              .map((w: any) => ({ name: String(w?.name || '').trim() }))
-              .filter((w: WardNode) => !!w.name);
-            return { name: dName, wards };
-          })
-          .filter((d: DistrictNode) => !!d.name);
-        return { name: pName, districts };
-      })
-      .filter((p: ProvinceNode) => !!p.name);
+  // Address management methods
+  private loadAddresses(): void {
+    try {
+      const raw = localStorage.getItem('addresses');
+      const addresses = raw ? JSON.parse(raw) : [];
+      this.addresses = Array.isArray(addresses) ? addresses : [];
+      console.log('📍 Loaded addresses:', this.addresses);
+    } catch (error) {
+      console.error('📍 Error loading addresses:', error);
+      this.addresses = [];
+    }
+  }
+
+  isNewAddressValid(): boolean {
+    return !!(this.newAddress.name?.trim() && 
+              this.newAddress.phone?.trim() && 
+              this.newAddress.address?.trim());
+  }
+
+  cancelAddAddress(): void {
+    this.showAddAddressForm = false;
+    this.resetNewAddress();
+  }
+
+  resetNewAddress(): void {
+    this.newAddress = {
+      name: '',
+      phone: '',
+      address: '',
+      type: '',
+      isPrimary: false
+    };
+  }
+
+  saveNewAddress(): void {
+    if (!this.isNewAddressValid()) {
+      this.showToast('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc.');
+      return;
+    }
+
+    const address: Address = {
+      id: Date.now(),
+      name: this.newAddress.name!.trim(),
+      phone: this.newAddress.phone!.trim(),
+      address: this.newAddress.address!.trim(),
+      type: this.newAddress.type || undefined,
+      isPrimary: this.newAddress.isPrimary || false
+    };
+
+    // If setting as primary, move existing primary to regular
+    if (address.isPrimary) {
+      this.addresses.forEach(addr => addr.isPrimary = false);
+      this.addresses.unshift(address);
+    } else {
+      this.addresses.push(address);
+    }
+
+    this.saveAddressesToStorage();
+    this.showAddAddressForm = false;
+    this.resetNewAddress();
+    this.showToast('success', 'Đã thêm địa chỉ mới thành công.');
+    console.log('📍 Added new address:', address);
+  }
+
+  setPrimaryAddress(index: number): void {
+    if (index < 0 || index >= this.addresses.length) return;
+
+    // Remove primary from all addresses
+    this.addresses.forEach(addr => addr.isPrimary = false);
+    
+    // Set new primary and move to top
+    const primaryAddress = this.addresses.splice(index, 1)[0];
+    primaryAddress.isPrimary = true;
+    this.addresses.unshift(primaryAddress);
+
+    this.saveAddressesToStorage();
+    this.showToast('success', 'Đã cập nhật địa chỉ chính.');
+    console.log('📍 Set primary address:', primaryAddress);
+  }
+
+  // Voucher methods
+  applyVoucherCode(): void {
+    if (!this.voucherCode.trim()) return;
+
+    this.voucherLoading = true;
+    this.voucherError = '';
+    this.voucherSuccess = '';
+
+    // Simulate API call
+    setTimeout(() => {
+      // Mock voucher for demo
+      const mockVoucher = {
+        id: Date.now(),
+        name: `VOUCHER-${this.voucherCode.toUpperCase()}`,
+        code: this.voucherCode.toUpperCase(),
+        discountType: 'PERCENTAGE',
+        discountValue: 10,
+        minOrderAmount: 100000,
+        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'AVAILABLE'
+      };
+
+      this.vouchers.unshift(mockVoucher);
+      this.voucherSuccess = `Đã áp dụng voucher ${mockVoucher.code} thành công!`;
+      this.voucherCode = '';
+      this.voucherLoading = false;
+
+      setTimeout(() => {
+        this.voucherSuccess = '';
+      }, 3000);
+    }, 1000);
+  }
+
+  useVoucher(voucher: any): void {
+    // Update voucher status
+    voucher.status = 'USED';
+    voucher.usedDate = new Date();
+    
+    this.showToast('success', `Đã sử dụng voucher ${voucher.code}!`);
+    console.log('🎫 Used voucher:', voucher);
+  }
+
+  viewVoucherDetails(voucher: any): void {
+    // Show voucher details in modal or alert
+    const details = `
+      Mã: ${voucher.code}
+      Giảm giá: ${voucher.discountType === 'PERCENTAGE' ? voucher.discountValue + '%' : this.formatMoney(voucher.discountValue)}
+      Đơn tối thiểu: ${this.formatMoney(voucher.minOrderAmount || 0)}
+      Hết hạn: ${this.formatDate(voucher.expiryDate)}
+      Trạng thái: ${voucher.status === 'AVAILABLE' ? 'Khả dụng' : voucher.status === 'USED' ? 'Đã dùng' : 'Hết hạn'}
+    `;
+    
+    alert(details.trim());
+  }
+
+  formatDate(date: Date | string): string {
+    const d = new Date(date);
+    return d.toLocaleDateString('vi-VN', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  }
+
+  formatMoney(amount: number): string {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  }
+
+  deleteAddress(index: number): void {
+    if (index < 0 || index >= this.addresses.length) return;
+
+    const address = this.addresses[index];
+    
+    // Don't allow deleting if it's the only address
+    if (this.addresses.length === 1) {
+      this.showToast('error', 'Phải có ít nhất một địa chỉ.');
+      return;
+    }
+
+    this.addresses.splice(index, 1);
+    
+    // If deleted address was primary, set first address as primary
+    if (address.isPrimary && this.addresses.length > 0) {
+      this.addresses[0].isPrimary = true;
+    }
+
+    this.saveAddressesToStorage();
+    this.showToast('success', 'Đã xóa địa chỉ thành công.');
+    console.log('📍 Deleted address:', address);
+  }
+
+  private saveAddressesToStorage(): void {
+    try {
+      localStorage.setItem('addresses', JSON.stringify(this.addresses));
+      console.log('📍 Saved addresses to storage:', this.addresses.length);
+    } catch (error) {
+      console.error('📍 Error saving addresses:', error);
+    }
   }
 }

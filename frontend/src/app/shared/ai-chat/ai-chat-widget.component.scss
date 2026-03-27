@@ -1,15 +1,24 @@
 .ai-chat {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
   z-index: 200;
 }
 
-.ai-chat__fabs {
+.ai-chat__fab-ai {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.ai-chat__fab-support {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
 }
 
 .ai-chat__fab {
@@ -38,9 +47,8 @@
 }
 
 .ai-chat__panel {
-  position: absolute;
-  right: 0;
-  bottom: 66px;
+  position: fixed;
+  bottom: 80px;
   width: min(360px, calc(100vw - 36px));
   height: 460px;
   background: rgba(255, 255, 255, 0.92);
@@ -51,6 +59,15 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   backdrop-filter: blur(8px);
+  z-index: 200;
+}
+
+.ai-chat__panel-ai {
+  left: 18px;
+}
+
+.ai-chat__panel-support {
+  right: 18px;
 }
 
 .ai-chat__head {
@@ -354,4 +371,46 @@
 .ai-chat__send:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+// AI Icon Animation
+@keyframes ai-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ai-eye-blink {
+  0%, 49%, 100% {
+    opacity: 1;
+  }
+  50%, 99% {
+    opacity: 0.4;
+  }
+}
+
+.ai-icon-animated {
+  animation: ai-pulse 2s ease-in-out infinite;
+}
+
+.ai-robot {
+  animation: ai-pulse 2s ease-in-out infinite;
+}
+
+.ai-eye-left,
+.ai-eye-right {
+  animation: ai-eye-blink 3s ease-in-out infinite;
+}
+
+.ai-eye-left {
+  animation-delay: 0s;
+}
+
+.ai-eye-right {
+  animation-delay: 0.1s;
 }

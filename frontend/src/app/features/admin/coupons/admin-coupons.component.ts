@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminCouponResponse, AdminDataService } from '../../../core/services/admin-data.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-admin-coupons',
@@ -69,6 +70,11 @@ export class AdminCouponsComponent {
     active: true
   };
 
+  importOpen = false;
+  importLoading = false;
+  importFile: File | null = null;
+  importFileName = '';
+
   editOpen = false;
   editLoading = false;
   editForm: {
@@ -109,6 +115,88 @@ export class AdminCouponsComponent {
     this.load();
   }
 
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  private extractHttpErrorMessage(e: any, fallback: string): string {
+    const err = e as any;
+    const body = err?.error;
+    if (typeof body === 'string' && body.trim()) return body;
+    if (body?.message) return String(body.message);
+    if (err?.message) return String(err.message);
+    return fallback;
+  }
+
+  openImport(): void {
+    this.importOpen = true;
+    this.importLoading = false;
+    this.importFile = null;
+    this.importFileName = '';
+  }
+
+  cancelImport(): void {
+    this.importOpen = false;
+  }
+
+  onImportFileSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const f = input?.files?.[0] || null;
+    this.importFile = f;
+    this.importFileName = f?.name || '';
+  }
+
+  async downloadTemplate(): Promise<void> {
+    this.error = '';
+    try {
+      const blob = await firstValueFrom(this.adminData.downloadCouponsImportTemplateExcel());
+      this.downloadBlob(blob, 'coupons_template.xlsx');
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể tải file mẫu.');
+    }
+  }
+
+  async submitImport(): Promise<void> {
+    if (!this.importFile) {
+      this.error = 'Vui lòng chọn file Excel (.xlsx).';
+      return;
+    }
+
+    this.importLoading = true;
+    this.error = '';
+    try {
+      const res = await firstValueFrom(this.adminData.importCouponsExcel(this.importFile));
+      console.log('Import result:', res); // Log kết quả để kiểm tra
+      if (!res?.success) {
+        this.error = res?.message || 'Import thất bại.';
+        return;
+      }
+      
+      const data = res.data;
+      console.log('Import data:', data); // Log dữ liệu để kiểm tra
+      if (data && data.errorCount > 0) {
+        let msg = `Import hoàn tất: Thành công ${data.successCount}, Thất bại ${data.errorCount}.`;
+        if (data.errors && data.errors.length > 0) {
+          msg += '\nChi tiết lỗi: ' + data.errors.map((e: any) => `Dòng ${e.rowNumber}: ${e.message}`).join('; ');
+        }
+        this.error = msg;
+      } else {
+        alert(`Import thành công ${data?.successCount || 0} mã giảm giá!`);
+        this.importOpen = false;
+        this.load();
+      }
+    } catch (e) {
+      this.error = this.extractHttpErrorMessage(e, 'Không thể import mã giảm giá.');
+    } finally {
+      this.importLoading = false;
+    }
+  }
+
   get totalCoupons(): number {
     return (this.rows || []).length;
   }
@@ -132,7 +220,11 @@ export class AdminCouponsComponent {
     } else if (tab === 'order') {
       types = ['order_amount'];
     }
-    return this.rows.filter(r => types.includes(r.type || '')).length;
+    // Nếu r.type không có, mặc định cho vào tab 'customer' để tránh bị ẩn
+    return this.rows.filter(r => {
+      if (!r.type) return tab === 'customer';
+      return types.includes(r.type);
+    }).length;
   }
 
   getFilteredRows(): AdminCouponResponse[] {
@@ -142,7 +234,11 @@ export class AdminCouponsComponent {
     } else {
       types = ['order_amount'];
     }
-    return this.rows.filter(r => types.includes(r.type || ''));
+    // Nếu r.type không có, mặc định cho vào tab 'customer'
+    return this.rows.filter(r => {
+      const type = r.type || 'customer_segment';
+      return types.includes(type);
+    });
   }
 
 
@@ -153,6 +249,9 @@ export class AdminCouponsComponent {
   }
 
   displayDiscount(r: AdminCouponResponse): string {
+    if (r.type === 'customer_shipping') {
+      return r.discountPercent != null ? `${r.discountPercent}% phí ship` : this.formatVnd(r.shippingDiscountAmount);
+    }
     if (r.discountPercent != null) return `${r.discountPercent}%`;
     if (r.discountAmount != null) return this.formatVnd(r.discountAmount);
     return '0';
@@ -250,6 +349,11 @@ export class AdminCouponsComponent {
 
     this.createLoading = true;
     this.error = '';
+
+    // Convert local datetime-local string to ISO Instant format for Backend
+    const startsAtIso = this.form.startsAt ? new Date(this.form.startsAt).toISOString() : null;
+    const endsAtIso = this.form.endsAt ? new Date(this.form.endsAt).toISOString() : null;
+
     this.adminData.createCoupon({
       code: this.form.code.trim(),
       description: this.form.description?.trim() || undefined,
@@ -260,8 +364,8 @@ export class AdminCouponsComponent {
       shippingDiscountAmount: this.form.shippingDiscountAmount ?? null,
       allowedSegments: this.form.allowedSegments?.length ? this.form.allowedSegments.join(',') : null,
       usageLimit: this.form.usageLimit ?? null,
-      startsAt: this.form.startsAt ?? null,
-      endsAt: this.form.endsAt ?? null,
+      startsAt: startsAtIso,
+      endsAt: endsAtIso,
       active: this.form.active ?? true
     }).subscribe({
       next: (res) => {
@@ -321,6 +425,11 @@ export class AdminCouponsComponent {
 
     this.editLoading = true;
     this.error = '';
+
+    // Convert local datetime-local string to ISO Instant format for Backend
+    const startsAtIso = this.editForm.startsAt ? new Date(this.editForm.startsAt).toISOString() : null;
+    const endsAtIso = this.editForm.endsAt ? new Date(this.editForm.endsAt).toISOString() : null;
+
     this.adminData.updateCoupon(this.editForm.id, {
       code: this.editForm.code.trim(),
       description: this.editForm.description?.trim() || undefined,
@@ -331,8 +440,8 @@ export class AdminCouponsComponent {
       shippingDiscountAmount: this.editForm.shippingDiscountAmount ?? null,
       allowedSegments: this.editForm.allowedSegments?.length ? this.editForm.allowedSegments.join(',') : null,
       usageLimit: this.editForm.usageLimit ?? null,
-      startsAt: this.editForm.startsAt ?? null,
-      endsAt: this.editForm.endsAt ?? null,
+      startsAt: startsAtIso,
+      endsAt: endsAtIso,
       active: this.editForm.active ?? true
     }).subscribe({
       next: (res) => {

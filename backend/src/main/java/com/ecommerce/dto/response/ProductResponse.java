@@ -36,6 +36,8 @@ public class ProductResponse {
 
     private String brand;
 
+    private Double weightKg;
+
     private String imageUrl;
 
     private String badge;
@@ -176,6 +178,14 @@ public class ProductResponse {
 
     public void setBrand(String brand) {
         this.brand = brand;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public String getImageUrl() {

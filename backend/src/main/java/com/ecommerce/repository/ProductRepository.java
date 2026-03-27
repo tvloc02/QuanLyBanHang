@@ -17,8 +17,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByCategoryId(Long categoryId);
 
-    @Query("SELECT DISTINCT p FROM Product p WHERE " +
-           "(:category IS NULL OR p.category = :category OR (:categoryId IS NOT NULL AND :categoryId member of p.categoryIds)) AND " +
+    @Query("SELECT p FROM Product p WHERE " +
+           "(:category IS NULL OR LOWER(TRIM(p.category)) = LOWER(TRIM(:category)) OR " +
+           "(:categoryId IS NOT NULL AND (p.categoryId = :categoryId OR :categoryId member of p.categoryIds))) AND " +
            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
            "(:sizes IS NULL OR EXISTS (SELECT s FROM p.sizes s WHERE s IN :sizes)) AND " +

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import {
@@ -21,29 +21,60 @@ interface CategoryNode {
   id: number;
   name: string;
   slug: string;
+  imageUrl?: string | null;
   parentId?: number | null;
   children?: CategoryNode[];
 }
 
 type CtaAction = 'SCROLL' | 'SALE' | 'CATEGORY' | 'CUSTOM';
+type SaleBlockType = 'HERO' | 'VOUCHERS' | 'ROUND_CATEGORIES' | 'PRODUCTS';
 
-interface ItemForm {
+interface HeroItemForm {
   enabled: boolean;
-  itemType: AdminHomeSectionItemType;
-  refId?: number | null;
-  code?: string | null;
   title?: string | null;
   titleColor?: string | null;
-  description?: string | null;
-  imageUrl?: string | null;
-  route?: string | null;
   note?: string | null;
   noteColor?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
   buttonText?: string | null;
-
+  route?: string | null;
   ctaAction?: CtaAction;
   ctaCategorySlug?: string | null;
   customRoute?: string | null;
+}
+
+interface VoucherItemForm {
+  enabled: boolean;
+  refId?: number | null;
+  title?: string | null;
+  note?: string | null;
+  buttonText?: string | null;
+}
+
+interface CategoryLinkForm {
+  enabled: boolean;
+  slug: string;
+  label: string;
+  imageUrl?: string | null;
+}
+
+interface SaleBlock {
+  id: string;
+  type: SaleBlockType;
+  title: string;
+  enabled: boolean;
+  heroItems: HeroItemForm[];
+  voucherItems: VoucherItemForm[];
+  categoryItems: CategoryLinkForm[];
+  productCategoryItems: CategoryLinkForm[];
+}
+
+interface CategoryOption {
+  slug: string;
+  label: string;
+  imageUrl?: string | null;
+  level?: number;
 }
 
 @Component({
@@ -53,89 +84,65 @@ interface ItemForm {
   templateUrl: './admin-sale-page.component.html',
   styleUrls: ['./admin-sale-page.component.scss']
 })
-export class AdminSalePageComponent {
+export class AdminSalePageComponent implements OnInit {
   loading = false;
   saving = false;
   error = '';
 
   coupons: AdminCouponResponse[] = [];
-
-  categoryOptions: Array<{ slug: string; label: string }> = [];
+  categoryOptions: CategoryOption[] = [];
+  blocks: SaleBlock[] = [];
+  productPickerBlockId: string | null = null;
+  productPickerQuery = '';
+  productPickerTempSlugs: string[] = [];
+  voucherPickerBlockId: string | null = null;
+  voucherPickerQuery = '';
+  voucherPickerTempIds: number[] = [];
+  roundPickerBlockId: string | null = null;
+  roundPickerQuery = '';
+  roundPickerTempSlugs: string[] = [];
+  activeCategoryEditorIndex: Record<string, number> = {};
 
   private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
 
-  hero = {
-    title: 'Trang Sale',
-    enabled: true,
-    items: [] as ItemForm[]
-  };
+  constructor(private adminData: AdminDataService, private http: HttpClient) {}
 
-  vouchers = {
-    title: 'NHẬN VOUCHER ĐỘC QUYỀN ONLINE',
-    enabled: true,
-    items: [] as ItemForm[]
-  };
-
-  categories = {
-    title: 'HÔM NAY SALE GÌ?',
-    enabled: true
-  };
-
-  sectionsNav = {
-    title: 'Menu nhanh',
-    enabled: true,
-    items: [] as ItemForm[]
-  };
-
-  theme = {
-    title: 'Giao diện (Theme)',
-    enabled: true,
-    fontFamily: '',
-    primaryColor: ''
-  };
-
-  productsSection = {
-    title: 'Sản phẩm đang giảm giá',
-    enabled: true
-  };
-
-  private readonly sectionsNavDefaults: Array<{ key: string; title: string }> = [
-    { key: 'FEATURED', title: 'Được yêu thích nhất' },
-    { key: 'HOT', title: 'Sản phẩm hot mỗi ngày' },
-    { key: 'CART_SAVING', title: 'Giỏ hàng tiết kiệm' },
-    { key: 'SALE_VOUCHERS', title: 'Voucher độc quyền online' },
-    { key: 'EXCLUSIVE', title: 'Độc quyền online' }
-  ];
-
-  constructor(private adminData: AdminDataService, private http: HttpClient) {
+  ngOnInit(): void {
     this.load();
     this.loadCoupons();
     this.loadCategoryTree();
   }
+
+  trackByBlock = (_: number, block: SaleBlock) => block.id;
 
   load(): void {
     this.loading = true;
     this.error = '';
 
     this.adminData.getHomeSections().subscribe({
-      next: (res: any) => {
+      next: (res) => {
         this.loading = false;
         if (!res?.success) {
-          this.error = res?.message || 'Không thể tải cấu hình Trang Sale.';
+          this.error = res?.message || 'Không thể tải cấu hình trang Sale.';
           return;
         }
 
-        const sections: HomeSectionResponse[] = Array.isArray(res?.data) ? res.data : [];
-        this.applyHero(sections);
-        this.applyVouchers(sections);
-        this.applyCategories(sections);
-        this.applySectionsNav(sections);
-        this.applyTheme(sections);
-        this.applyProductsSection(sections);
+        const sections = Array.isArray(res?.data) ? res.data : [];
+        const dynamic = this.parseDynamicBlocks(sections);
+        this.blocks = dynamic.length > 0 ? dynamic : this.buildLegacyBlocks(sections);
+
+        if (this.blocks.length === 0) {
+          this.blocks = [
+            this.createBlock('HERO'),
+            this.createBlock('VOUCHERS'),
+            this.createBlock('ROUND_CATEGORIES'),
+            this.createBlock('PRODUCTS')
+          ];
+        }
       },
       error: () => {
         this.loading = false;
-        this.error = 'Không thể kết nối backend để lấy cấu hình Trang Sale.';
+        this.error = 'Không thể kết nối backend để lấy cấu hình trang Sale.';
       }
     });
   }
@@ -144,123 +151,35 @@ export class AdminSalePageComponent {
     this.saving = true;
     this.error = '';
 
-    const heroPayload = {
-      title: this.hero.title?.trim() || null,
-      enabled: !!this.hero.enabled,
-      items: this.hero.items.map((i) => ({
-        enabled: !!i.enabled,
+    const layoutPayload = {
+      title: 'Trang Sale',
+      enabled: true,
+      items: this.blocks.map((block, index) => ({
+        enabled: block.enabled,
         itemType: 'LINK' as AdminHomeSectionItemType,
         refId: null,
-        title: i.title ?? null,
-        titleColor: i.titleColor ?? null,
-        description: i.description ?? null,
-        imageUrl: i.imageUrl ?? null,
-        route: this.heroRoute(i),
-        code: null,
-        note: i.note ?? null,
-        noteColor: i.noteColor ?? null,
-        buttonText: i.buttonText ?? null
-      }))
-    };
-
-    const vouchersPayload = {
-      title: this.vouchers.title?.trim() || null,
-      enabled: !!this.vouchers.enabled,
-      items: this.vouchers.items.map((i) => ({
-        enabled: !!i.enabled,
-        itemType: 'COUPON' as AdminHomeSectionItemType,
-        refId: i.refId ?? null,
-        title: i.title ?? null,
-        description: i.description ?? null,
-        imageUrl: null,
-        route: null,
-        code: null,
-        note: i.note ?? null,
-        buttonText: i.buttonText ?? null
-      }))
-    };
-
-    const categoriesPayload = {
-      title: this.categories.title?.trim() || null,
-      enabled: !!this.categories.enabled,
-      items: [] as any[]
-    };
-
-    const sectionsNavPayload = {
-      title: this.sectionsNav.title?.trim() || null,
-      enabled: !!this.sectionsNav.enabled,
-      items: this.sectionsNav.items.map((i) => ({
-        enabled: !!i.enabled,
-        itemType: 'LINK' as AdminHomeSectionItemType,
-        refId: null,
-        title: (i.title ?? null) as any,
+        title: block.title || this.defaultTitle(block.type),
         description: null,
         imageUrl: null,
-        route: null,
-        code: (i.code ?? null) as any,
-        note: null,
+        route: this.sectionKey(block),
+        code: block.type,
+        note: String(index),
         buttonText: null
       }))
     };
 
-    const themePayload = {
-      title: this.theme.title?.trim() || 'Giao diện',
-      enabled: !!this.theme.enabled,
-      items: [
-        {
-          enabled: true,
-          itemType: 'LINK' as AdminHomeSectionItemType,
-          refId: null,
-          title: String(this.theme.fontFamily || '').trim() || null,
-          titleColor: null,
-          description: null,
-          imageUrl: null,
-          route: null,
-          code: 'FONT_FAMILY',
-          note: null,
-          noteColor: null,
-          buttonText: null
-        },
-        {
-          enabled: true,
-          itemType: 'LINK' as AdminHomeSectionItemType,
-          refId: null,
-          title: null,
-          titleColor: String(this.theme.primaryColor || '').trim() || null,
-          description: null,
-          imageUrl: null,
-          route: null,
-          code: 'PRIMARY_COLOR',
-          note: null,
-          noteColor: null,
-          buttonText: null
-        }
-      ]
-    };
+    const requests = [
+      this.adminData.updateHomeSection('SALE_LAYOUT', layoutPayload as any),
+      ...this.blocks.map((block) =>
+        this.adminData.updateHomeSection(this.sectionKey(block), this.buildBlockPayload(block) as any)
+      ),
+      ...this.buildLegacyMirrorRequests()
+    ];
 
-    const productsPayload = {
-      title: this.productsSection.title?.trim() || null,
-      enabled: !!this.productsSection.enabled,
-      items: [] as any[]
-    };
-
-    forkJoin({
-      hero: this.adminData.updateHomeSection('SALE_HERO', heroPayload as any),
-      vouchers: this.adminData.updateHomeSection('SALE_VOUCHERS', vouchersPayload as any),
-      categories: this.adminData.updateHomeSection('SALE_CATEGORIES', categoriesPayload as any),
-      sectionsNav: this.adminData.updateHomeSection('SALE_SECTIONS', sectionsNavPayload as any),
-      theme: this.adminData.updateHomeSection('SALE_THEME', themePayload as any),
-      products: this.adminData.updateHomeSection('SALE_PRODUCTS', productsPayload as any)
-    }).subscribe({
-      next: (res: any) => {
+    forkJoin(requests).subscribe({
+      next: (responses: any[]) => {
         this.saving = false;
-        const ok =
-          !!res?.hero?.success &&
-          !!res?.vouchers?.success &&
-          !!res?.categories?.success &&
-          !!res?.sectionsNav?.success &&
-          !!res?.theme?.success &&
-          !!res?.products?.success;
+        const ok = responses.every((x) => !!x?.success);
         if (!ok) {
           this.error = 'Lưu cấu hình thất bại.';
           return;
@@ -274,44 +193,105 @@ export class AdminSalePageComponent {
     });
   }
 
-  addHeroSlide(): void {
-    this.hero.items.push({
+  addBlock(type: SaleBlockType): void {
+    this.blocks.push(this.createBlock(type));
+  }
+
+  removeBlock(index: number): void {
+    this.blocks.splice(index, 1);
+  }
+
+  moveBlockUp(index: number): void {
+    if (index <= 0) return;
+    const prev = this.blocks[index - 1];
+    this.blocks[index - 1] = this.blocks[index];
+    this.blocks[index] = prev;
+  }
+
+  moveBlockDown(index: number): void {
+    if (index >= this.blocks.length - 1) return;
+    const next = this.blocks[index + 1];
+    this.blocks[index + 1] = this.blocks[index];
+    this.blocks[index] = next;
+  }
+
+  addHeroSlide(block: SaleBlock): void {
+    block.heroItems.push(this.createHeroItem());
+  }
+
+  addVoucher(block: SaleBlock): void {
+    block.voucherItems.push({
       enabled: true,
-      itemType: 'LINK',
-      title: 'MUA NHIỀU GIẢM NHIỀU',
-      titleColor: null,
-      note: 'Ưu đãi nổi bật trong hôm nay',
-      noteColor: null,
-      description: 'Săn sản phẩm đang giảm giá trực tiếp từ hệ thống. Nhận voucher độc quyền và khám phá danh mục bạn quan tâm.',
-      imageUrl: null,
-      buttonText: 'Mua ngay',
-      route: null,
-      ctaAction: 'SCROLL',
-      ctaCategorySlug: null,
-      customRoute: null
+      refId: this.coupons[0]?.id ?? null,
+      title: null,
+      note: null,
+      buttonText: 'Sao chép mã'
     });
   }
 
-  onCtaActionChange(it: ItemForm): void {
-    const act = (it?.ctaAction || 'SCROLL') as CtaAction;
-    if (act !== 'CATEGORY') {
-      it.ctaCategorySlug = null;
-    }
-    if (act !== 'CUSTOM') {
-      it.customRoute = null;
-    }
+  fillAllVouchers(block: SaleBlock): void {
+    const rows = Array.isArray(this.coupons) ? this.coupons : [];
+    block.voucherItems = rows.map((c) => ({
+      enabled: true,
+      refId: c.id,
+      title: null,
+      note: null,
+      buttonText: 'Sao chép mã'
+    }));
   }
 
-  resolveImageUrl(src?: string | null): string {
-    const s = String(src || '').trim();
-    if (!s) return '';
-    if (s.startsWith('data:') || s.startsWith('blob:')) return s;
-    if (/^https?:\/\//i.test(s)) return s;
-    if (s.startsWith('/')) return `${this.apiBaseUrl}${s}`;
-    return `${this.apiBaseUrl}/${s}`;
+  addRoundCategory(block: SaleBlock): void {
+    const first = this.categoryOptions[0];
+    block.categoryItems.push({
+      enabled: true,
+      slug: first?.slug || '',
+      label: first?.label || '',
+      imageUrl: first?.imageUrl || null
+    });
+    this.activeCategoryEditorIndex[block.id] = Math.max(0, block.categoryItems.length - 1);
   }
 
-  async onHeroFileSelect(index: number, event: Event): Promise<void> {
+  addProductCategory(block: SaleBlock): void {
+    const first = this.categoryOptions[0];
+    block.productCategoryItems.push({
+      enabled: true,
+      slug: first?.slug || '',
+      label: first?.label || '',
+      imageUrl: first?.imageUrl || null
+    });
+  }
+
+  removeHeroSlide(block: SaleBlock, index: number): void {
+    block.heroItems.splice(index, 1);
+  }
+
+  removeVoucher(block: SaleBlock, index: number): void {
+    block.voucherItems.splice(index, 1);
+  }
+
+  removeRoundCategory(block: SaleBlock, index: number): void {
+    block.categoryItems.splice(index, 1);
+    const next = Math.max(0, Math.min(this.activeCategoryEditorIndex[block.id] ?? 0, block.categoryItems.length - 1));
+    this.activeCategoryEditorIndex[block.id] = next;
+  }
+
+  removeProductCategory(block: SaleBlock, index: number): void {
+    block.productCategoryItems.splice(index, 1);
+  }
+
+  onCategoryChoiceChange(item: CategoryLinkForm): void {
+    const found = this.categoryOptions.find((x) => x.slug === item.slug);
+    if (!found) return;
+    item.label = found.label;
+    item.imageUrl = found.imageUrl || null;
+  }
+
+  onHeroCtaActionChange(item: HeroItemForm): void {
+    if (item.ctaAction !== 'CATEGORY') item.ctaCategorySlug = null;
+    if (item.ctaAction !== 'CUSTOM') item.customRoute = null;
+  }
+
+  async onHeroFileSelect(block: SaleBlock, index: number, event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input?.files?.[0];
     if (!file) return;
@@ -327,66 +307,43 @@ export class AdminSalePageComponent {
         this.error = res?.message || 'Upload thất bại.';
         return;
       }
-      if (index < 0 || index >= this.hero.items.length) return;
-      this.hero.items[index].imageUrl = uploaded;
+      if (index < 0 || index >= block.heroItems.length) return;
+      block.heroItems[index].imageUrl = uploaded;
     } catch (e: any) {
       this.error = e?.error?.message || 'Không upload được ảnh.';
     } finally {
-      (event.target as HTMLInputElement).value = '';
+      input.value = '';
     }
   }
 
-  clearHeroImage(index: number): void {
-    if (index < 0 || index >= this.hero.items.length) return;
-    this.hero.items[index].imageUrl = null;
+  clearHeroImage(block: SaleBlock, index: number): void {
+    if (index < 0 || index >= block.heroItems.length) return;
+    block.heroItems[index].imageUrl = null;
   }
 
-  addVoucher(): void {
-    const first = this.coupons[0]?.id ?? null;
-    this.vouchers.items.push({
-      enabled: true,
-      itemType: 'COUPON',
-      refId: first,
-      title: null,
-      note: null,
-      buttonText: 'Sao chép mã'
-    });
-  }
-
-  remove(list: ItemForm[], i: number): void {
-    list.splice(i, 1);
-  }
-
-  fillAllVouchers(): void {
+  async onRoundCategoryFileSelect(block: SaleBlock, index: number, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
     this.error = '';
-    const rows = Array.isArray(this.coupons) ? this.coupons : [];
-    if (rows.length === 0) {
-      this.error = 'Chưa có voucher trong hệ thống để tự động cấu hình.';
-      return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const url = `${environment.apiBaseUrl}/api/admin/uploads`;
+      const res = await this.http.post<ApiResponse<{ url: string }>>(url, formData).toPromise();
+      const uploaded = res?.data?.url;
+      if (!uploaded) {
+        this.error = res?.message || 'Upload thất bại.';
+        return;
+      }
+      if (index < 0 || index >= block.categoryItems.length) return;
+      block.categoryItems[index].imageUrl = uploaded;
+    } catch (e: any) {
+      this.error = e?.error?.message || 'Không upload được ảnh.';
+    } finally {
+      input.value = '';
     }
-
-    this.vouchers.items = rows.map((c) => ({
-      enabled: true,
-      itemType: 'COUPON',
-      refId: c.id,
-      title: null,
-      note: null,
-      buttonText: 'Sao chép mã'
-    }));
-  }
-
-  up(list: ItemForm[], i: number): void {
-    if (i <= 0) return;
-    const a = list[i - 1];
-    list[i - 1] = list[i];
-    list[i] = a;
-  }
-
-  down(list: ItemForm[], i: number): void {
-    if (i >= list.length - 1) return;
-    const a = list[i + 1];
-    list[i + 1] = list[i];
-    list[i] = a;
   }
 
   couponCode(id?: number | null): string {
@@ -394,19 +351,492 @@ export class AdminSalePageComponent {
     return c ? c.code : '';
   }
 
-  private loadCoupons(): void {
-    this.adminData.getCoupons().subscribe({
-      next: (res: any) => {
-        const rows = Array.isArray(res?.data) ? res.data : [];
-        this.coupons = rows;
-      },
-      error: () => {
-        this.coupons = [];
-      }
-    });
+  resolveImageUrl(src?: string | null): string {
+    const s = String(src || '').trim();
+    if (!s) return '';
+    if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.startsWith('/')) return `${this.apiBaseUrl}${s}`;
+    return `${this.apiBaseUrl}/${s}`;
   }
 
-  private heroRoute(it: ItemForm): string | null {
+  typeLabel(type: SaleBlockType): string {
+    if (type === 'HERO') return 'Banner (Hero)';
+    if (type === 'VOUCHERS') return 'Voucher';
+    if (type === 'ROUND_CATEGORIES') return 'Danh mục tròn';
+    return 'Sản phẩm';
+  }
+
+  changeBlockType(block: SaleBlock, nextType: SaleBlockType): void {
+    if (!block || !nextType || block.type === nextType) return;
+
+    block.type = nextType;
+    block.title = this.defaultTitle(nextType);
+    block.heroItems = nextType === 'HERO' ? [this.createHeroItem()] : [];
+    block.voucherItems = nextType === 'VOUCHERS' ? [this.createVoucherItem()] : [];
+    block.categoryItems = [];
+    block.productCategoryItems = [];
+    this.activeCategoryEditorIndex[block.id] = 0;
+  }
+
+  selectedRoundCategory(block: SaleBlock): CategoryLinkForm | null {
+    const index = this.activeCategoryEditorIndex[block.id] ?? 0;
+    return block.categoryItems[index] ?? null;
+  }
+
+  setActiveRoundCategory(block: SaleBlock, index: number): void {
+    this.activeCategoryEditorIndex[block.id] = index;
+  }
+
+  moveRoundCategory(block: SaleBlock, direction: -1 | 1): void {
+    const index = this.activeCategoryEditorIndex[block.id] ?? 0;
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= block.categoryItems.length) return;
+    const temp = block.categoryItems[index];
+    block.categoryItems[index] = block.categoryItems[target];
+    block.categoryItems[target] = temp;
+    this.activeCategoryEditorIndex[block.id] = target;
+  }
+
+  moveRoundCategoryVertical(block: SaleBlock, direction: -1 | 1): void {
+    const columns = 6;
+    const index = this.activeCategoryEditorIndex[block.id] ?? 0;
+    const target = index + direction * columns;
+    if (index < 0 || target < 0 || target >= block.categoryItems.length) return;
+    const temp = block.categoryItems[index];
+    block.categoryItems[index] = block.categoryItems[target];
+    block.categoryItems[target] = temp;
+    this.activeCategoryEditorIndex[block.id] = target;
+  }
+
+  openProductPicker(block: SaleBlock): void {
+    this.productPickerBlockId = block.id;
+    this.productPickerQuery = '';
+    this.productPickerTempSlugs = block.productCategoryItems.map((item) => item.slug).filter(Boolean);
+  }
+
+  openVoucherPicker(block: SaleBlock): void {
+    this.voucherPickerBlockId = block.id;
+    this.voucherPickerQuery = '';
+    this.voucherPickerTempIds = block.voucherItems.map((item) => Number(item.refId || 0)).filter(Boolean);
+  }
+
+  closeVoucherPicker(): void {
+    this.voucherPickerBlockId = null;
+    this.voucherPickerQuery = '';
+    this.voucherPickerTempIds = [];
+  }
+
+  isVoucherPickerOpen(block: SaleBlock): boolean {
+    return this.voucherPickerBlockId === block.id;
+  }
+
+  activeVoucherPickerBlock(): SaleBlock | null {
+    return this.blocks.find((block) => block.id === this.voucherPickerBlockId) || null;
+  }
+
+  toggleVoucherPickerId(id: number): void {
+    const index = this.voucherPickerTempIds.indexOf(id);
+    if (index >= 0) this.voucherPickerTempIds.splice(index, 1);
+    else this.voucherPickerTempIds.push(id);
+  }
+
+  applyVoucherPicker(block: SaleBlock): void {
+    const selected = this.coupons.filter((item) => this.voucherPickerTempIds.includes(item.id)).slice(0, 4);
+    block.voucherItems = selected.map((item) => ({
+      enabled: true,
+      refId: item.id,
+      title: null,
+      note: null,
+      buttonText: 'Sao chép mã'
+    }));
+    this.closeVoucherPicker();
+  }
+
+  filteredCoupons(): AdminCouponResponse[] {
+    const query = this.voucherPickerQuery.trim().toLowerCase();
+    if (!query) return this.coupons;
+    return this.coupons.filter((item) => String(item.code || '').toLowerCase().includes(query));
+  }
+
+  openRoundPicker(block: SaleBlock): void {
+    this.roundPickerBlockId = block.id;
+    this.roundPickerQuery = '';
+    this.roundPickerTempSlugs = block.categoryItems.map((item) => item.slug).filter(Boolean);
+  }
+
+  closeRoundPicker(): void {
+    this.roundPickerBlockId = null;
+    this.roundPickerQuery = '';
+    this.roundPickerTempSlugs = [];
+  }
+
+  isRoundPickerOpen(block: SaleBlock): boolean {
+    return this.roundPickerBlockId === block.id;
+  }
+
+  activeRoundPickerBlock(): SaleBlock | null {
+    return this.blocks.find((block) => block.id === this.roundPickerBlockId) || null;
+  }
+
+  toggleRoundPickerSlug(slug: string): void {
+    const index = this.roundPickerTempSlugs.indexOf(slug);
+    if (index >= 0) this.roundPickerTempSlugs.splice(index, 1);
+    else this.roundPickerTempSlugs.push(slug);
+  }
+
+  applyRoundPicker(block: SaleBlock): void {
+    const selected = this.categoryOptions.filter((item) => this.roundPickerTempSlugs.includes(item.slug)).slice(0, 12);
+    block.categoryItems = selected.map((item) => ({
+      enabled: true,
+      slug: item.slug,
+      label: item.label,
+      imageUrl: item.imageUrl || null
+    }));
+    this.activeCategoryEditorIndex[block.id] = 0;
+    this.closeRoundPicker();
+  }
+
+  filteredRoundCategoryOptions(): CategoryOption[] {
+    const query = this.roundPickerQuery.trim().toLowerCase();
+    if (!query) return this.categoryOptions;
+    return this.categoryOptions.filter((item) =>
+      item.label.toLowerCase().includes(query) || item.slug.toLowerCase().includes(query)
+    );
+  }
+
+  closeProductPicker(): void {
+    this.productPickerBlockId = null;
+    this.productPickerQuery = '';
+    this.productPickerTempSlugs = [];
+  }
+
+  isProductPickerOpen(block: SaleBlock): boolean {
+    return this.productPickerBlockId === block.id;
+  }
+
+  activeProductPickerBlock(): SaleBlock | null {
+    return this.blocks.find((block) => block.id === this.productPickerBlockId) || null;
+  }
+
+  toggleProductPickerSlug(slug: string): void {
+    const index = this.productPickerTempSlugs.indexOf(slug);
+    if (index >= 0) {
+      this.productPickerTempSlugs.splice(index, 1);
+    } else {
+      this.productPickerTempSlugs.push(slug);
+    }
+  }
+
+  applyProductPicker(block: SaleBlock): void {
+    const selected = this.categoryOptions.filter((item) => this.productPickerTempSlugs.includes(item.slug));
+    block.productCategoryItems = selected.map((item) => ({
+      enabled: true,
+      slug: item.slug,
+      label: item.label,
+      imageUrl: item.imageUrl || null
+    }));
+    this.closeProductPicker();
+  }
+
+  clearProductPicker(block: SaleBlock): void {
+    block.productCategoryItems = [];
+    this.closeProductPicker();
+  }
+
+  filteredCategoryOptions(): CategoryOption[] {
+    const query = this.productPickerQuery.trim().toLowerCase();
+    if (!query) return this.categoryOptions;
+    return this.categoryOptions.filter((item) =>
+      item.label.toLowerCase().includes(query) || item.slug.toLowerCase().includes(query)
+    );
+  }
+
+  selectedProductCategorySummary(block: SaleBlock): string {
+    const count = block.productCategoryItems.length;
+    if (!count) return 'Chưa chọn danh mục nào để hiển thị sản phẩm trên trang bán hàng.';
+    if (count === 1) return 'Đang hiển thị toàn bộ sản phẩm của 1 danh mục đã chọn.';
+    return `Đang hiển thị toàn bộ sản phẩm của ${count} danh mục đã chọn.`;
+  }
+
+  visibleRoundCategoryItems(block: SaleBlock): CategoryLinkForm[] {
+    return block.categoryItems.slice(0, 12);
+  }
+
+  couponMinOrderText(id?: number | null): string {
+    const coupon = this.coupons.find((item) => item.id === Number(id || 0));
+    const minOrder = Number((coupon as any)?.minOrderValue ?? (coupon as any)?.minimumOrder ?? 0);
+    if (!minOrder) return 'Đơn từ 0đ';
+    return `Đơn từ ${new Intl.NumberFormat('vi-VN').format(minOrder)}đ`;
+  }
+
+  couponSummaryText(coupon: AdminCouponResponse): string {
+    return `Đơn từ ${new Intl.NumberFormat('vi-VN').format(Number((coupon as any)?.minOrderValue ?? (coupon as any)?.minimumOrder ?? 0))}đ`;
+  }
+
+  private parseDynamicBlocks(sections: HomeSectionResponse[]): SaleBlock[] {
+    const layout = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_LAYOUT');
+    const layoutItems = Array.isArray(layout?.items) ? layout!.items! : [];
+    const byKey = new Map<string, HomeSectionResponse>();
+    for (const sec of sections) {
+      const key = String(sec?.sectionKey || '').trim().toUpperCase();
+      if (key) byKey.set(key, sec);
+    }
+
+    const blocks = layoutItems
+      .filter((item) => String(item?.itemType || '').toUpperCase() === 'LINK')
+      .map((item) => {
+        const type = String(item?.code || '').trim().toUpperCase() as SaleBlockType;
+        const key = String(item?.route || '').trim().toUpperCase();
+        if (!key || !['HERO', 'VOUCHERS', 'ROUND_CATEGORIES', 'PRODUCTS'].includes(type)) return null;
+        const section = byKey.get(key);
+        return this.mapSectionToBlock(key.replace(/^SALE_BLOCK_/, ''), type, section, item?.title || null, item?.enabled !== false);
+      })
+      .filter((x): x is SaleBlock => !!x);
+
+    return blocks;
+  }
+
+  private buildLegacyBlocks(sections: HomeSectionResponse[]): SaleBlock[] {
+    const hero = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_HERO');
+    const vouchers = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_VOUCHERS');
+    const categories = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_CATEGORIES');
+    const products = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_PRODUCTS');
+
+    return [
+      this.mapSectionToBlock('hero-1', 'HERO', hero, hero?.title || this.defaultTitle('HERO'), hero?.enabled !== false),
+      this.mapSectionToBlock('voucher-1', 'VOUCHERS', vouchers, vouchers?.title || this.defaultTitle('VOUCHERS'), vouchers?.enabled !== false),
+      this.mapSectionToBlock('round-1', 'ROUND_CATEGORIES', categories, categories?.title || this.defaultTitle('ROUND_CATEGORIES'), categories?.enabled !== false),
+      this.mapSectionToBlock('products-1', 'PRODUCTS', products, products?.title || this.defaultTitle('PRODUCTS'), products?.enabled !== false)
+    ];
+  }
+
+  private mapSectionToBlock(
+    id: string,
+    type: SaleBlockType,
+    section: HomeSectionResponse | undefined,
+    title: string | null,
+    enabled: boolean
+  ): SaleBlock {
+    const block = this.createBlock(type, id);
+    block.title = String(title || this.defaultTitle(type));
+    block.enabled = enabled;
+
+    const items = Array.isArray(section?.items) ? section!.items! : [];
+
+    if (type === 'HERO') {
+      block.heroItems = items
+        .filter((it) => String(it?.itemType || '').toUpperCase() === 'LINK')
+        .map((it) => {
+          const cta = this.deriveCtaFromRoute(it?.route ?? null);
+          return {
+            enabled: it?.enabled !== false,
+            title: it?.title ?? null,
+            titleColor: (it as any)?.titleColor ?? null,
+            note: (it as any)?.note ?? null,
+            noteColor: (it as any)?.noteColor ?? null,
+            description: it?.description ?? null,
+            imageUrl: it?.imageUrl ?? null,
+            buttonText: it?.buttonText ?? null,
+            route: it?.route ?? null,
+            ctaAction: cta.ctaAction,
+            ctaCategorySlug: cta.ctaCategorySlug,
+            customRoute: cta.customRoute
+          };
+        });
+      if (block.heroItems.length === 0) block.heroItems = [this.createHeroItem()];
+    }
+
+    if (type === 'VOUCHERS') {
+      block.voucherItems = items
+        .filter((it) => String(it?.itemType || '').toUpperCase() === 'COUPON')
+        .map((it) => ({
+          enabled: it?.enabled !== false,
+          refId: it?.refId ?? null,
+          title: it?.title ?? null,
+          note: (it as any)?.note ?? null,
+          buttonText: it?.buttonText ?? null
+        }));
+      if (block.voucherItems.length === 0) block.voucherItems = [this.createVoucherItem()];
+    }
+
+    if (type === 'ROUND_CATEGORIES') {
+      block.categoryItems = items
+        .filter((it) => String(it?.itemType || '').toUpperCase() === 'LINK')
+        .map((it) => ({
+          enabled: it?.enabled !== false,
+          slug: String(it?.code || '').trim(),
+          label: String(it?.title || '').trim(),
+          imageUrl: it?.imageUrl ?? null
+        }))
+        .filter((it) => !!it.slug);
+    }
+
+    if (type === 'PRODUCTS') {
+      block.productCategoryItems = items
+        .filter((it) => String(it?.itemType || '').toUpperCase() === 'LINK')
+        .map((it) => ({
+          enabled: it?.enabled !== false,
+          slug: String(it?.code || '').trim(),
+          label: String(it?.title || '').trim(),
+          imageUrl: null
+        }))
+        .filter((it) => !!it.slug);
+    }
+
+    return block;
+  }
+
+  private buildBlockPayload(block: SaleBlock) {
+    if (block.type === 'HERO') {
+      return {
+        title: block.title?.trim() || this.defaultTitle(block.type),
+        enabled: !!block.enabled,
+        items: block.heroItems.map((i) => ({
+          enabled: !!i.enabled,
+          itemType: 'LINK' as AdminHomeSectionItemType,
+          refId: null,
+          title: i.title ?? null,
+          titleColor: i.titleColor ?? null,
+          description: i.description ?? null,
+          imageUrl: i.imageUrl ?? null,
+          route: this.heroRoute(i),
+          code: null,
+          note: i.note ?? null,
+          noteColor: i.noteColor ?? null,
+          buttonText: i.buttonText ?? null
+        }))
+      };
+    }
+
+    if (block.type === 'VOUCHERS') {
+      return {
+        title: block.title?.trim() || this.defaultTitle(block.type),
+        enabled: !!block.enabled,
+        items: block.voucherItems.map((i) => ({
+          enabled: !!i.enabled,
+          itemType: 'COUPON' as AdminHomeSectionItemType,
+          refId: i.refId ?? null,
+          title: i.title ?? null,
+          description: null,
+          imageUrl: null,
+          route: null,
+          code: null,
+          note: i.note ?? null,
+          buttonText: i.buttonText ?? null
+        }))
+      };
+    }
+
+    if (block.type === 'ROUND_CATEGORIES') {
+      return {
+        title: block.title?.trim() || this.defaultTitle(block.type),
+        enabled: !!block.enabled,
+        items: block.categoryItems.map((i) => ({
+          enabled: !!i.enabled,
+          itemType: 'LINK' as AdminHomeSectionItemType,
+          refId: null,
+          title: i.label || null,
+          description: null,
+          imageUrl: i.imageUrl || null,
+          route: i.slug ? `/category/${i.slug}` : null,
+          code: i.slug || null,
+          note: null,
+          buttonText: null
+        }))
+      };
+    }
+
+    return {
+      title: block.title?.trim() || this.defaultTitle(block.type),
+      enabled: !!block.enabled,
+      items: block.productCategoryItems.map((i) => ({
+        enabled: !!i.enabled,
+        itemType: 'LINK' as AdminHomeSectionItemType,
+        refId: null,
+        title: i.label || null,
+        description: null,
+        imageUrl: null,
+        route: i.slug ? `/category/${i.slug}` : null,
+        code: i.slug || null,
+        note: null,
+        buttonText: null
+      }))
+    };
+  }
+
+  private buildLegacyMirrorRequests() {
+    const requests = [] as ReturnType<AdminDataService['updateHomeSection']>[];
+    const firstHero = this.blocks.find((block) => block.type === 'HERO') || this.createBlock('HERO', 'hero-legacy');
+    const firstVouchers =
+      this.blocks.find((block) => block.type === 'VOUCHERS') || this.createBlock('VOUCHERS', 'voucher-legacy');
+    const firstRound =
+      this.blocks.find((block) => block.type === 'ROUND_CATEGORIES') || this.createBlock('ROUND_CATEGORIES', 'round-legacy');
+    const firstProducts =
+      this.blocks.find((block) => block.type === 'PRODUCTS') || this.createBlock('PRODUCTS', 'products-legacy');
+
+    requests.push(this.adminData.updateHomeSection('SALE_HERO', this.buildBlockPayload(firstHero) as any));
+    requests.push(this.adminData.updateHomeSection('SALE_VOUCHERS', this.buildBlockPayload(firstVouchers) as any));
+    requests.push(this.adminData.updateHomeSection('SALE_CATEGORIES', this.buildBlockPayload(firstRound) as any));
+    requests.push(this.adminData.updateHomeSection('SALE_PRODUCTS', this.buildBlockPayload(firstProducts) as any));
+
+    return requests;
+  }
+
+  private createBlock(type: SaleBlockType, forcedId?: string): SaleBlock {
+    const block = {
+      id: forcedId || `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      title: this.defaultTitle(type),
+      enabled: true,
+      heroItems: type === 'HERO' ? [this.createHeroItem()] : [],
+      voucherItems: type === 'VOUCHERS' ? [this.createVoucherItem()] : [],
+      categoryItems: [],
+      productCategoryItems: []
+    };
+    this.activeCategoryEditorIndex[block.id] = 0;
+    return block;
+  }
+
+  private createHeroItem(): HeroItemForm {
+    return {
+      enabled: true,
+      title: 'MUA NHIỀU GIẢM NHIỀU',
+      titleColor: null,
+      note: 'Ưu đãi nổi bật trong hôm nay',
+      noteColor: null,
+      description: 'Săn sản phẩm đang giảm giá trực tiếp từ hệ thống. Nhận voucher độc quyền và khám phá danh mục bạn quan tâm.',
+      imageUrl: null,
+      buttonText: 'Mua ngay',
+      route: null,
+      ctaAction: 'SCROLL',
+      ctaCategorySlug: null,
+      customRoute: null
+    };
+  }
+
+  private createVoucherItem(): VoucherItemForm {
+    return {
+      enabled: true,
+      refId: this.coupons[0]?.id ?? null,
+      title: null,
+      note: null,
+      buttonText: 'Sao chép mã'
+    };
+  }
+
+  private defaultTitle(type: SaleBlockType): string {
+    if (type === 'HERO') return 'Banner (Hero)';
+    if (type === 'VOUCHERS') return 'NHẬN VOUCHER ĐỘC QUYỀN ONLINE';
+    if (type === 'ROUND_CATEGORIES') return 'HÔM NAY SALE GÌ?';
+    return 'SẢN PHẨM ĐANG GIẢM GIÁ';
+  }
+
+  private sectionKey(block: SaleBlock): string {
+    return `SALE_BLOCK_${String(block.id || '').trim().toUpperCase()}`;
+  }
+
+  private heroRoute(it: HeroItemForm): string | null {
     const act = (it?.ctaAction || 'SCROLL') as CtaAction;
     if (act === 'SCROLL') return null;
     if (act === 'SALE') return '/sale';
@@ -430,21 +860,36 @@ export class AdminSalePageComponent {
     return { ctaAction: 'CUSTOM', ctaCategorySlug: null, customRoute: r };
   }
 
+  private loadCoupons(): void {
+    this.adminData.getCoupons().subscribe({
+      next: (res) => {
+        this.coupons = Array.isArray(res?.data) ? res.data : [];
+      },
+      error: () => {
+        this.coupons = [];
+      }
+    });
+  }
+
   private loadCategoryTree(): void {
     const url = `${environment.apiBaseUrl}/api/categories/tree`;
     this.http.get<ApiResponse<CategoryNode[]>>(url).subscribe({
       next: (res) => {
         const rows = Array.isArray(res?.data) ? res.data : [];
-        const all = this.flattenCategories(rows);
-        const out = all
-          .map((c) => ({ slug: String(c?.slug || '').trim(), label: String(c?.name || '').trim() }))
+        const out = this.flattenCategories(rows)
+          .map((c) => ({
+            slug: String(c?.slug || '').trim(),
+            label: String(c?.name || '').trim(),
+            imageUrl: c?.imageUrl || null,
+            level: Number((c as any)?.__level || 0)
+          }))
           .filter((x) => !!x.slug && !!x.label);
 
-        const uniq = new Map<string, { slug: string; label: string }>();
+        const uniq = new Map<string, CategoryOption>();
         for (const x of out) {
           if (!uniq.has(x.slug)) uniq.set(x.slug, x);
         }
-        this.categoryOptions = Array.from(uniq.values()).sort((a, b) => a.label.localeCompare(b.label));
+        this.categoryOptions = Array.from(uniq.values());
       },
       error: () => {
         this.categoryOptions = [];
@@ -454,157 +899,13 @@ export class AdminSalePageComponent {
 
   private flattenCategories(nodes: CategoryNode[]): CategoryNode[] {
     const out: CategoryNode[] = [];
-    const walk = (n: CategoryNode) => {
+    const walk = (n: CategoryNode | null | undefined, level = 0) => {
       if (!n) return;
-      out.push(n);
+      out.push({ ...n, __level: level } as CategoryNode & { __level: number });
       const children = Array.isArray(n.children) ? n.children : [];
-      children.forEach(walk);
+      children.forEach((child) => walk(child, level + 1));
     };
-    (nodes || []).forEach(walk);
+    (nodes || []).forEach((node) => walk(node, 0));
     return out;
-  }
-
-  private applyHero(sections: HomeSectionResponse[]): void {
-    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_HERO');
-    this.hero.title = String(sec?.title || 'Trang Sale');
-    this.hero.enabled = sec?.enabled !== false;
-
-    const items = Array.isArray(sec?.items) ? sec!.items! : [];
-    this.hero.items = items
-      .filter((it) => String(it?.itemType || '').toUpperCase() === 'LINK')
-      .map((it) => {
-        const cta = this.deriveCtaFromRoute(it?.route ?? null);
-        return {
-          enabled: it?.enabled !== false,
-          itemType: 'LINK',
-          title: it?.title ?? null,
-          titleColor: (it as any)?.titleColor ?? null,
-          note: (it as any)?.note ?? null,
-          noteColor: (it as any)?.noteColor ?? null,
-          description: it?.description ?? null,
-          imageUrl: it?.imageUrl ?? null,
-          buttonText: it?.buttonText ?? null,
-          route: it?.route ?? null,
-          ctaAction: cta.ctaAction,
-          ctaCategorySlug: cta.ctaCategorySlug,
-          customRoute: cta.customRoute
-        };
-      });
-
-    if (this.hero.items.length === 0) {
-      this.addHeroSlide();
-    }
-  }
-
-  private applyVouchers(sections: HomeSectionResponse[]): void {
-    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_VOUCHERS');
-    this.vouchers.title = String(sec?.title || 'NHẬN VOUCHER ĐỘC QUYỀN ONLINE');
-    this.vouchers.enabled = sec?.enabled !== false;
-
-    const items = Array.isArray(sec?.items) ? sec!.items! : [];
-    this.vouchers.items = items
-      .filter((it) => String(it?.itemType || '').toUpperCase() === 'COUPON')
-      .map((it) => ({
-        enabled: it?.enabled !== false,
-        itemType: 'COUPON',
-        refId: it?.refId ?? null,
-        title: it?.title ?? null,
-        note: (it as any)?.note ?? null,
-        buttonText: it?.buttonText ?? null
-      }));
-
-    if (this.vouchers.items.length === 0) {
-      this.addVoucher();
-    }
-  }
-
-  private applyCategories(sections: HomeSectionResponse[]): void {
-    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_CATEGORIES');
-    this.categories.title = String(sec?.title || 'HÔM NAY SALE GÌ?');
-    this.categories.enabled = sec?.enabled !== false;
-  }
-
-  private applySectionsNav(sections: HomeSectionResponse[]): void {
-    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_SECTIONS');
-    this.sectionsNav.title = String(sec?.title || 'Menu nhanh');
-    this.sectionsNav.enabled = sec?.enabled !== false;
-
-    const rawItems = Array.isArray(sec?.items) ? sec!.items! : [];
-    const allowedKeys = new Set(this.sectionsNavDefaults.map((x) => x.key));
-
-    const mapped = rawItems
-      .filter((it) => String(it?.itemType || '').toUpperCase() === 'LINK')
-      .map((it) => {
-        const code = String((it as any)?.code || '').trim().toUpperCase();
-        return {
-          enabled: it?.enabled !== false,
-          itemType: 'LINK' as AdminHomeSectionItemType,
-          code: code || null,
-          title: it?.title ?? null
-        } as ItemForm;
-      })
-      .filter((it) => !!it.code && allowedKeys.has(String(it.code)))
-      .map((it) => ({ ...it, code: String(it.code).toUpperCase() }));
-
-    const byCode = new Map<string, ItemForm>();
-    for (const it of mapped) {
-      const k = String(it.code || '').toUpperCase();
-      if (!k) continue;
-      if (!byCode.has(k)) byCode.set(k, it);
-    }
-
-    const order: string[] = [];
-    for (const it of mapped) {
-      const k = String(it.code || '').toUpperCase();
-      if (!k) continue;
-      if (!order.includes(k)) order.push(k);
-    }
-    for (const d of this.sectionsNavDefaults) {
-      const k = String(d.key).toUpperCase();
-      if (!order.includes(k)) order.push(k);
-    }
-
-    this.sectionsNav.items = order
-      .map((k) => {
-        const def = this.sectionsNavDefaults.find((x) => x.key === k);
-        const it = byCode.get(k);
-        return {
-          enabled: it ? it.enabled !== false : true,
-          itemType: 'LINK' as AdminHomeSectionItemType,
-          code: k,
-          title: (it?.title ?? def?.title ?? k) as any
-        } as ItemForm;
-      })
-      .filter((x) => allowedKeys.has(String(x.code || '')));
-  }
-
-  private applyTheme(sections: HomeSectionResponse[]): void {
-    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_THEME');
-    this.theme.title = String(sec?.title || 'Giao diện (Theme)');
-    this.theme.enabled = sec ? sec.enabled !== false : true;
-
-    const items = Array.isArray(sec?.items) ? sec!.items! : [];
-    let fontFamily = '';
-    let primaryColor = '';
-
-    for (const it of items) {
-      if (!it) continue;
-      const code = String(it.code || '').trim().toUpperCase();
-      if (code === 'FONT_FAMILY') {
-        fontFamily = String(it.title || '').trim();
-      }
-      if (code === 'PRIMARY_COLOR') {
-        primaryColor = String((it as any)?.titleColor || it.title || '').trim();
-      }
-    }
-
-    this.theme.fontFamily = fontFamily;
-    this.theme.primaryColor = primaryColor;
-  }
-
-  private applyProductsSection(sections: HomeSectionResponse[]): void {
-    const sec = sections.find((x) => String(x?.sectionKey || '').toUpperCase() === 'SALE_PRODUCTS');
-    this.productsSection.title = String(sec?.title || 'Sản phẩm đang giảm giá');
-    this.productsSection.enabled = sec ? sec.enabled !== false : true;
   }
 }

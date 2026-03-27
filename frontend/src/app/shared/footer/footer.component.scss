@@ -1,6 +1,9 @@
 .container {
-  width: min(1440px, calc(100% - 24px));
+  width: 100%;
+  max-width: 1800px;
   margin: 0 auto;
+  padding-left: var(--fh-gutter);
+  padding-right: var(--fh-gutter);
 }
 
 .tl-footer {
@@ -9,6 +12,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .tl-footer__top {
@@ -25,9 +29,26 @@
 }
 
 .tl-footer__logo {
-  font-weight: 950;
-  letter-spacing: 0.18em;
-  font-size: 15px;
+  font-family: 'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive;
+  font-weight: 500;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: baseline;
+  text-shadow: 0 10px 22px rgba(2, 6, 23, 0.06);
+}
+
+.tl-footer__logo-l {
+  color: var(--fh-primary);
+  font-size: 1.18em;
+  line-height: 1;
+}
+
+.tl-footer__logo-rest {
+  color: rgba(15, 23, 42, 0.98);
+  font-size: 1em;
+  line-height: 1;
 }
 
 .tl-footer__tagline {
@@ -245,38 +266,38 @@
 }
 
 .tl-footer__icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid #e0e0e0;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: 800;
-  color: #111;
-  background: #fff;
-  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.10);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
 }
 
 .tl-footer__icon:hover {
   transform: translateY(-1px);
-  border-color: rgba(15, 23, 42, 0.18);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.96);
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.16);
 }
 
 .tl-footer__icon-svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 
-.tl-footer__news {
-  margin-left: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #111;
-}
+.tl-footer__icon--tiktok { background: linear-gradient(135deg, #111827, #0b0b0b); }
+.tl-footer__icon--facebook { background: linear-gradient(135deg, #1877f2, #0b5bd3); }
+.tl-footer__icon--zalo { background: linear-gradient(135deg, #0068ff, #0b4fd9); }
+.tl-footer__icon--youtube { background: linear-gradient(135deg, #ff0033, #c40000); }
+.tl-footer__icon--news { background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.92)); }
 
 .tl-footer__divider {
   height: 1px;
@@ -308,6 +329,33 @@
   color: #333;
   line-height: 1.7;
   margin: 4px 0;
+}
+
+.tl-footer__branches {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(17, 24, 39, 0.14);
+}
+
+.tl-footer__branches-title {
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.tl-footer__branches-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tl-footer__branches-list li {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.7;
+  margin: 3px 0;
 }
 
 .tl-footer__badges {
@@ -362,9 +410,13 @@
 }
 
 .tl-footer__brand {
-  font-weight: 900;
-  letter-spacing: 0.28em;
-  font-size: 14px;
+  font-family: 'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive;
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: baseline;
 }
 
 .tl-footer__copyright {

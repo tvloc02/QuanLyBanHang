@@ -21,7 +21,7 @@ declare const google: any;
       <div class="auth-card">
         <div class="auth-header">
           <div class="brand-section">
-            <h1 class="brand-name"><span class="brand-lo">Lo</span><span class="brand-vin">Vin</span></h1>
+            <h1 class="brand-name" aria-label="L.event"><span class="brand-l">L</span><span class="brand-rest">.event</span></h1>
             <p class="brand-tagline">Nâng tầm phong cách của bạn</p>
           </div>
           <a routerLink="/sale" class="back-home">
@@ -33,8 +33,10 @@ declare const google: any;
         </div>
 
         <div class="auth-body">
-          <h2 class="form-title">Chào mừng trở lại</h2>
-          <p class="form-subtitle">Đăng nhập để trải nghiệm dịch vụ tốt nhất</p>
+          <div class="welcome">
+            <h2 class="form-title">Chào mừng trở lại</h2>
+            <p class="form-subtitle">Đăng nhập để trải nghiệm dịch vụ tốt nhất</p>
+          </div>
 
           <div class="form-group">
             <label>Tài khoản</label>
@@ -137,6 +139,9 @@ declare const google: any;
       --border: #e5e7eb;
       --bg-card: #ffffff;
       display: block;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
     }
 
     .auth-container {
@@ -185,19 +190,30 @@ declare const google: any;
     }
 
     .brand-name {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
+      font-family: 'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive;
+      font-weight: 500;
+      font-size: 46px;
+      line-height: 1;
+      letter-spacing: 0;
       margin: 0;
       color: var(--text-main);
+      text-shadow: 0 10px 22px rgba(2, 6, 23, 0.08);
     }
 
-    .brand-lo {
-      color: var(--text-main);
+    .form-title {
+      letter-spacing: -0.4px;
     }
 
-    .brand-vin {
+    .brand-l {
       color: var(--primary);
+      font-size: 1.18em;
+      line-height: 1;
+    }
+
+    .brand-rest {
+      color: rgba(15, 23, 42, 0.98);
+      font-size: 1em;
+      line-height: 1;
     }
 
     .brand-tagline {
@@ -225,9 +241,14 @@ declare const google: any;
       padding: 16px 48px 48px;
     }
 
+    .welcome {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
     .form-title {
       font-size: 26px;
-      font-weight: 800;
+      font-weight: 900;
       color: var(--text-main);
       margin: 0 0 2px;
     }
@@ -235,7 +256,7 @@ declare const google: any;
     .form-subtitle {
       font-size: 14px;
       color: var(--text-muted);
-      margin-bottom: 20px;
+      margin: 0;
     }
 
     .form-group {
@@ -245,7 +266,7 @@ declare const google: any;
     .form-group label {
       display: block;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text-main);
       margin-bottom: 5px;
     }
@@ -400,11 +421,26 @@ declare const google: any;
       justify-content: center;
       height: 54px;
       align-items: center;
+      overflow: hidden;
+      border-radius: 18px;
     }
 
     .google-gsi {
-      transform: scale(1.12);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      transform: scale(1.18);
       transform-origin: center;
+    }
+
+    #googleBtn {
+      width: 100%;
+    }
+
+    .google-btn-wrapper iframe {
+      width: 100% !important;
+      min-width: 100% !important;
+      height: 54px !important;
     }
 
     .auth-footer {
@@ -427,7 +463,7 @@ declare const google: any;
       border: 1.5px solid var(--border);
       border-radius: 18px;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
     }
 

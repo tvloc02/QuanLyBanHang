@@ -19,7 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
       <div class="auth-card">
         <div class="auth-header">
           <div class="brand-section">
-            <h1 class="brand-name"><span class="brand-lo">Lo</span><span class="brand-vin">Vin</span></h1>
+            <h1 class="brand-name" aria-label="L.event"><span class="brand-l">L</span><span class="brand-rest">.event</span></h1>
             <p class="brand-tagline">Khởi đầu phong cách mới</p>
           </div>
           <a routerLink="/sale" class="back-home">
@@ -30,8 +30,10 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
 
         <div class="auth-body">
-          <h2 class="form-title">Tạo Tài Khoản</h2>
-          <p class="form-subtitle">Tham gia cùng chúng tôi để nhận ưu đãi đặc quyền</p>
+          <div class="welcome">
+            <h2 class="form-title">Tạo Tài Khoản</h2>
+            <p class="form-subtitle">Tham gia cùng chúng tôi để nhận ưu đãi đặc quyền</p>
+          </div>
 
           <div class="form-grid">
             <div class="form-group">
@@ -146,7 +148,7 @@ import { AuthService } from '../../core/services/auth.service';
           </button>
 
           <div class="divider">
-            <span>Hoặc đăng ký nhanh với</span>
+            <span>Hoặc</span>
           </div>
 
           <div class="social-row">
@@ -171,6 +173,9 @@ import { AuthService } from '../../core/services/auth.service';
       --border: #e5e7eb;
       --bg-card: #ffffff;
       display: block;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
     }
 
     .auth-container {
@@ -219,23 +224,32 @@ import { AuthService } from '../../core/services/auth.service';
     }
 
     .brand-name {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
+      font-family: 'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive;
+      font-weight: 500;
+      font-size: 46px;
+      line-height: 1;
+      letter-spacing: 0;
       margin: 0;
       color: var(--text-main);
+      text-shadow: 0 10px 22px rgba(2, 6, 23, 0.08);
     }
 
-    .brand-lo { color: var(--text-main); }
+    .brand-l {
+      color: var(--primary);
+      font-size: 1.18em;
+      line-height: 1;
+    }
 
-    .brand-vin { color: var(--primary); }
+    .brand-rest {
+      color: rgba(15, 23, 42, 0.98);
+      font-size: 1em;
+      line-height: 1;
+    }
 
     .brand-tagline {
       font-size: 11px;
       color: var(--text-muted);
       margin-top: 1px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     .back-home {
@@ -253,17 +267,23 @@ import { AuthService } from '../../core/services/auth.service';
       padding: 16px 48px 48px;
     }
 
+    .welcome {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
     .form-title {
       font-size: 26px;
-      font-weight: 800;
+      font-weight: 900;
       color: var(--text-main);
       margin: 0 0 2px;
+      letter-spacing: -0.4px;
     }
 
     .form-subtitle {
       font-size: 14px;
       color: var(--text-muted);
-      margin-bottom: 20px;
+      margin: 0;
     }
 
     .form-grid {
@@ -279,7 +299,7 @@ import { AuthService } from '../../core/services/auth.service';
     .form-group label {
       display: block;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text-main);
       margin-bottom: 4px;
     }
@@ -419,30 +439,36 @@ import { AuthService } from '../../core/services/auth.service';
     .divider span { padding: 0 10px; }
 
     .social-row {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
       margin-bottom: 24px;
-      align-items: center;
+      height: 74px;
+      margin-top: 12px;
     }
 
     .google-wrapper {
       width: 100%;
-      height: 54px;
+      height: 100%;
       display: flex;
       justify-content: center;
-      overflow: hidden;
+      align-items: flex-start;
+      overflow: visible;
     }
 
     #googleBtn {
+      transform: scale(1.35);
+      transform-origin: top center;
       width: 100%;
       display: flex;
       justify-content: center;
-      transform-origin: center;
+      margin: 0;
     }
 
-    #googleBtn iframe {
+    :host ::ng-deep #googleBtn iframe {
       width: 100% !important;
+      height: 54px !important;
+      display: block !important;
     }
 
     .auth-footer {
@@ -462,12 +488,8 @@ import { AuthService } from '../../core/services/auth.service';
       .auth-container { padding: 0; }
       .background-overlay { display: none; }
 
-      .social-row {
+      .form-grid {
         grid-template-columns: 1fr;
-      }
-
-      .google-wrapper {
-        justify-content: center;
       }
     }
   `]
@@ -514,6 +536,10 @@ export class RegisterComponent implements AfterViewInit {
       const wrapperEl = googleBtnEl?.parentElement as HTMLElement | null;
       const width = this.getGoogleBtnWidth(wrapperEl);
 
+      if (googleBtnEl) {
+        (googleBtnEl as HTMLElement).style.transform = '';
+      }
+
       if (width < 320 && this.googleInitRetries < 20) {
         this.googleInitRetries++;
         setTimeout(() => this.initGoogle(), 120);
@@ -531,30 +557,9 @@ export class RegisterComponent implements AfterViewInit {
         width,
         text: 'signup_with'
       });
-
-      setTimeout(() => {
-        this.fitGoogleButtonToWidth(wrapperEl, googleBtnEl as HTMLElement | null);
-      }, 0);
     } catch (e) {
       console.warn('Google SDK Error:', e);
     }
-  }
-
-  private fitGoogleButtonToWidth(wrapperEl: HTMLElement | null, googleBtnEl: HTMLElement | null): void {
-    if (!wrapperEl || !googleBtnEl) return;
-
-    const wrapperWidth = wrapperEl.getBoundingClientRect().width;
-    if (!isFinite(wrapperWidth) || wrapperWidth <= 0) return;
-
-    const iframe = googleBtnEl.querySelector('iframe') as HTMLIFrameElement | null;
-    const iframeWidth = iframe?.getBoundingClientRect?.().width;
-    if (typeof iframeWidth !== 'number' || !isFinite(iframeWidth) || iframeWidth <= 0) return;
-
-    const scaleX = wrapperWidth / iframeWidth;
-    const clamped = Math.max(1, Math.min(2, scaleX));
-
-    googleBtnEl.style.transformOrigin = 'center';
-    googleBtnEl.style.transform = `scaleX(${clamped})`;
   }
 
   private getGoogleBtnWidth(el: HTMLElement | null): number {

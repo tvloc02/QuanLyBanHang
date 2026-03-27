@@ -2,10 +2,14 @@
   <div class="page-head">
     <div class="title">Sản phẩm</div>
     <div class="head-actions">
-      <input class="search" [(ngModel)]="q" placeholder="Tìm theo tên/slug/category/brand..." />
-      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading">Làm mới</button>
-      <button class="btn" type="button" (click)="openCreate()">Thêm sản phẩm</button>
+      <button class="btn ghost" type="button" (click)="exportProductsZip()" [disabled]="loading">Xuất File</button>
+      <button class="btn ghost" type="button" (click)="openImport()" [disabled]="loading">Nhập File</button>
+      <button class="btn" type="button" (click)="openCreate()">Thêm Sản Phẩm</button>
     </div>
+  </div>
+
+  <div class="search-row">
+    <input class="search" [(ngModel)]="q" placeholder="Tìm theo tên/slug/category/brand..." />
   </div>
 
   <div class="alert error" *ngIf="error">{{ error }}</div>
@@ -15,6 +19,7 @@
     <table class="tbl">
       <thead>
         <tr>
+          <th style="width: 100px">Mức độ</th>
           <th style="width: 70px">Ảnh</th>
           <th>Tên</th>
           <th style="width: 170px">Category</th>
@@ -26,9 +31,15 @@
       </thead>
       <tbody>
         <tr *ngIf="!loading && filteredProducts.length === 0">
-          <td colspan="7" class="empty">Chưa có sản phẩm.</td>
+          <td colspan="8" class="empty">Chưa có sản phẩm.</td>
         </tr>
         <tr *ngFor="let p of filteredProducts">
+          <td>
+            <div class="status-indicator" [ngClass]="getProductStatus(p)">
+              <span class="dot"></span>
+              <span class="status-text">{{ getProductStatusText(p) }}</span>
+            </div>
+          </td>
           <td>
             <div class="thumb">
               <img *ngIf="p.imageUrl" [src]="resolveImageUrl(p.imageUrl)" alt="thumb" />
@@ -50,6 +61,79 @@
     </table>
   </div>
 
+  <div class="overlay" *ngIf="importOpen" (click)="closeImport()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">Import sản phẩm</div>
+        <button class="icon" type="button" (click)="closeImport()">✕</button>
+      </div>
+
+      <div class="form" style="padding:16px">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Mode</label>
+            <select class="input" [(ngModel)]="importMode" [ngModelOptions]="{ standalone: true }">
+              <option value="CREATE">Tạo mới</option>
+              <option value="UPDATE">Cập nhật theo SKU</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">File (.xlsx hoặc .zip)</label>
+            <input class="input" type="file" accept=".xlsx,.zip" (change)="onImportFileSelected($event)" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Loại sản phẩm (Product Type)</label>
+          <select class="input" [(ngModel)]="importProductTypeId" [ngModelOptions]="{ standalone: true }">
+            <option [ngValue]="null">-- Không chọn (phải điền productTypeCode trong file) --</option>
+            <option *ngFor="let pt of productTypes" [ngValue]="pt.id">{{ pt.code }} - {{ pt.name }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Danh mục (tùy chọn)</label>
+          <div class="cat-box">
+            <div class="cat-box__head">
+              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="importCategoryFilter" placeholder="Tìm danh mục..." />
+              <button class="btn ghost" type="button" (click)="clearSelectedCategories()">Xóa chọn</button>
+            </div>
+
+            <div class="cat-box__selected" *ngIf="selectedCategoryLeafs.length > 0">
+              <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
+            </div>
+
+            <div class="cat-box__list">
+              <label class="cat-item" *ngFor="let cat of filteredLeafCategories">
+                <input type="checkbox" [checked]="selectedCategoryIds.has(cat.id)" (change)="toggleCategory(cat)" />
+                <span class="cat-item__name">{{ cat.name }}</span>
+                <span class="cat-item__slug">/{{ cat.slug }}</span>
+              </label>
+            </div>
+          </div>
+          <div class="hint">
+            Đã chọn: <code>{{ selectedCategoryLeafs.length }}</code> danh mục
+          </div>
+        </div>
+
+        <div class="alert success" *ngIf="importResult && (importResult.successCount || 0) > 0">
+          Import OK: {{ importResult.successCount }}/{{ importResult.total }} dòng.
+          <span *ngIf="(importResult.errorCount || 0) > 0"> Lỗi: {{ importResult.errorCount }}.</span>
+        </div>
+        <div class="alert error" *ngIf="importResult && (importResult.errorCount || 0) > 0">
+          Có lỗi khi import. Vui lòng kiểm tra lại file.
+          <span *ngIf="importResult.errorFileUrl"> (File lỗi: {{ importResult.errorFileUrl }})</span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="downloadProductsTemplateZip()">Tải file mẫu</button>
+          <button class="btn ghost" type="button" (click)="closeImport()">Đóng</button>
+          <button class="btn" type="button" (click)="submitImport()" [disabled]="importLoading">{{ importLoading ? 'Đang import...' : 'Import' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" *ngIf="modalOpen" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-head">
@@ -63,42 +147,6 @@
             <label class="label">Tên sản phẩm *</label>
             <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
           </div>
-
-          <div class="field">
-            <label class="label">Slug *</label>
-            <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Danh mục cấp 3 *</label>
-            <div class="cat-box">
-              <div class="cat-box__head">
-                <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilter" placeholder="Tìm danh mục..." />
-                <button class="btn ghost" type="button" (click)="clearSelectedCategories()">Xóa chọn</button>
-              </div>
-
-              <div class="cat-box__selected" *ngIf="selectedCategoryLeafs.length > 0">
-                <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
-              </div>
-
-              <div class="cat-box__list">
-                <label class="cat-item" *ngFor="let cat of filteredLeafCategories">
-                  <input type="checkbox" [checked]="selectedCategoryIds.has(cat.id)" (change)="toggleCategory(cat)" />
-                  <span class="cat-item__name">{{ cat.name }}</span>
-                  <span class="cat-item__slug">/{{ cat.slug }}</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="hint">
-              Đã chọn: <code>{{ selectedCategoryLeafs.length }}</code> danh mục
-            </div>
-
-            <input class="input" formControlName="category" placeholder="slug danh mục (tự set theo danh mục đầu tiên)" />
-          </div>
-
           <div class="field">
             <label class="label">Brand *</label>
             <input class="input" formControlName="brand" placeholder="FashionHub" />
@@ -107,34 +155,9 @@
 
         <div class="grid2">
           <div class="field">
-            <label class="label">Giá *</label>
-            <input class="input" type="number" formControlName="price" />
+            <label class="label">Slug *</label>
+            <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
           </div>
-
-          <div class="field">
-            <label class="label">Giá cũ</label>
-            <input class="input" type="number" formControlName="oldPrice" />
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Tồn kho *</label>
-            <input class="input" type="number" formControlName="stock" />
-          </div>
-
-          <div class="field">
-            <label class="label">Badge</label>
-            <input class="input" formControlName="badge" placeholder="HOT/NEW/SALE" />
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Discount %</label>
-            <input class="input" type="number" formControlName="discountPercent" />
-          </div>
-
           <div class="field">
             <label class="label">Trạng thái</label>
             <select class="input" formControlName="active">
@@ -146,20 +169,33 @@
 
         <div class="grid2">
           <div class="field">
-            <label class="label">Sizes (CSV)</label>
-            <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
-          </div>
-
-          <div class="field">
-            <label class="label">Colors (CSV)</label>
-            <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
+            <label class="label">Size & Màu (dạng động)</label>
+            <div class="size-color-variants">
+              <div *ngFor="let variant of sizeColorVariants; let i = index" class="size-color-row">
+                <input class="input size-input" type="text" placeholder="Size" 
+                       [(ngModel)]="variant.size" />
+                <input class="input color-input" type="text" placeholder="Màu sắc" 
+                       [(ngModel)]="variant.color" />
+                <input class="input stock-input" type="number" placeholder="Tồn kho" 
+                       [(ngModel)]="variant.stock" />
+                <input class="input price-input" type="number" placeholder="Giá" 
+                       [(ngModel)]="variant.price" />
+                <button class="btn ghost remove-btn" type="button" 
+                        (click)="removeSizeColorVariant(i)" 
+                        [disabled]="sizeColorVariants.length <= 1">✕</button>
+              </div>
+              <button class="btn ghost add-btn" type="button" (click)="addSizeColorVariant()">
+                + Thêm Size & Màu
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="variant-toolbar">
-          <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Tạo biến thể theo màu</button>
+          <button class="btn ghost" type="button" (click)="generateVariantsFromSizeColor()">Tạo biến thể từ Size & Màu</button>
           <button class="btn ghost" type="button" (click)="copyPriceFromFirstVariant()" [disabled]="variants.length < 2">Copy giá từ màu đầu</button>
-          <div class="variant-toolbar__meta">Tổng tồn: <code>{{ form.value.stock }}</code></div>
+          <button class="btn ghost" type="button" (click)="createAndImportMatrixFile()" [disabled]="shouldDisableImportButton()">Import Ma Trận</button>
+          <div class="variant-toolbar__meta" *ngIf="form.value.stock">Tổng tồn: <code>{{ form.value.stock }}</code></div>
         </div>
 
         <div class="variants" formArrayName="variants" *ngIf="variants.length > 0">
@@ -178,6 +214,10 @@
               <div class="field">
                 <label class="label">Giá (màu)</label>
                 <input class="input" type="number" formControlName="price" />
+              </div>
+              <div class="field">
+                <label class="label">Cân nặng (kg)</label>
+                <input class="input" type="number" formControlName="weight" />
               </div>
               <div class="field">
                 <label class="label">Giá cũ</label>

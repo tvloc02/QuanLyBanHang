@@ -1,6 +1,9 @@
 .container {
-  width: min(1140px, calc(100% - 24px));
+  width: 100%;
+  max-width: 1800px;
   margin: 0 auto;
+  padding-left: var(--fh-gutter);
+  padding-right: var(--fh-gutter);
 }
 
 .lookup-page {

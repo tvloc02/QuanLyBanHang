@@ -291,6 +291,21 @@ export class AdminDataService {
     );
   }
 
+  importCouponsExcel(file: File): Observable<ApiResponse<any>> {
+    const form = new FormData();
+    form.append('file', file, file.name || 'coupons.xlsx');
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiBaseUrl}/api/coupons/admin/import`,
+      form
+    );
+  }
+
+  downloadCouponsImportTemplateExcel(): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/api/coupons/admin/template`, {
+      responseType: 'blob'
+    });
+  }
+
   getAiSettings() {
     return this.http.get<ApiResponse<AdminAiSettingsResponse>>(`${environment.apiBaseUrl}/api/admin/ai-settings`);
   }

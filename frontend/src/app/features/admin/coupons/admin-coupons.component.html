@@ -1,6 +1,6 @@
 <div class="space-y-6">
   <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
-    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-start sm:items-center gap-4 min-w-0">
         <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
           <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -25,12 +25,58 @@
         </button>
         <button
           type="button"
+          (click)="openImport()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Import</span>
+        </button>
+        <button
+          type="button"
+          (click)="downloadTemplate()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>File mẫu</span>
+        </button>
+        <button
+          type="button"
           (click)="load()"
           [disabled]="loading"
           class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
         >
           <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal import excel mã giảm giá -->
+  <div class="overlay" *ngIf="importOpen">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Import mã giảm giá">
+      <div class="modal-head">
+        <div class="modal-title">Import Excel mã giảm giá</div>
+        <button class="icon" type="button" (click)="cancelImport()">✕</button>
+      </div>
+      <div class="form" style="padding:16px">
+        <div class="field">
+          <label class="label">File Excel (.xlsx)</label>
+          <input class="file-input" type="file" accept=".xlsx" id="couponImportFile" (change)="onImportFileSelected($event)" />
+          <label class="btn ghost file-btn" for="couponImportFile">Chọn file</label>
+          <div class="hint" *ngIf="importFileName">Đã chọn: <code>{{ importFileName }}</code></div>
+        </div>
+
+        <div class="hint">
+          File cần sheet đầu tiên, mỗi dòng gồm: <code>code</code>, <code>description</code>, <code>discount_amount</code>, <code>discount_percent</code>, <code>min_order_amount</code>, <code>max_discount_amount</code>, <code>shipping_discount_amount</code>, <code>allowed_segments_csv</code>, <code>usage_limit</code>, <code>starts_at_iso</code>, <code>ends_at_iso</code>, <code>active</code>.
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="cancelImport()">Hủy</button>
+          <button class="btn ghost" type="button" (click)="downloadTemplate()">File mẫu</button>
+          <button class="btn" type="button" (click)="submitImport()" [disabled]="importLoading">
+            {{ importLoading ? 'Đang import...' : 'Import' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -95,36 +141,36 @@
     </div>
 
     <div class="overflow-auto">
-      <table class="min-w-full divide-y divide-gray-200">
+      <table class="min-w-full divide-y divide-gray-300">
         <thead class="bg-gradient-to-r from-blue-50 to-sky-50">
           <tr class="divide-x divide-gray-200">
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 90px">ID</th>
-            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 160px">Code</th>
-            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Mô tả</th>
-            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Giảm</th>
-            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Min đơn</th>
-            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Max giảm</th>
-            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Giảm ship</th>
-            <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 200px">Áp dụng</th>
-            <th class="px-4 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Đã dùng</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 160px">Code</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Mô tả</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Giảm</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Min đơn</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Max giảm</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Giảm ship</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 200px">Áp dụng</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Đã dùng</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 110px">Trạng thái</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Thao tác</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100 bg-white">
+        <tbody class="divide-y divide-gray-200 bg-white">
           <tr *ngIf="!loading && getFilteredRows().length === 0">
             <td colspan="11" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có mã giảm giá</td>
           </tr>
-          <tr *ngFor="let r of getFilteredRows()" class="hover:bg-blue-50/40 transition-colors">
+          <tr *ngFor="let r of getFilteredRows()" class="divide-x divide-gray-200 hover:bg-blue-50/40 transition-colors border-b border-gray-200 last:border-0">
             <td class="px-4 py-3 text-center font-extrabold text-gray-900">#{{ r.id }}</td>
-            <td class="px-4 py-3 text-left font-extrabold text-gray-900">{{ r.code }}</td>
-            <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ r.description || '-' }}</td>
-            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ displayDiscount(r) }}</td>
-            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ formatVnd(r.minOrderAmount ?? 0) }}</td>
-            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ formatVnd(r.maxDiscountAmount ?? 0) }}</td>
-            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ formatVnd(r.shippingDiscountAmount ?? 0) }}</td>
-            <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ displaySegments(r.allowedSegments) }}</td>
-            <td class="px-4 py-3 text-right text-sm font-extrabold text-gray-900">{{ r.usedCount ?? 0 }}/{{ r.usageLimit ?? '-' }}</td>
+            <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ r.code }}</td>
+            <td class="px-4 py-3 text-center text-sm font-semibold text-gray-700">{{ r.description || '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ displayDiscount(r) }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ formatVnd(r.minOrderAmount ?? 0) }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ formatVnd(r.maxDiscountAmount ?? 0) }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ formatVnd(r.shippingDiscountAmount ?? 0) }}</td>
+            <td class="px-4 py-3 text-center text-sm font-semibold text-gray-700">{{ displaySegments(r.allowedSegments) }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ r.usedCount ?? 0 }}/{{ r.usageLimit ?? '-' }}</td>
             <td class="px-4 py-3 text-center">
               <span *ngIf="r.active === false" class="inline-flex px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700">Tắt</span>
               <span *ngIf="r.active !== false" class="inline-flex px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700">Bật</span>
@@ -208,6 +254,16 @@
               <input class="input" type="number" [(ngModel)]="form.discountAmount" placeholder="VD: 50000" />
             </div>
           </div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Giảm tối đa</label>
+              <input class="input" type="number" [(ngModel)]="form.maxDiscountAmount" placeholder="VD: 100000" />
+            </div>
+            <div class="field">
+              <label class="label">Đơn tối thiểu</label>
+              <input class="input" type="number" [(ngModel)]="form.minOrderAmount" placeholder="VD: 200000" />
+            </div>
+          </div>
           <div class="grid1">
             <div class="field">
               <label class="label">Áp dụng cho phân khúc</label>
@@ -227,8 +283,8 @@
           <div class="section-title">Cài đặt giảm giá vận chuyển</div>
           <div class="grid1">
             <div class="field">
-              <label class="label">Giảm phí vận chuyển (VND)</label>
-              <input class="input" type="number" [(ngModel)]="form.shippingDiscountAmount" placeholder="VD: 30000" />
+              <label class="label">Giảm phí vận chuyển (%)</label>
+              <input class="input" type="number" [(ngModel)]="form.discountPercent" placeholder="VD: 100 để miễn phí vận chuyển" />
             </div>
           </div>
           <div class="grid2">
@@ -371,6 +427,16 @@
               <input class="input" type="number" [(ngModel)]="editForm.discountAmount" placeholder="VD: 50000" />
             </div>
           </div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Giảm tối đa</label>
+              <input class="input" type="number" [(ngModel)]="editForm.maxDiscountAmount" placeholder="VD: 100000" />
+            </div>
+            <div class="field">
+              <label class="label">Đơn tối thiểu</label>
+              <input class="input" type="number" [(ngModel)]="editForm.minOrderAmount" placeholder="VD: 200000" />
+            </div>
+          </div>
           <div class="grid1">
             <div class="field">
               <label class="label">Phân khúc áp dụng (CSV)</label>
@@ -384,8 +450,8 @@
           <div class="section-title">Cài đặt giảm giá vận chuyển</div>
           <div class="grid1">
             <div class="field">
-              <label class="label">Giảm phí vận chuyển (VND)</label>
-              <input class="input" type="number" [(ngModel)]="editForm.shippingDiscountAmount" placeholder="VD: 30000" />
+              <label class="label">Giảm phí vận chuyển (%)</label>
+              <input class="input" type="number" [(ngModel)]="editForm.discountPercent" placeholder="VD: 100 để miễn phí vận chuyển" />
             </div>
           </div>
           <div class="grid2">

@@ -42,6 +42,9 @@ public class BranchProductVariantStock {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "weight_kg")
+    private Double weightKg;
+
     @Column(name = "updated_at")
     private Instant updatedAt;
 
@@ -101,6 +104,14 @@ public class BranchProductVariantStock {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public Instant getUpdatedAt() {

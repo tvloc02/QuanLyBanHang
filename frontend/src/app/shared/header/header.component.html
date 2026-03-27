@@ -8,7 +8,7 @@
   <div class="container tl-header__inner">
     <a class="tl-header__brand" routerLink="/sale" aria-label="Home">
       <span class="tl-header__brand-text">
-        <span class="tl-header__brand-lo">Lo</span><span class="tl-header__brand-vin">Vin</span>
+        <span class="tl-header__brand-l">L</span><span class="tl-header__brand-rest">.event</span>
       </span>
     </a>
 
@@ -76,14 +76,12 @@
               <div class="tl-header__menu-avatar" aria-hidden="true">{{ userInitial }}</div>
               <div class="tl-header__menu-meta">
                 <div class="tl-header__menu-name">{{ userDisplayName }}</div>
-                <div class="tl-header__menu-points">Điểm thưởng: {{ rewardPoints }}</div>
               </div>
             </div>
             <div class="tl-header__menu-sep" aria-hidden="true"></div>
-            <a class="tl-header__menu-item" routerLink="/" (click)="userMenuOpen = false">Đơn hàng</a>
-            <a class="tl-header__menu-item" routerLink="/pages/da-xem" (click)="userMenuOpen = false">Sản phẩm đã xem</a>
-            <a class="tl-header__menu-item" routerLink="/profile" (click)="userMenuOpen = false">Hồ sơ của tôi</a>
-            <a *ngIf="isInternal()" class="tl-header__menu-item" routerLink="/admin" (click)="userMenuOpen = false">Chuyển đến trang quản lý</a>
+            <a class="tl-header__menu-item" routerLink="/profile" (click)="userMenuOpen = false">Thông tin cá nhân</a>
+            <a class="tl-header__menu-item" routerLink="/cart" (click)="userMenuOpen = false">Giỏ hàng</a>
+            <a *ngIf="isInternal()" class="tl-header__menu-item" routerLink="/admin" (click)="userMenuOpen = false">Quản lý hệ thống</a>
             <button class="tl-header__menu-item danger" type="button" (click)="logout()">Đăng xuất</button>
           </div>
         </div>
@@ -115,7 +113,7 @@
         </a>
       </div>
       <a class="tl-nav__item" routerLink="/news" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Tin tức</a>
-      <a class="tl-nav__item" routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Tra cứu đơn hàng</a>
+      <a class="tl-nav__item" routerLink="/order-lookup" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Tra cứu đơn hàng</a>
     </div>
 
     <ng-container *ngIf="getOpenRoot() as root">

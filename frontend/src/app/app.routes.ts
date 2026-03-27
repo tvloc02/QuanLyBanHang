@@ -23,6 +23,11 @@ export const routes: Routes = [
     children: [
       {
         path: '',
+        pathMatch: 'full',
+        redirectTo: 'sale'
+      },
+      {
+        path: 'order-lookup',
         loadComponent: () => import('./features/order-lookup/order-lookup.component').then((m) => m.OrderLookupComponent)
       },
       {
@@ -139,6 +144,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/sale-page/admin-sale-page.component').then((m) => m.AdminSalePageComponent)
       },
       {
+        path: 'category-config/:id',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
+        loadComponent: () => import('./features/admin/sale-page/admin-sale-page.component').then((m) => m.AdminSalePageComponent)
+      },
+      {
         path: 'reviews',
         loadComponent: () => import('./features/admin/reviews/admin-reviews.component').then((m) => m.AdminReviewsComponent)
       },
@@ -182,6 +192,11 @@ export const routes: Routes = [
       {
         path: 'support-chat',
         loadComponent: () => import('./features/admin/support-chat/admin-support-chat.component').then((m) => m.AdminSupportChatComponent)
+      },
+      {
+        path: 'home-config',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
+        loadComponent: () => import('./features/admin/home/admin-home-config.component').then((m) => m.AdminHomeConfigComponent)
       }
     ]
   },

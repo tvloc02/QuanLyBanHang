@@ -126,6 +126,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadDraft();
     this.loadCart();
+    this.loadBranchSelection();
     this.loadAddressData();
     this.loadVn2Provinces();
     this.prefillFromProfile();
@@ -133,6 +134,16 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.configureLeafletDefaultIcon();
 
     this.refreshQuote();
+  }
+
+  private loadBranchSelection(): void {
+    try {
+      const raw = localStorage.getItem('checkout_branchId');
+      const bid = raw != null ? Number(raw) : NaN;
+      this.quoteBranchId = Number.isFinite(bid) && bid > 0 ? bid : null;
+    } catch {
+      this.quoteBranchId = null;
+    }
   }
 
   isAuthenticated(): boolean {

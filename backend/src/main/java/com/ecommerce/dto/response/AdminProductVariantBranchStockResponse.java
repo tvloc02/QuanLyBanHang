@@ -10,9 +10,21 @@ public class AdminProductVariantBranchStockResponse {
     private String size;
     private Integer stock;
     private String imageUrl;
+    private Double weightKg;
     private Instant updatedAt;
 
     public AdminProductVariantBranchStockResponse() {}
+
+    public AdminProductVariantBranchStockResponse(Long branchId, Long productId, String color, String size, Integer stock, String imageUrl, Double weightKg, Instant updatedAt) {
+        this.branchId = branchId;
+        this.productId = productId;
+        this.color = color;
+        this.size = size;
+        this.stock = stock;
+        this.imageUrl = imageUrl;
+        this.weightKg = weightKg;
+        this.updatedAt = updatedAt;
+    }
 
     public Long getBranchId() {
         return branchId;
@@ -60,6 +72,14 @@ public class AdminProductVariantBranchStockResponse {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public Instant getUpdatedAt() {

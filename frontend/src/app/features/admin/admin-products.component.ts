@@ -1,15 +1,38 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+
 import { environment } from '../../../environments/environment';
+import * as XLSX from 'xlsx';
 
 interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+}
+
+interface AdminProductImportRowError {
+  rowNumber: number;
+  productCode?: string | null;
+  message: string;
+}
+
+interface AdminProductImportResult {
+  total: number;
+  successCount: number;
+  errorCount: number;
+  errorFileUrl?: string | null;
+  errors?: AdminProductImportRowError[];
+}
+
+interface AdminProductTypeResponse {
+  id: number;
+  code: string;
+  name: string;
+  active?: boolean | null;
+  fieldsJson?: string | null;
 }
 
 interface ProductResponse {
@@ -23,6 +46,7 @@ interface ProductResponse {
   stock: number;
   categoryId?: number;
   categoryIds?: number[];
+  productTypeId?: number;
   category: string;
   brand: string;
   imageUrl?: string;
@@ -35,6 +59,14 @@ interface ProductResponse {
   sizes?: string[];
   colors?: string[];
   active?: boolean;
+}
+
+interface SizeColorVariant {
+  size: string;
+  color: string;
+  stock?: number;
+  price?: number;
+  weight?: number;
 }
 
 interface CategoryNode {
@@ -68,23 +100,35 @@ interface ProductVariantResponse {
   styleUrls: ['./admin-products.component.scss']
 })
 export class AdminProductsComponent {
+  modalOpen = false;
+  saving = false;
   loading = false;
   products: ProductResponse[] = [];
   q = '';
-
-  private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
-
-  saving = false;
+  categoryFilter = '';
   error = '';
   success = '';
-
-  modalOpen = false;
-
-  categoryTree: CategoryNode[] = [];
-  leafCategories: CategoryNode[] = [];
-  categoryFilter = '';
+  categories: CategoryNode[] = [];
+  productTypes: AdminProductTypeResponse[] = [];
+  selectedProductType: AdminProductTypeResponse | null = null;
   selectedCategoryIds = new Set<number>();
+  leafCategories: CategoryNode[] = [];
   selectedCategoryLeafs: CategoryNode[] = [];
+  importOpen = false;
+  importLoading = false;
+  importMode: 'CREATE' | 'UPDATE' = 'CREATE';
+  importFile: File | null = null;
+  importResult: AdminProductImportResult | null = null;
+  importProductTypeId: number | null = null;
+
+  // Thêm biến thể size-color động
+  sizeColorVariants: SizeColorVariant[] = [
+    { size: '', color: '', stock: 0, price: 0, weight: 0.1 }
+  ];
+
+  productTypesLoading = false;
+  categoryTree: CategoryNode[] = [];
+  private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
 
   form = this.fb.group({
     name: ['', [Validators.required]],
@@ -99,8 +143,6 @@ export class AdminProductsComponent {
     discountPercent: [null as number | null],
     rating: [null as number | null],
     soldCount: [null as number | null],
-    sizesCsv: ['S,M,L'],
-    colorsCsv: ['Đen,Trắng'],
     variants: this.fb.array([]),
     description: [''],
     active: [true]
@@ -109,6 +151,144 @@ export class AdminProductsComponent {
   constructor(private fb: FormBuilder, private http: HttpClient) {
     this.load();
     this.loadCategories();
+    this.loadProductTypes();
+  }
+
+  private loadProductTypes(): void {
+    this.productTypesLoading = true;
+    const url = `${environment.apiBaseUrl}/api/admin/product-types`;
+    this.http.get<ApiResponse<AdminProductTypeResponse[]>>(url).subscribe({
+      next: (res) => {
+        this.productTypesLoading = false;
+        this.productTypes = Array.isArray(res?.data) ? res.data : [];
+      },
+      error: () => {
+        this.productTypesLoading = false;
+        this.productTypes = [];
+      }
+    });
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  downloadProductsTemplateZip(): void {
+    this.error = '';
+    const pt = this.importProductTypeId != null ? Number(this.importProductTypeId) : null;
+    const url = `${environment.apiBaseUrl}/api/admin/products/template${pt ? `?productTypeId=${encodeURIComponent(String(pt))}` : ''}`;
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        this.downloadBlob(blob, 'products_template.zip');
+      },
+      error: () => {
+        this.error = 'Không tải được file mẫu.';
+      }
+    });
+  }
+
+  exportProductsZip(): void {
+    this.error = '';
+    const url = `${environment.apiBaseUrl}/api/admin/products/export`;
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        this.downloadBlob(blob, 'products.zip');
+      },
+      error: () => {
+        this.error = 'Không xuất được file sản phẩm.';
+      }
+    });
+  }
+
+  openImport(): void {
+    this.error = '';
+    this.success = '';
+    this.importResult = null;
+    this.importFile = null;
+    this.importMode = 'CREATE';
+    this.importProductTypeId = null;
+    this.categoryFilter = '';
+    this.selectedCategoryIds.clear();
+    this.selectedCategoryLeafs = [];
+    this.importOpen = true;
+  }
+
+  closeImport(): void {
+    this.importOpen = false;
+    this.importLoading = false;
+    this.importFile = null;
+  }
+
+  onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0] || null;
+    
+    // Validate file type - chỉ chấp nhận .xlsx và .zip
+    if (file) {
+      const fileName = file.name.toLowerCase();
+      if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.zip')) {
+        this.error = 'Chỉ chấp nhận file .xlsx hoặc .zip. Vui lòng chọn file Excel.';
+        this.importFile = null;
+        (event.target as HTMLInputElement).value = '';
+        return;
+      }
+    }
+    
+    this.importFile = file;
+    this.error = ''; // Clear error khi file hợp lệ
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  submitImport(): void {
+    this.error = '';
+    this.success = '';
+    this.importResult = null;
+
+    if (!this.importFile) {
+      this.error = 'Vui lòng chọn file .xlsx hoặc .zip.';
+      return;
+    }
+
+    this.importLoading = true;
+    const url = `${environment.apiBaseUrl}/api/admin/products/import`;
+    const fd = new FormData();
+    fd.append('file', this.importFile);
+    fd.append('mode', this.importMode);
+    
+    // Gửi mảng trống nếu không chọn danh mục nào để backend xử lý mặc định
+    const categoryIds = Array.from(this.selectedCategoryIds);
+    if (categoryIds.length > 0) {
+      for (const id of categoryIds) fd.append('categoryIds', String(id));
+    } else {
+      // Đảm bảo request vẫn hợp lệ bằng cách gửi mảng trống hoặc không gửi
+      // Tùy thuộc vào yêu cầu của Backend AdminProductImportExportService
+    }
+    
+    if (this.importProductTypeId != null) fd.append('productTypeId', String(this.importProductTypeId));
+
+    this.http.post<ApiResponse<AdminProductImportResult>>(url, fd).subscribe({
+      next: (res) => {
+        this.importLoading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Import thất bại.';
+          return;
+        }
+        this.importResult = res.data;
+        this.success = `Import xong: ${res.data?.successCount || 0}/${res.data?.total || 0} dòng.`;
+        this.load();
+      },
+      error: (err: any) => {
+        this.importLoading = false;
+        this.error = err?.error?.message || 'Không import được sản phẩm.';
+      }
+    });
   }
 
   resolveImageUrl(src?: string | null): string {
@@ -132,6 +312,9 @@ export class AdminProductsComponent {
     this.error = '';
     this.success = '';
     this.modalOpen = true;
+    this.sizeColorVariants = [
+      { size: '', color: '', stock: 0, price: 0, weight: 0.1 }
+    ];
     this.form.reset({
       name: '',
       slug: '',
@@ -144,8 +327,6 @@ export class AdminProductsComponent {
       discountPercent: null,
       rating: null,
       soldCount: null,
-      sizesCsv: 'S,M,L',
-      colorsCsv: 'Đen,Trắng',
       description: '',
       active: true
     });
@@ -256,55 +437,6 @@ export class AdminProductsComponent {
     this.form.patchValue({ category: '' });
   }
 
-  private parseCsv(value: unknown): string[] {
-    return (value || '')
-      .toString()
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
-  generateVariantsFromCsv(): void {
-    const sizes = this.parseCsv(this.form.value.sizesCsv);
-    const colors = this.parseCsv(this.form.value.colorsCsv);
-
-    if (sizes.length === 0 || colors.length === 0) {
-      this.error = 'Vui lòng nhập sizes và colors trước khi tạo biến thể.';
-      return;
-    }
-
-    const basePrice = Number(this.form.value.price || 0);
-    const baseOld = this.form.value.oldPrice != null ? Number(this.form.value.oldPrice) : null;
-
-    this.variants.clear();
-    colors.forEach((color) => {
-      const stocks = this.fb.array(
-        sizes.map((size) =>
-          this.fb.group({
-            size: [size, [Validators.required]],
-            stock: [0, [Validators.required]]
-          })
-        )
-      );
-
-      const images = this.fb.array<string>([]);
-      images.push(this.fb.control(''));
-
-      this.variants.push(
-        this.fb.group({
-          color: [color, [Validators.required]],
-          price: [basePrice, [Validators.required]],
-          oldPrice: [baseOld],
-          images,
-          stocks,
-          active: [true]
-        })
-      );
-    });
-
-    this.recalculateTotalStock();
-  }
-
   recalculateTotalStock(): void {
     let total = 0;
     for (const vg of this.variants.controls) {
@@ -323,10 +455,12 @@ export class AdminProductsComponent {
     if (!first) return;
     const price = first.get('price')?.value;
     const oldPrice = first.get('oldPrice')?.value;
+    const weight = first.get('weight')?.value;
     for (let i = 1; i < this.variants.length; i++) {
       const v = this.variants.at(i);
       v.get('price')?.setValue(price);
       v.get('oldPrice')?.setValue(oldPrice);
+      v.get('weight')?.setValue(weight);
     }
   }
 
@@ -406,6 +540,79 @@ export class AdminProductsComponent {
     this.form.patchValue({ slug });
   }
 
+  // Methods cho size-color variants động
+  addSizeColorVariant(): void {
+    this.sizeColorVariants.push({
+      size: '',
+      color: '',
+      stock: 0,
+      price: 0,
+      weight: 0
+    });
+  }
+
+  removeSizeColorVariant(index: number): void {
+    this.sizeColorVariants.splice(index, 1);
+  }
+
+  shouldDisableImportButton(): boolean {
+    return this.sizeColorVariants.length === 0 || !this.sizeColorVariants.some(v => v.size && v.color);
+  }
+
+  generateVariantsFromSizeColor(): void {
+    // Tạo variants từ sizeColorVariants
+    this.variants.clear();
+    
+    const basePrice = Number(this.form.value.price || 0);
+    const baseOldPrice = this.form.value.oldPrice != null ? Number(this.form.value.oldPrice) : null;
+    
+    this.sizeColorVariants.forEach(variant => {
+      if (variant.size && variant.color) {
+        this.variants.push(this.fb.group({
+          color: [variant.color, [Validators.required]],
+          price: [variant.price || basePrice, [Validators.required]],
+          weight: [variant.weight || 0.1],
+          oldPrice: [baseOldPrice],
+          images: this.fb.array<string>([]),
+          stocks: this.fb.array([
+            this.fb.group({
+              size: [variant.size, [Validators.required]],
+              stock: [variant.stock || 0, [Validators.required]]
+            })
+          ])
+        }));
+      }
+    });
+    
+    this.recalculateTotalStock();
+  }
+
+  getProductStatus(p: ProductResponse): string {
+    const hasCategory = !!p.categoryId || (!!p.category && p.category !== 'Uncategorized');
+    const hasProductType = !!p.productTypeId;
+    const hasImage = !!p.imageUrl || (p.images && p.images.length > 0);
+
+    if (!hasCategory || !hasProductType || !hasImage) {
+      if (!hasCategory && !hasProductType && !hasImage) {
+        return 'status-red';
+      }
+      if (!hasImage) {
+        return 'status-yellow';
+      }
+    }
+    return 'status-green';
+  }
+
+  getProductStatusText(p: ProductResponse): string {
+    const status = this.getProductStatus(p);
+    switch (status) {
+      case 'status-red': return 'Thiếu thông tin';
+      case 'status-yellow': return 'Thiếu ảnh';
+      case 'status-green': return 'Hoàn thiện';
+      default: return '';
+    }
+  }
+
   private slugify(input: string): string {
     return input
       .toLowerCase()
@@ -424,40 +631,11 @@ export class AdminProductsComponent {
       return;
     }
 
-    const sizes = this.parseCsv(this.form.value.sizesCsv);
-    const colors = this.parseCsv(this.form.value.colorsCsv);
-
     const images = this.images.controls
       .map((c) => (c.value || '').toString().trim())
       .filter(Boolean);
 
     const categoryIds = Array.from(this.selectedCategoryIds);
-    if (categoryIds.length === 0) {
-      this.error = 'Vui lòng chọn ít nhất 1 danh mục cấp 3.';
-      return;
-    }
-
-    const variants = this.variants.controls.map((vg) => {
-      const imgs = ((vg.get('images') as FormArray)?.controls || [])
-        .map((c) => (c.value || '').toString().trim())
-        .filter(Boolean);
-      const stocks = ((vg.get('stocks') as FormArray)?.controls || [])
-        .map((c) => ({
-          size: (c.get('size')?.value || '').toString(),
-          stock: Number(c.get('stock')?.value || 0)
-        }));
-
-      return {
-        color: (vg.get('color')?.value || '').toString(),
-        price: Number(vg.get('price')?.value || 0),
-        oldPrice: vg.get('oldPrice')?.value != null ? Number(vg.get('oldPrice')?.value) : null,
-        images: imgs,
-        stocks,
-        active: vg.get('active')?.value
-      };
-    });
-
-    this.recalculateTotalStock();
 
     const payload = {
       sku: null,
@@ -474,31 +652,133 @@ export class AdminProductsComponent {
       discountPercent: this.form.value.discountPercent,
       rating: this.form.value.rating,
       soldCount: this.form.value.soldCount,
-      sizes,
-      colors,
+      sizes: this.sizeColorVariants.map(v => v.size).filter(Boolean),
+      colors: this.sizeColorVariants.map(v => v.color).filter(Boolean),
       images,
-      variants,
+      variants: this.sizeColorVariants.map(variant => {
+        if (variant.size && variant.color) {
+          return this.fb.group({
+            color: [variant.color, [Validators.required]],
+            price: [variant.price || this.form.value.price, [Validators.required]],
+            weight: [variant.weight || 0.1],
+            oldPrice: [this.form.value.oldPrice],
+            images: this.fb.array<string>([]),
+            stocks: this.fb.array([
+              this.fb.group({
+                size: [variant.size, [Validators.required]],
+                stock: [variant.stock || 0, [Validators.required]]
+              })
+            ])
+          });
+        }
+        return null;
+      }).filter(Boolean),
       description: this.form.value.description || null,
       active: this.form.value.active
     };
 
     this.saving = true;
-    const url = `${environment.apiBaseUrl}/api/products`;
-
+    const url = `${environment.apiBaseUrl}/api/admin/products`;
     this.http.post<ApiResponse<ProductResponse>>(url, payload).subscribe({
       next: (res) => {
         this.saving = false;
         if (!res?.success) {
-          this.error = res?.message || 'Tạo sản phẩm thất bại.';
+          this.error = res?.message || 'Không tạo được sản phẩm.';
           return;
         }
-        this.success = `Đã tạo sản phẩm #${res.data?.id} (${res.data?.name}).`;
-        this.closeModal();
+        this.success = 'Tạo sản phẩm thành công.';
         this.load();
+        
+        // Nếu có ma trận size-color, tự động import file ngay
+        if (this.sizeColorVariants.some(v => v.size && v.color)) {
+          this.createAndImportMatrixFile();
+        }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.saving = false;
-        this.error = err?.error?.message || 'Gọi API thất bại. Hãy chắc chắn backend đang chạy.';
+        this.error = err?.error?.message || 'Không thể kết nối backend để tạo sản phẩm.';
+      }
+    });
+  }
+
+  // Tạo và import file ma trận ngay sau khi tạo sản phẩm
+  createAndImportMatrixFile(): void {
+    const productName = (this.form.value.name || '').trim();
+    if (!productName) return;
+
+    // Tạo file Excel với ma trận size-color
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
+    
+    // Headers
+    const headers: any[][] = [
+      ['STT', 'Mã SP', 'Tên SP', 'Slug', 'Thương hiệu', 
+       'Chi nhánh', 'Size', 'Màu sắc', 'Cân nặng (kg)', 
+       'Giới tính', 'Tồn kho', 'Giá']
+    ];
+    XLSX.utils.sheet_add_aoa(worksheet, headers);
+    
+    // Thêm dữ liệu ma trận
+    let stt = 1;
+    this.sizeColorVariants.forEach(variant => {
+      if (variant.size && variant.color) {
+        const row: any[] = [
+          stt,
+          '', // Backend sẽ tự tạo SKU
+          productName,
+          this.form.value.slug || '',
+          this.form.value.brand || '',
+          '', // Backend sẽ xử lý
+          variant.size,
+          variant.color,
+          variant.weight || 0.1, // Weight từ UI
+          '', // Không chọn giới tính
+          variant.stock || 0,
+          variant.price || this.form.value.price || 0
+        ];
+        XLSX.utils.sheet_add_aoa(worksheet, row);
+        stt++;
+      }
+    });
+
+    // Tạo file và tự động import
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const file = new File([blob], `${productName}_matrix.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    // Gọi API import ngay
+    this.importMatrixFile(file);
+  }
+
+  // Import file ma trận
+  private importMatrixFile(file: File): void {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mode', 'UPDATE'); // Update mode để thêm variants
+    
+    // Gửi danh mục và product type nếu có
+    const categoryIds = Array.from(this.selectedCategoryIds);
+    if (categoryIds.length > 0) {
+      categoryIds.forEach(id => formData.append('categoryIds', String(id)));
+    }
+    
+    if (this.importProductTypeId != null) {
+      formData.append('productTypeId', String(this.importProductTypeId));
+    }
+
+    const url = `${environment.apiBaseUrl}/api/admin/products/import`;
+    this.http.post<ApiResponse<AdminProductImportResult>>(url, formData).subscribe({
+      next: (res) => {
+        if (!res?.success) {
+          console.error('Import ma trận thất bại:', res?.message);
+          return;
+        }
+        console.log('Import ma trận thành công:', res.data);
+        this.success += ` Import ma trận: ${res.data?.successCount || 0}/${res.data?.total || 0} dòng.`;
+        this.load(); // Reload lại danh sách
+      },
+      error: (err: any) => {
+        console.error('Lỗi import ma trận:', err?.error?.message || err?.message);
       }
     });
   }

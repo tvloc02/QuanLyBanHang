@@ -1,6 +1,10 @@
 @use './reset';
 @use './variables';
 
+:root {
+  --fh-gutter: clamp(44px, 4.4vw, 132px);
+}
+
 html, body {
   height: 100%;
 }

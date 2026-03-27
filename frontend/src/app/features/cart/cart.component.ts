@@ -1,15 +1,25 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, HostListener, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { HOME_CONFIG, HomeSectionId } from '../home/home.config';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
+import { UserDataService, UserMeResponse } from '../../core/services/user-data.service';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
 
 interface CartItem {
   id: number;
   name: string;
   slug: string;
+  image?: string;
   imageUrl?: string;
   price: number;
   quantity: number;
@@ -43,6 +53,31 @@ interface DiscountCode {
   minAmount?: number;
 }
 
+interface CouponDto {
+  id: number;
+  code: string;
+  description?: string | null;
+  discountAmount?: number | null;
+  discountPercent?: number | null;
+  minOrderAmount?: number | null;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  usedCount?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  active?: boolean | null;
+}
+
+interface UserCouponDto {
+  id: number;
+  userId: number;
+  status: string;
+  claimedAt?: string | null;
+  usedAt?: string | null;
+  usedOrderId?: number | null;
+  coupon?: CouponDto | null;
+}
+
 @Component({
   selector: 'app-cart',
   standalone: true,
@@ -69,8 +104,29 @@ export class CartComponent implements OnInit {
   discountCode = '';
   discountMessage = '';
   discountAmount = 0;
+  discountModalOpen = false;
+  discountLoading = false;
+  discountLoadError = '';
+  discountOptions: CouponDto[] = [];
+  filteredDiscounts: CouponDto[] = [];
+  discountSearchQuery = '';
   addresses: Address[] = [];
   selectedAddressIndex = -1;
+  showAddAddress = false;
+  showAddAddressForm = false;
+  newAddress: Partial<Address> = {
+    name: '',
+    phone: '',
+    address: '',
+    type: ''
+  };
+  quickAddress: Partial<Address> = {
+    name: '',
+    phone: '',
+    address: '',
+    province: '',
+    district: ''
+  };
   paymentMethods: PaymentMethod[] = [
     { id: 1, name: 'Thanh toán khi nhận hàng (COD)', description: 'Thanh toán bằng tiền mặt khi nhận hàng' },
     { id: 2, name: 'Chuyển khoản ngân hàng', description: 'Chuyển khoản qua ngân hàng' },
@@ -78,12 +134,23 @@ export class CartComponent implements OnInit {
     { id: 4, name: 'Ví điện tử', description: 'Thanh toán qua MoMo, ZaloPay, VNPay' }
   ];
   selectedPaymentMethod = 0;
-  showAddAddress = false;
 
   constructor(
     private router: Router,
-    private destroyRef: DestroyRef
+    private destroyRef: DestroyRef,
+    private http: HttpClient,
+    private userData: UserDataService
   ) {}
+
+  private getCurrentUserId(): number | null {
+    try {
+      const raw = localStorage.getItem('fh_userId');
+      const n = raw != null ? Number(raw) : NaN;
+      return Number.isFinite(n) && n > 0 ? n : null;
+    } catch {
+      return null;
+    }
+  }
 
   ngOnInit(): void {
     this.hydrateBadges();
@@ -139,37 +206,75 @@ export class CartComponent implements OnInit {
     }
 
     this.cartCount = this.items.length;
+    console.log('🛒 Loaded cart items:', this.items.length);
   }
 
   private loadAddresses(): void {
+    let fromStorage: unknown = [];
     try {
       const raw = localStorage.getItem('addresses');
-      const arr = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(arr)) {
-        this.addresses = arr;
-      } else {
-        // Mock addresses for demo
-        this.addresses = [
-          {
-            id: 1,
-            name: 'Nguyễn Văn A',
-            phone: '0912345678',
-            address: '123 Nguyễn Huệ, Quận 1, TP.HCM',
-            type: 'Nhà riêng'
-          },
-          {
-            id: 2,
-            name: 'Nguyễn Văn A',
-            phone: '0912345678',
-            address: '456 Lê Lợi, Quận 3, TP.HCM',
-            type: 'Công ty'
-          }
-        ];
-        this.selectedAddressIndex = 0;
-      }
+      fromStorage = raw ? JSON.parse(raw) : [];
     } catch {
-      this.addresses = [];
+      fromStorage = [];
     }
+
+    if (Array.isArray(fromStorage) && fromStorage.length > 0) {
+      this.addresses = fromStorage as Address[];
+      if (this.selectedAddressIndex < 0) this.selectedAddressIndex = 0;
+      console.log('🛒 Loaded addresses from storage:', this.addresses);
+      return;
+    }
+
+    this.addresses = [];
+    this.selectedAddressIndex = -1;
+
+    const userId = this.getCurrentUserId();
+    if (!userId) {
+      console.log('🛒 User not logged in');
+      return;
+    }
+
+    console.log('🛒 Loading addresses from UserDataService for user:', userId);
+    this.userData.getMe().subscribe({
+      next: (res) => {
+        console.log('🛒 UserDataService response:', res);
+        const me = res?.data;
+        if (!me) {
+          console.log('🛒 No user data in UserDataService response');
+          return;
+        }
+
+        const parts = [me.addressDetail, me.ward, me.district, me.province]
+          .map((x) => String(x || '').trim())
+          .filter((x) => !!x);
+
+        console.log('🛒 Address parts from UserDataService:', parts);
+
+        if (parts.length === 0) {
+          console.log('🛒 No address parts found for user in UserDataService');
+          return;
+        }
+
+        const addr: Address = {
+          id: 1,
+          name: String(me.fullName || '').trim() || 'Người nhận',
+          phone: String(me.phone || '').trim() || '',
+          address: parts.join(', '),
+          type: 'Hồ sơ',
+          province: me.province || undefined,
+          district: me.district || undefined
+        };
+
+        this.addresses = [addr];
+        this.selectedAddressIndex = 0;
+        console.log('🛒 Loaded address from UserDataService:', this.addresses);
+      },
+      error: (err) => {
+        console.error('🛒 Error loading user address from UserDataService:', err);
+        this.addresses = [];
+        this.selectedAddressIndex = -1;
+      }
+    });
   }
 
   private persistCart(): void {
@@ -346,12 +451,20 @@ export class CartComponent implements OnInit {
     return this.subtotal + this.shippingFee - this.discountAmount;
   }
 
+  get total(): number {
+    return this.totalAmount;
+  }
+
   get selectedAddress(): Address | null {
     return this.selectedAddressIndex >= 0 ? this.addresses[this.selectedAddressIndex] : null;
   }
 
   formatMoney(v: number): string {
     return new Intl.NumberFormat('vi-VN').format(Math.round(v));
+  }
+
+  formatPrice(v: number): string {
+    return this.formatMoney(v);
   }
 
   inc(item: CartItem): void {
@@ -364,13 +477,34 @@ export class CartComponent implements OnInit {
     this.persistCart();
   }
 
+  increaseQuantity(index: number): void {
+    if (index >= 0 && index < this.items.length) {
+      this.items[index].quantity += 1;
+      this.persistCart();
+      console.log('🛒 Increased quantity for item at index:', index);
+    }
+  }
+
+  decreaseQuantity(index: number): void {
+    if (index >= 0 && index < this.items.length) {
+      this.items[index].quantity = Math.max(1, this.items[index].quantity - 1);
+      this.persistCart();
+      console.log('🛒 Decreased quantity for item at index:', index);
+    }
+  }
+
   remove(item: CartItem): void {
     this.items = this.items.filter((x) => x !== item);
     this.persistCart();
   }
 
-  continueShopping(): void {
-    this.router.navigateByUrl('/sale');
+  removeItem(index: number): void {
+    if (index >= 0 && index < this.items.length) {
+      const removedItem = this.items[index];
+      this.items.splice(index, 1);
+      this.persistCart();
+      console.log('🛒 Removed item:', removedItem);
+    }
   }
 
   checkout(): void {
@@ -413,48 +547,426 @@ export class CartComponent implements OnInit {
     this.persistCart();
   }
 
+  openDiscountModal(): void {
+    const userId = this.getCurrentUserId();
+    console.log('🛒 Opening discount modal, userId:', userId);
+    this.discountModalOpen = true;
+    this.discountSearchQuery = '';
+
+    if (!userId) {
+      console.log('🛒 User not logged in');
+      this.discountLoadError = 'Vui lòng đăng nhập để xem voucher.';
+      this.discountOptions = [];
+      this.filteredDiscounts = [];
+      return;
+    }
+
+    if (this.discountOptions.length === 0) {
+      console.log('🛒 Loading discount options...');
+      this.loadDiscountOptions(userId);
+    } else {
+      console.log('🛒 Using cached discount options:', this.discountOptions.length);
+      this.filterDiscounts();
+    }
+  }
+
+  closeDiscountModal(): void {
+    this.discountModalOpen = false;
+  }
+
+  private loadDiscountOptions(userId: number): void {
+    if (this.discountLoading) return;
+    this.discountLoading = true;
+    this.discountLoadError = '';
+    
+    const apiUrl = `${environment.apiBaseUrl}/api/coupons/user?userId=${encodeURIComponent(String(userId))}&status=CLAIMED`;
+    console.log('🛒 Loading discount options from:', apiUrl);
+    
+    this.http
+      .get<ApiResponse<UserCouponDto[]>>(apiUrl)
+      .subscribe({
+        next: (res) => {
+          console.log('🛒 Discount API response:', res);
+          this.discountLoading = false;
+          const list = Array.isArray(res?.data) ? res.data : [];
+          console.log('🛒 Raw coupon list:', list);
+          
+          this.discountOptions = list
+            .map((x) => x?.coupon || null)
+            .filter((c): c is CouponDto => !!c && !!c.code);
+            
+          console.log('🛒 Processed discount options:', this.discountOptions);
+          
+          // Apply initial filter
+          this.filterDiscounts();
+        },
+        error: (err) => {
+          console.error('🛒 Discount API error:', err);
+          this.discountLoading = false;
+          this.discountLoadError = 'Không tải được danh sách mã giảm giá.';
+          this.discountOptions = [];
+          this.filteredDiscounts = [];
+        }
+      });
+  }
+
+  filterDiscounts(): void {
+    console.log('🛒 Filtering discounts with query:', this.discountSearchQuery);
+    
+    if (!this.discountSearchQuery.trim()) {
+      this.filteredDiscounts = [...this.discountOptions];
+      console.log('🛒 No search query, showing all discounts:', this.filteredDiscounts.length);
+      return;
+    }
+    
+    const query = this.discountSearchQuery.toLowerCase().trim();
+    this.filteredDiscounts = this.discountOptions.filter(coupon => 
+      coupon.code.toLowerCase().includes(query) ||
+      (coupon.description && coupon.description.toLowerCase().includes(query))
+    );
+    
+    console.log('🛒 Filtered discounts:', this.filteredDiscounts.length);
+  }
+
+  isDiscountEligible(coupon: CouponDto): boolean {
+    // Check if coupon is active
+    if (coupon.active === false) {
+      return false;
+    }
+    
+    // Check minimum order amount
+    const min = Number(coupon?.minOrderAmount);
+    if (Number.isFinite(min) && min > 0) {
+      if (this.subtotal < min) {
+        return false;
+      }
+    }
+    
+    // Check if coupon has expired
+    if (coupon.endsAt) {
+      const endDate = new Date(coupon.endsAt);
+      if (endDate < new Date()) {
+        return false;
+      }
+    }
+    
+    // Check if coupon has started
+    if (coupon.startsAt) {
+      const startDate = new Date(coupon.startsAt);
+      if (startDate > new Date()) {
+        return false;
+      }
+    }
+    
+    // Check usage limit
+    if (coupon.usageLimit && coupon.usedCount) {
+      if (coupon.usedCount >= coupon.usageLimit) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  pickDiscount(coupon: CouponDto): void {
+    console.log('🛒 Picking discount coupon:', coupon);
+    
+    // Only apply if eligible
+    if (!this.isDiscountEligible(coupon)) {
+      console.log('🛒 Coupon not eligible, cannot apply');
+      return;
+    }
+    
+    this.discountCode = coupon.code;
+    this.discountModalOpen = false;
+    this.applyDiscount();
+  }
+
   // Discount functionality
   applyDiscount(): void {
+    const userId = this.getCurrentUserId();
+    console.log('🛒 Applying discount, userId:', userId, 'code:', this.discountCode, 'subtotal:', this.subtotal);
+    
+    if (!userId) {
+      console.log('🛒 User not logged in for discount');
+      this.discountMessage = 'Vui lòng đăng nhập để sử dụng mã giảm giá.';
+      this.discountAmount = 0;
+      return;
+    }
+
     if (!this.discountCode.trim()) {
+      console.log('🛒 No discount code provided');
       this.discountMessage = 'Vui lòng nhập mã giảm giá';
       return;
     }
 
-    // Mock discount codes
-    const validCodes: { [key: string]: DiscountCode } = {
-      'SALE10': { code: 'SALE10', discount: 10, type: 'percentage', minAmount: 200000 },
-      'SALE20': { code: 'SALE20', discount: 20, type: 'percentage', minAmount: 500000 },
-      'FIXED50': { code: 'FIXED50', discount: 50000, type: 'fixed', minAmount: 300000 },
-      'NEWUSER': { code: 'NEWUSER', discount: 15, type: 'percentage', minAmount: 100000 }
-    };
-
     const code = this.discountCode.toUpperCase().trim();
-    const discount = validCodes[code];
-
-    if (!discount) {
-      this.discountMessage = 'Mã giảm giá không hợp lệ';
-      this.discountAmount = 0;
+    
+    // First try to apply from mock data
+    const mockCoupon = this.discountOptions.find(c => c.code === code);
+    if (mockCoupon) {
+      console.log('🛒 Found mock coupon:', mockCoupon);
+      
+      // Check eligibility
+      if (!this.isDiscountEligible(mockCoupon)) {
+        this.discountAmount = 0;
+        this.discountMessage = `Đơn hàng tối thiểu ${this.formatMoney(mockCoupon.minOrderAmount || 0)}đ để áp dụng mã này.`;
+        return;
+      }
+      
+      // Calculate discount
+      let discount = 0;
+      if (mockCoupon.discountPercent) {
+        discount = this.subtotal * (mockCoupon.discountPercent / 100);
+        if (mockCoupon.maxDiscountAmount) {
+          discount = Math.min(discount, mockCoupon.maxDiscountAmount);
+        }
+      } else if (mockCoupon.discountAmount) {
+        discount = mockCoupon.discountAmount;
+      }
+      
+      this.discountAmount = Math.min(Math.round(discount), this.subtotal);
+      this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
+      console.log('🛒 Mock discount applied successfully:', this.discountAmount);
       return;
     }
-
-    if (discount.minAmount && this.subtotal < discount.minAmount) {
-      this.discountMessage = `Đơn hàng tối thiểu ${this.formatMoney(discount.minAmount)}đ để áp dụng mã này`;
-      this.discountAmount = 0;
-      return;
-    }
-
-    if (discount.type === 'percentage') {
-      this.discountAmount = Math.round(this.subtotal * discount.discount / 100);
-    } else {
-      this.discountAmount = Math.min(discount.discount, this.subtotal);
-    }
-
-    this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
+    
+    // If not found in mock data, try API
+    const apiUrl = `${environment.apiBaseUrl}/api/coupons/preview`;
+    const requestBody = {
+      userId,
+      couponCode: code,
+      subtotal: this.subtotal
+    };
+    
+    console.log('🛒 Discount preview API call:', apiUrl, requestBody);
+    
+    this.http
+      .post<ApiResponse<{ couponCode: string; subtotal: number; discount: number; totalAfterDiscount: number }>>(
+        apiUrl,
+        requestBody
+      )
+      .subscribe({
+        next: (res) => {
+          console.log('🛒 Discount preview response:', res);
+          const d = res?.data;
+          const discount = Number((d as any)?.discount);
+          
+          if (!Number.isFinite(discount) || discount <= 0) {
+            console.log('🛒 Invalid discount amount:', discount);
+            this.discountAmount = 0;
+            this.discountMessage = 'Mã giảm giá không hợp lệ hoặc không áp dụng được.';
+            return;
+          }
+          
+          this.discountAmount = Math.min(Math.round(discount), this.subtotal);
+          this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
+          console.log('🛒 Discount applied successfully:', this.discountAmount);
+        },
+        error: (err) => {
+          console.error('🛒 Discount preview error:', err);
+          this.discountAmount = 0;
+          this.discountMessage = 'Mã giảm giá không hợp lệ hoặc không áp dụng được.';
+        }
+      });
   }
 
   // Address functionality
   selectAddress(index: number): void {
     this.selectedAddressIndex = index;
+    console.log('🛒 Selected address:', this.addresses[index]);
+  }
+
+  // Address management methods
+  isNewAddressValid(): boolean {
+    return !!(this.newAddress.name?.trim() && 
+              this.newAddress.phone?.trim() && 
+              this.newAddress.address?.trim());
+  }
+
+  isQuickAddressValid(): boolean {
+    return !!(this.quickAddress.name?.trim() && 
+              this.quickAddress.phone?.trim() && 
+              this.quickAddress.address?.trim());
+  }
+
+  cancelAddAddress(): void {
+    this.showAddAddress = false;
+    this.resetNewAddress();
+  }
+
+  cancelQuickAdd(): void {
+    this.showAddAddressForm = false;
+    this.resetQuickAddress();
+  }
+
+  resetNewAddress(): void {
+    this.newAddress = {
+      name: '',
+      phone: '',
+      address: '',
+      type: ''
+    };
+  }
+
+  resetQuickAddress(): void {
+    this.quickAddress = {
+      name: '',
+      phone: '',
+      address: '',
+      province: '',
+      district: ''
+    };
+  }
+
+  saveNewAddress(): void {
+    if (!this.isNewAddressValid()) {
+      console.log('🛒 New address is not valid');
+      return;
+    }
+
+    const address: Address = {
+      id: Date.now(), // Temporary ID
+      name: this.newAddress.name!.trim(),
+      phone: this.newAddress.phone!.trim(),
+      address: this.newAddress.address!.trim(),
+      type: this.newAddress.type || undefined
+    };
+
+    this.addresses.push(address);
+    this.saveAddressesToStorage();
+    this.showAddAddress = false;
+    this.resetNewAddress();
+    
+    // Auto-select the new address if it's the first one
+    if (this.addresses.length === 1) {
+      this.selectedAddressIndex = 0;
+    }
+    
+    console.log('🛒 Added new address:', address);
+  }
+
+  saveQuickAddress(): void {
+    if (!this.isQuickAddressValid()) {
+      console.log('🛒 Quick address is not valid');
+      return;
+    }
+
+    // Combine address parts
+    const fullAddress = [
+      this.quickAddress.address?.trim(),
+      this.quickAddress.district?.trim(),
+      this.quickAddress.province?.trim()
+    ].filter(Boolean).join(', ');
+
+    const address: Address = {
+      id: Date.now(), // Temporary ID
+      name: this.quickAddress.name!.trim(),
+      phone: this.quickAddress.phone!.trim(),
+      address: fullAddress,
+      type: 'Nhà riêng', // Default type for quick add
+      province: this.quickAddress.province?.trim() || undefined,
+      district: this.quickAddress.district?.trim() || undefined
+    };
+
+    this.addresses.push(address);
+    this.saveAddressesToStorage();
+    this.showAddAddressForm = false;
+    this.resetQuickAddress();
+    
+    // Auto-select the new address if it's the first one
+    if (this.addresses.length === 1) {
+      this.selectedAddressIndex = 0;
+    }
+    
+    console.log('🛒 Added quick address:', address);
+  }
+
+  setPrimaryAddress(index: number): void {
+    if (index < 0 || index >= this.addresses.length) return;
+    
+    // Move the selected address to the top
+    const primaryAddress = this.addresses.splice(index, 1)[0];
+    this.addresses.unshift(primaryAddress);
+    
+    // Update selected index
+    if (this.selectedAddressIndex === index) {
+      this.selectedAddressIndex = 0;
+    } else if (this.selectedAddressIndex > index) {
+      this.selectedAddressIndex--;
+    } else if (this.selectedAddressIndex < index) {
+      this.selectedAddressIndex++;
+    }
+    
+    this.saveAddressesToStorage();
+    console.log('🛒 Set primary address:', this.addresses[0]);
+  }
+
+  deleteAddress(index: number): void {
+    if (index < 0 || index >= this.addresses.length) return;
+    
+    const deletedAddress = this.addresses[index];
+    this.addresses.splice(index, 1);
+    
+    // Update selected index
+    if (this.selectedAddressIndex === index) {
+      this.selectedAddressIndex = this.addresses.length > 0 ? 0 : -1;
+    } else if (this.selectedAddressIndex > index) {
+      this.selectedAddressIndex--;
+    }
+    
+    this.saveAddressesToStorage();
+    console.log('🛒 Deleted address:', deletedAddress);
+  }
+
+  private saveAddressesToStorage(): void {
+    try {
+      localStorage.setItem('addresses', JSON.stringify(this.addresses));
+      console.log('🛒 Saved addresses to storage:', this.addresses.length);
+    } catch (error) {
+      console.error('🛒 Error saving addresses:', error);
+    }
+  }
+
+  proceedToCheckout(): void {
+    if (this.items.length === 0) {
+      console.log('🛒 Cannot proceed to checkout: cart is empty');
+      return;
+    }
+
+    if (this.selectedAddressIndex === -1) {
+      console.log('🛒 Cannot proceed to checkout: no address selected');
+      return;
+    }
+
+    const selectedAddress = this.addresses[this.selectedAddressIndex];
+    console.log('🛒 Proceeding to checkout with address:', selectedAddress);
+    
+    // Navigate to checkout page with selected address
+    this.router.navigate(['/checkout'], {
+      state: {
+        items: this.items,
+        address: selectedAddress,
+        subtotal: this.subtotal,
+        shippingFee: this.shippingFee,
+        discountAmount: this.discountAmount,
+        total: this.total,
+        discountCode: this.discountCode
+      }
+    });
+  }
+
+  continueShopping(): void {
+    console.log('🛒 Continuing shopping');
+    this.router.navigate(['/sale']);
+  }
+
+  clearCart(): void {
+    if (confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
+      this.items = [];
+      this.persistCart();
+      console.log('🛒 Cart cleared');
+    }
   }
 
   // Payment method functionality

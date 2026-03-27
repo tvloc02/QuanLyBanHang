@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminDataService, AdminUserResponse } from '../../../core/services/admin-data.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-admin-users',
@@ -28,6 +29,7 @@ export class AdminUsersComponent {
   viewOpen = false;
   selectedUser: AdminUserResponse | null = null;
   branches: Array<{ id: number; name: string; code: string }> = [];
+  createUsernameTouched = false;
 
   form: { fullName?: string; email?: string; username?: string; phone?: string; role: 'ADMIN' | 'MANAGER' | 'STAFF'; enabled: boolean; branchId?: number | null } = {
     fullName: '',
@@ -38,6 +40,7 @@ export class AdminUsersComponent {
     enabled: true,
     branchId: null
   };
+  editUsernameTouched = false;
 
   // Edit modal state
   editOpen = false;
@@ -73,6 +76,48 @@ export class AdminUsersComponent {
     if (!b) return `#${branchId}`;
     const code = (b.code || '').trim();
     return code || `#${branchId}`;
+  }
+
+  private pad4(n: number): string {
+    const v = Math.max(0, Math.floor(Number(n) || 0));
+    return String(v).padStart(4, '0');
+  }
+
+  private nextUserSeq(prefix: string, excludeUserId?: number): number {
+    const p = String(prefix || '').toUpperCase();
+    let max = 0;
+    for (const r of this.rows || []) {
+      if (!r) continue;
+      if (excludeUserId != null && r.id === excludeUserId) continue;
+      const u = String(r.username || '').trim().toUpperCase();
+      if (!u.startsWith(p)) continue;
+      const m = u.match(/_(\d{4})$/);
+      if (!m) continue;
+      const n = Number(m[1]);
+      if (Number.isFinite(n)) max = Math.max(max, n);
+    }
+    return max + 1;
+  }
+
+  private suggestUsername(role: 'ADMIN' | 'MANAGER' | 'STAFF', branchId?: number | null, excludeUserId?: number): string {
+    if (role === 'ADMIN') return 'ADMIN01';
+    const bc = String(this.branchCode(branchId) || '').trim().toUpperCase();
+    if (!bc || bc === '-' || bc.startsWith('#')) return '';
+    const prefix = role === 'MANAGER' ? `QL_${bc}` : `NV_${bc}`;
+    const seq = this.nextUserSeq(prefix, excludeUserId);
+    return `${prefix}_${this.pad4(seq)}`;
+  }
+
+  onCreateRoleOrBranchChanged(): void {
+    if (this.createUsernameTouched) return;
+    const next = this.suggestUsername(this.form.role, this.form.branchId);
+    if (next) this.form = { ...this.form, username: next };
+  }
+
+  onEditRoleOrBranchChanged(): void {
+    if (this.editUsernameTouched) return;
+    const next = this.suggestUsername(this.editForm.role, this.editForm.branchId, this.editForm.id);
+    if (next) this.editForm = { ...this.editForm, username: next };
   }
 
   private loadBranches(): void {
@@ -287,7 +332,9 @@ export class AdminUsersComponent {
   }
 
   openCreate(): void {
+    this.createUsernameTouched = false;
     this.form = { fullName: '', email: '', username: '', phone: '', role: 'STAFF', enabled: true, branchId: null };
+    this.onCreateRoleOrBranchChanged();
     this.createOpen = true;
   }
 
@@ -300,10 +347,27 @@ export class AdminUsersComponent {
     this.error = '';
 
     const branchId = this.form.role === 'ADMIN' ? null : (this.form.branchId ?? null);
+
+    if ((this.form.role === 'MANAGER' || this.form.role === 'STAFF') && !branchId) {
+      this.createLoading = false;
+      this.error = 'Vui lòng chọn chi nhánh.';
+      return;
+    }
+
+    const username =
+      (this.form.username || '').trim() ||
+      (this.form.role === 'ADMIN' ? 'ADMIN01' : this.suggestUsername(this.form.role, branchId));
+
+    if (!username) {
+      this.createLoading = false;
+      this.error = 'Không thể sinh mã nhân viên. Vui lòng kiểm tra mã chi nhánh.';
+      return;
+    }
+
     this.adminData.createUser({
       fullName: this.form.fullName?.trim() || undefined,
       email: this.form.email?.trim() || undefined,
-      username: this.form.username?.trim() || undefined,
+      username: username || undefined,
       phone: this.form.phone?.trim() || undefined,
       roles: [this.form.role],
       enabled: !!this.form.enabled,
@@ -318,9 +382,10 @@ export class AdminUsersComponent {
         this.createOpen = false;
         this.load();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.createLoading = false;
-        this.error = 'Không thể tạo người dùng. Vui lòng thử lại.';
+        const e = err as HttpErrorResponse;
+        this.error = e?.error?.message || e?.error?.error || e?.message || 'Không thể tạo người dùng. Vui lòng thử lại.';
       }
     });
   }
@@ -348,6 +413,8 @@ export class AdminUsersComponent {
       enabled: row.enabled !== false,
       branchId
     };
+    this.editUsernameTouched = false;
+    this.onEditRoleOrBranchChanged();
     this.editOpen = true;
   }
 
@@ -426,10 +493,27 @@ export class AdminUsersComponent {
     this.error = '';
 
     const branchId = this.editForm.role === 'ADMIN' ? null : (this.editForm.branchId ?? null);
+
+    if ((this.editForm.role === 'MANAGER' || this.editForm.role === 'STAFF') && !branchId) {
+      this.editLoading = false;
+      this.error = 'Vui lòng chọn chi nhánh.';
+      return;
+    }
+
+    const username =
+      (this.editForm.username || '').trim() ||
+      (this.editForm.role === 'ADMIN' ? 'ADMIN01' : this.suggestUsername(this.editForm.role, branchId, this.editForm.id));
+
+    if (!username) {
+      this.editLoading = false;
+      this.error = 'Không thể sinh mã nhân viên. Vui lòng kiểm tra mã chi nhánh.';
+      return;
+    }
+
     this.adminData.updateUser(this.editForm.id, {
       fullName: this.editForm.fullName?.trim() || undefined,
       email: this.editForm.email?.trim() || undefined,
-      username: this.editForm.username?.trim() || undefined,
+      username: username || undefined,
       phone: this.editForm.phone?.trim() || undefined,
       roles: [this.editForm.role],
       enabled: !!this.editForm.enabled,
@@ -444,9 +528,10 @@ export class AdminUsersComponent {
         this.editOpen = false;
         this.load();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.editLoading = false;
-        this.error = 'Không thể cập nhật người dùng. Vui lòng thử lại.';
+        const e = err as HttpErrorResponse;
+        this.error = e?.error?.message || e?.error?.error || e?.message || 'Không thể cập nhật người dùng. Vui lòng thử lại.';
       }
     });
   }

@@ -49,6 +49,22 @@
               </div>
             </div>
 
+            <div class="grid3" style="margin-top: 12px">
+              <div class="stat">
+                <div class="k">Đã bán</div>
+                <div class="v">{{ p.soldCount ?? 0 }}</div>
+              </div>
+              <div class="stat">
+                <div class="k">Đánh giá</div>
+                <div class="v">{{ p.rating ?? 0 }}</div>
+              </div>
+              <div class="stat">
+                <div class="k">Giảm giá</div>
+                <div class="v">{{ p.discountPercent ?? 0 }}%</div>
+                <div class="sub" *ngIf="p.badge">Badge: {{ p.badge }}</div>
+              </div>
+            </div>
+
             <div class="desc" *ngIf="p.description">
               <div class="k">Mô tả</div>
               <div class="desc-text">{{ p.description }}</div>
@@ -104,6 +120,59 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">Tồn kho theo kho (chi nhánh)</div>
+          <div class="card-body">
+            <div class="sub" *ngIf="stockLoading">Đang tải tồn kho theo chi nhánh...</div>
+
+            <ng-container *ngIf="!stockLoading">
+              <div class="matrix-wrap" *ngIf="hasVariantBranchStocks && variantBranchMatrixRows.length > 0">
+                <table class="matrix-table matrix-table--center">
+                  <thead>
+                    <tr>
+                      <th style="width:70px">STT</th>
+                      <th>Màu</th>
+                      <th>Size</th>
+                      <th *ngFor="let b of selectedBranches" style="width:140px">SL - {{ branchLabelById(b.id) }}</th>
+                      <th style="width:140px">Tổng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of variantBranchMatrixRows; let ri = index">
+                      <td><b>{{ ri + 1 }}</b></td>
+                      <td>{{ r.color }}</td>
+                      <td class="matrix-size">{{ r.size }}</td>
+                      <td *ngFor="let b of selectedBranches">{{ variantBranchCellStock(r, b.id) }}</td>
+                      <td><b>{{ r.total || 0 }}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="matrix-wrap" *ngIf="!hasVariantBranchStocks && selectedBranches.length > 0">
+                <table class="matrix-table matrix-table--center">
+                  <thead>
+                    <tr>
+                      <th style="width:70px">STT</th>
+                      <th>Kho (chi nhánh)</th>
+                      <th style="width:160px">Tồn</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let b of selectedBranches; let bi = index">
+                      <td><b>{{ bi + 1 }}</b></td>
+                      <td style="text-align:left">{{ branchLabelById(b.id) }}</td>
+                      <td><b>{{ stockByBranchId(b.id) }}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="sub" *ngIf="selectedBranches.length === 0">Chưa có dữ liệu tồn kho theo chi nhánh.</div>
+            </ng-container>
           </div>
         </div>
       </div>

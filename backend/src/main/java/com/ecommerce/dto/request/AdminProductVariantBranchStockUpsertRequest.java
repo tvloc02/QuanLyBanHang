@@ -7,6 +7,7 @@ public class AdminProductVariantBranchStockUpsertRequest {
     private String size;
     private Integer stock;
     private String imageUrl;
+    private Double weightKg;
 
     public AdminProductVariantBranchStockUpsertRequest() {}
 
@@ -48,5 +49,13 @@ public class AdminProductVariantBranchStockUpsertRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 }

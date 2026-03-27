@@ -72,6 +72,9 @@ public class Product {
     @Column(nullable = false)
     private String category;
 
+    @Column(name = "weight_kg")
+    private Double weightKg;
+
     @ElementCollection
     @CollectionTable(name = "product_sizes", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "size")
@@ -173,6 +176,9 @@ public class Product {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public Double getWeightKg() { return weightKg; }
+    public void setWeightKg(Double weightKg) { this.weightKg = weightKg; }
 
     public List<String> getSizes() { return sizes; }
     public void setSizes(List<String> sizes) { this.sizes = sizes; }

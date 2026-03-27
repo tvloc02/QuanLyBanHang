@@ -54,7 +54,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -64,6 +63,11 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Locale;
+import java.math.BigDecimal;
+import java.time.format.DateTimeParseException;
+import java.util.Optional;
+import java.util.UUID;
+import java.nio.file.StandardCopyOption;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -418,9 +422,9 @@ public class AdminDataController {
         Coupon saved;
         try {
             saved = couponRepository.save(c);
-        } catch (DataIntegrityViolationException e) {
-            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
-            return ResponseEntity.badRequest().body(ApiResponse.fail("Vi phạm ràng buộc dữ liệu: " + msg));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.fail("Lỗi server khi lưu coupon: " + e.getMessage()));
         }
 
         AdminCouponResponse res = new AdminCouponResponse(
@@ -477,9 +481,9 @@ public class AdminDataController {
         Coupon saved;
         try {
             saved = couponRepository.save(c);
-        } catch (DataIntegrityViolationException e) {
-            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
-            return ResponseEntity.badRequest().body(ApiResponse.fail("Vi phạm ràng buộc dữ liệu: " + msg));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.fail("Lỗi server khi cập nhật coupon: " + e.getMessage()));
         }
 
         AdminCouponResponse res = new AdminCouponResponse(
@@ -749,57 +753,67 @@ public class AdminDataController {
         }
         if (t == CellType.NUMERIC) {
             double d = cell.getNumericCellValue();
-            long asLong = (long) d;
-            if (Math.abs(d - asLong) < 0.0000001) return String.valueOf(asLong);
+            if (!Double.isFinite(d)) return null;
+            long l = (long) d;
+            if (Math.abs(d - l) < 0.0000001) return String.valueOf(l);
             return String.valueOf(d);
         }
         if (t == CellType.BOOLEAN) {
             return String.valueOf(cell.getBooleanCellValue());
         }
+        if (t == CellType.FORMULA) {
+            try {
+                return cell.getStringCellValue();
+            } catch (Exception e) {
+                try {
+                    return String.valueOf(cell.getNumericCellValue());
+                } catch (Exception e2) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static BigDecimal cellBigDecimal(Cell cell) {
+        String s = cellString(cell);
+        if (s == null || s.isBlank()) return null;
         try {
-            String v = cell.toString();
-            return v != null ? v.trim() : null;
+            return new BigDecimal(s.trim());
         } catch (Exception e) {
             return null;
         }
     }
 
-    @PostMapping(path = "/uploads", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<Map<String, String>>> uploadImage(
-        @RequestParam("file") MultipartFile file
-    ) {
+    private static Integer cellInteger(Cell cell) {
+        String s = cellString(cell);
+        if (s == null || s.isBlank()) return null;
         try {
-            if (file == null || file.isEmpty()) {
-                return ResponseEntity.badRequest().body(ApiResponse.fail("File trống"));
-            }
-            String contentType = file.getContentType() != null ? file.getContentType() : "";
-            if (!contentType.startsWith("image/")) {
-                return ResponseEntity.badRequest().body(ApiResponse.fail("Chỉ hỗ trợ upload ảnh"));
-            }
-            String ext = switch (contentType) {
-                case "image/png" -> ".png";
-                case "image/jpeg" -> ".jpg";
-                case "image/jpg" -> ".jpg";
-                case "image/webp" -> ".webp";
-                default -> "";
-            };
-            if (ext.isEmpty()) {
-                ext = ""; // fallback keep original if possible
-            }
-
-            Path uploadDir = Path.of("uploads");
-            Files.createDirectories(uploadDir);
-            String base = java.util.UUID.randomUUID().toString().replace("-", "");
-            String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : base + ext;
-            String safeName = originalName.replaceAll("[^a-zA-Z0-9_.-]", "_");
-            if (!safeName.contains(".")) safeName = safeName + ext;
-            Path target = uploadDir.resolve(base + "_" + safeName);
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-
-            String url = "/api/admin/uploads/" + target.getFileName().toString();
-            return ResponseEntity.ok(ApiResponse.ok(Map.of("url", url)));
+            return Integer.valueOf(s.trim());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.fail("Upload thất bại: " + e.getMessage()));
+            return null;
+        }
+    }
+
+    private static Boolean cellBoolean(Cell cell) {
+        if (cell == null) return null;
+        CellType t = cell.getCellType();
+        if (t == CellType.BOOLEAN) return cell.getBooleanCellValue();
+        String s = cellString(cell);
+        if (s == null || s.isBlank()) return null;
+        String v = s.trim().toLowerCase(Locale.ROOT);
+        if (v.equals("true") || v.equals("1") || v.equals("yes") || v.equals("y")) return Boolean.TRUE;
+        if (v.equals("false") || v.equals("0") || v.equals("no") || v.equals("n")) return Boolean.FALSE;
+        return null;
+    }
+
+    private static Instant cellInstant(Cell cell) {
+        String s = cellString(cell);
+        if (s == null || s.isBlank()) return null;
+        try {
+            return Instant.parse(s.trim());
+        } catch (DateTimeParseException e) {
+            return null;
         }
     }
 
@@ -818,6 +832,51 @@ public class AdminDataController {
                 .body(new ByteArrayResource(bytes));
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/uploads")
+    public ResponseEntity<ApiResponse<Object>> uploadsNoIndex() {
+        return ResponseEntity.status(404).body(ApiResponse.fail("Không tìm thấy tài nguyên upload"));
+    }
+
+    @GetMapping(path = { "/uploads.", "/uploads./" })
+    public ResponseEntity<ApiResponse<Object>> uploadsDotNoIndex() {
+        return ResponseEntity.status(404).body(ApiResponse.fail("Không tìm thấy tài nguyên upload"));
+    }
+
+    @PostMapping(path = { "/uploads", "/uploads/", "/uploads.", "/uploads./" }, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, String>>> uploadAdminFile(
+        @RequestParam("file") MultipartFile file
+    ) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("File trống"));
+        }
+
+        try {
+            Path uploadDir = Path.of("uploads");
+            Files.createDirectories(uploadDir);
+
+            String original = file.getOriginalFilename();
+            String safe = (original == null || original.isBlank() ? "image" : original)
+                .replaceAll("[^a-zA-Z0-9_.-]", "_");
+            if (safe.length() > 80) {
+                safe = safe.substring(safe.length() - 80);
+            }
+            if (!safe.contains(".")) {
+                safe = safe + ".jpg";
+            }
+
+            String base = UUID.randomUUID().toString().replace("-", "");
+            Path target = uploadDir.resolve(base + "_" + safe);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+            String url = "/api/admin/uploads/" + target.getFileName().toString();
+            Map<String, String> data = new HashMap<>();
+            data.put("url", url);
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Upload thất bại"));
         }
     }
 
@@ -1077,6 +1136,153 @@ public class AdminDataController {
             ))
             .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    @GetMapping("/coupons/import-template-excel")
+    public ResponseEntity<Resource> downloadCouponImportTemplate() {
+        try (Workbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Coupons");
+            Row h = sheet.createRow(0);
+            h.createCell(0).setCellValue("code");
+            h.createCell(1).setCellValue("description");
+            h.createCell(2).setCellValue("discount_amount");
+            h.createCell(3).setCellValue("discount_percent");
+            h.createCell(4).setCellValue("min_order_amount");
+            h.createCell(5).setCellValue("max_discount_amount");
+            h.createCell(6).setCellValue("shipping_discount_amount");
+            h.createCell(7).setCellValue("allowed_segments_csv");
+            h.createCell(8).setCellValue("usage_limit");
+            h.createCell(9).setCellValue("starts_at_iso");
+            h.createCell(10).setCellValue("ends_at_iso");
+            h.createCell(11).setCellValue("active");
+
+            Row r1 = sheet.createRow(1);
+            r1.createCell(0).setCellValue("SALE10");
+            r1.createCell(1).setCellValue("Giảm 10% cho khách hàng thân thiết");
+            r1.createCell(3).setCellValue(10);
+            r1.createCell(7).setCellValue("THAN_THIET,VANG");
+            r1.createCell(8).setCellValue(100);
+            r1.createCell(11).setCellValue(true);
+
+            Row r2 = sheet.createRow(2);
+            r2.createCell(0).setCellValue("SHIP30K");
+            r2.createCell(1).setCellValue("Giảm 30000đ phí ship");
+            r2.createCell(6).setCellValue(30000);
+            r2.createCell(4).setCellValue(200000);
+            r2.createCell(5).setCellValue(30000);
+            r2.createCell(11).setCellValue(true);
+
+            for (int c = 0; c < 12; c++) sheet.autoSizeColumn(c);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            wb.write(baos);
+            byte[] bytes = baos.toByteArray();
+
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header("Content-Disposition", "attachment; filename=coupons_template.xlsx")
+                .body(new ByteArrayResource(bytes));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(path = "/coupons/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> importCouponsExcel(
+        @RequestParam("file") MultipartFile file
+    ) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("File trống"));
+        }
+
+        int created = 0;
+        int updated = 0;
+        int skipped = 0;
+
+        try (InputStream is = file.getInputStream(); Workbook wb = new XSSFWorkbook(is)) {
+            Sheet sheet = wb.getNumberOfSheets() > 0 ? wb.getSheetAt(0) : null;
+            if (sheet == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("Không tìm thấy sheet trong file"));
+            }
+
+            for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String code = cellString(row.getCell(0));
+                String description = cellString(row.getCell(1));
+
+                // Optional header auto-skip
+                if (i == sheet.getFirstRowNum()) {
+                    String h = (code == null ? "" : code).toLowerCase(Locale.ROOT);
+                    if (h.contains("code")) {
+                        continue;
+                    }
+                }
+
+                if (code == null || code.isBlank()) {
+                    skipped++;
+                    continue;
+                }
+
+                BigDecimal discountAmount = cellBigDecimal(row.getCell(2));
+                Integer discountPercent = cellInteger(row.getCell(3));
+                BigDecimal minOrderAmount = cellBigDecimal(row.getCell(4));
+                BigDecimal maxDiscountAmount = cellBigDecimal(row.getCell(5));
+                BigDecimal shippingDiscountAmount = cellBigDecimal(row.getCell(6));
+                String allowedSegments = cellString(row.getCell(7));
+                Integer usageLimit = cellInteger(row.getCell(8));
+                Instant startsAt = cellInstant(row.getCell(9));
+                Instant endsAt = cellInstant(row.getCell(10));
+                Boolean active = cellBoolean(row.getCell(11));
+
+                String normCode = code.trim();
+                Optional<Coupon> opt = couponRepository.findByCode(normCode);
+                if (opt.isEmpty()) {
+                    Coupon c = new Coupon();
+                    c.setCode(normCode);
+                    c.setDescription(description);
+                    c.setDiscountAmount(discountAmount);
+                    c.setDiscountPercent(discountPercent);
+                    c.setMinOrderAmount(minOrderAmount);
+                    c.setMaxDiscountAmount(maxDiscountAmount);
+                    c.setShippingDiscountAmount(shippingDiscountAmount);
+                    c.setAllowedSegments(allowedSegments);
+                    c.setUsageLimit(usageLimit);
+                    c.setUsedCount(0);
+                    c.setStartsAt(startsAt);
+                    c.setEndsAt(endsAt);
+                    c.setActive(active != null ? active : Boolean.TRUE);
+                    couponRepository.save(c);
+                    created++;
+                } else {
+                    Coupon c = opt.get();
+                    c.setDescription(description);
+                    c.setDiscountAmount(discountAmount);
+                    c.setDiscountPercent(discountPercent);
+                    c.setMinOrderAmount(minOrderAmount);
+                    c.setMaxDiscountAmount(maxDiscountAmount);
+                    c.setShippingDiscountAmount(shippingDiscountAmount);
+                    c.setAllowedSegments(allowedSegments);
+                    c.setUsageLimit(usageLimit);
+                    c.setStartsAt(startsAt);
+                    c.setEndsAt(endsAt);
+                    if (active != null) c.setActive(active);
+                    couponRepository.save(c);
+                    updated++;
+                }
+            }
+
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "created", created,
+                "updated", updated,
+                "skipped", skipped
+            )));
+        } catch (BadRequestException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(ex.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Không thể đọc file: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/users")

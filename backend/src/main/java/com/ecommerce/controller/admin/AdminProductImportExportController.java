@@ -44,8 +44,8 @@ public class AdminProductImportExportController {
     }
 
     @GetMapping("/template")
-    public ResponseEntity<Resource> templateZip() {
-        var exp = importExportService.exportTemplateZip();
+    public ResponseEntity<Resource> templateZip(@RequestParam(name = "productTypeId", required = false) Long productTypeId) {
+        var exp = importExportService.exportTemplateZip(productTypeId);
         byte[] raw = exp.bytes();
         byte[] bytes = raw != null ? raw : new byte[0];
         String rawName = exp.filename();
@@ -62,7 +62,8 @@ public class AdminProductImportExportController {
     public ResponseEntity<ApiResponse<AdminProductImportResult>> importZip(
         @RequestParam("file") MultipartFile file,
         @RequestParam(name = "mode", required = false, defaultValue = "CREATE") String mode,
-        @RequestParam(name = "categoryIds", required = false) List<Long> categoryIds
+        @RequestParam(name = "categoryIds", required = false) List<Long> categoryIds,
+        @RequestParam(name = "productTypeId", required = false) Long productTypeId
     ) {
         AdminProductImportMode m;
         try {
@@ -71,8 +72,9 @@ public class AdminProductImportExportController {
             m = AdminProductImportMode.CREATE;
         }
 
-        List<Long> cats = categoryIds != null ? categoryIds : new ArrayList<>();
-        AdminProductImportResult result = importExportService.importProductsZipOrXlsx(file, m, cats);
-        return ResponseEntity.ok(ApiResponse.ok(result));
-    }
+    // List<Long> cats = categoryIds != null ? categoryIds : new ArrayList<>();
+    List<Long> cats = categoryIds != null ? categoryIds : new ArrayList<>();
+    AdminProductImportResult result = importExportService.importProductsZipOrXlsx(file, m, cats, productTypeId);
+    return ResponseEntity.ok(ApiResponse.ok(result));
+}
 }

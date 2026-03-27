@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit, DestroyRef } from '@angular/core';
 import { HostListener } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -14,6 +14,7 @@ interface Product {
   name: string;
   slug: string;
   price: number;
+  oldPrice?: number;
   priceText: string;
   imageUrl: string;
   badge?: string;
@@ -22,7 +23,7 @@ interface Product {
   soldCount?: number;
   category?: string;
   subCategory?: string;
-  target?: 'Nữ' | 'Nam' | 'Khác';
+  target?: 'N?' | 'Nam' | 'Kh?c';
   brand?: string;
   sizes?: string[];
 }
@@ -31,6 +32,36 @@ interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+}
+
+interface CategoryNode {
+  id: number;
+  name: string;
+  slug: string;
+  imageUrl?: string | null;
+  parentId?: number | null;
+  children?: CategoryNode[];
+}
+
+interface HomeSectionItemResponse {
+  enabled?: boolean | null;
+  itemType?: 'PRODUCT' | 'COUPON' | 'NEWS' | 'LINK' | null;
+  refId?: number | null;
+  title?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  route?: string | null;
+  code?: string | null;
+  note?: string | null;
+  buttonText?: string | null;
+  coupon?: any;
+}
+
+interface HomeSectionResponse {
+  sectionKey?: string | null;
+  title?: string | null;
+  enabled?: boolean | null;
+  items?: HomeSectionItemResponse[] | null;
 }
 
 interface ProductSearchData {
@@ -60,9 +91,10 @@ interface Filter {
   category?: string;
   minPrice?: number;
   maxPrice?: number;
+  colors?: string[];
   sizes?: string[];
   subCategories?: string[];
-  targets?: Array<'Nữ' | 'Nam' | 'Khác'>;
+  targets?: Array<'N?' | 'Nam' | 'Kh?c'>;
   sort?: 'price-asc' | 'price-desc' | 'newest' | 'bestselling';
   page?: number;
   limit?: number;
@@ -78,6 +110,17 @@ interface Filter {
 export class CategoryDetailComponent implements OnInit {
   readonly Math = Math;
   readonly cfg = HOME_CONFIG;
+  readonly productFallbackImage =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 760'>" +
+        "<rect width='600' height='760' fill='#f3f4f6'/>" +
+        "<rect x='110' y='120' width='380' height='360' rx='24' fill='#e5e7eb'/>" +
+        "<circle cx='300' cy='250' r='64' fill='#cbd5e1'/>" +
+        "<path d='M185 540h230' stroke='#d1d5db' stroke-width='28' stroke-linecap='round'/>" +
+        "<path d='M220 605h160' stroke='#e5e7eb' stroke-width='22' stroke-linecap='round'/>" +
+      "</svg>"
+    );
   accountOpen = false;
 
   wishlistCount = 0;
@@ -95,14 +138,33 @@ export class CategoryDetailComponent implements OnInit {
   error = '';
   categorySlug = '';
   categoryName = '';
+  categoryRootId: number | null = null;
+  categoryLevel = 0;
+
+  categoryHeroEnabled = false;
+  categoryHeroBanners: Array<{ imageUrl: string; alt: string }> = [];
+  categoryVouchersEnabled = false;
+  categoryVouchersTitle = 'Voucher danh m?c';
+  categoryVouchers: Array<{ title: string; code: string; note: string; minOrderAmount: number }> = [];
+  categoryProductsEnabled = false;
+  configuredProductsTitle = '';
+  rootRoundCategories: Array<{ id: number; name: string; slug: string; imageUrl: string; initial: string }> = [];
+
+  get isRootCategoryPage(): boolean {
+    return this.categoryLevel === 0;
+  }
+
+  private categoryNameCache = new Map<string, string>();
 
   // Filters
   filters: Filter = { page: 1, limit: 20 };
   minPrice = 0;
   maxPrice = 3000000;
+  readonly priceMax = 3000000;
   selectedSizes: string[] = [];
   selectedSubCategories: string[] = [];
-  selectedTargets: Array<'Nữ' | 'Nam' | 'Khác'> = [];
+  selectedTargets: Array<'N?' | 'Nam' | 'Kh?c'> = [];
+  selectedColors: string[] = [];
   sortBy: Filter['sort'] = 'newest';
 
   // Pagination
@@ -113,11 +175,13 @@ export class CategoryDetailComponent implements OnInit {
   // Mock data for sizes/colors
   allSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
+  allColors = ['#000000', '#2e7d32', '#f9a8d4', '#7c3aed', '#6b7280', '#f59e0b', '#fef9c3', '#2563eb'];
+
   priceSteps = Array.from({ length: 7 }, (_, i) => i * 500000);
 
-  allSubCategories = ['Dép đế cao', 'Sandals đế bệt', 'Bốt', 'Sandals đế cao'];
+  allSubCategories = ['D?p ?? cao', 'Sandals ?? b?t', 'B?t', 'Sandals ?? cao'];
 
-  allTargets: Array<'Nữ' | 'Nam' | 'Khác'> = ['Nữ', 'Nam', 'Khác'];
+  allTargets: Array<'N?' | 'Nam' | 'Kh?c'> = ['N?', 'Nam', 'Kh?c'];
 
   constructor(
     private route: ActivatedRoute,
@@ -292,35 +356,191 @@ export class CategoryDetailComponent implements OnInit {
   }
 
   private loadCategoryInfo(): void {
-    // Map slug to display name (demo)
-    const nameMap: Record<string, string> = {
-      'ao-khoac-gio': 'Áo khoác gió',
-      'ao-thun': 'Áo thun',
-      'quan-jeans': 'Quần jeans',
-      'vay-dam': 'Váy/Đầm',
-      'giay-sneaker': 'Giày sneaker',
-      'phu-kien': 'Phụ kiện',
-      'ao-khoac-phao-long-vu': 'Áo khoác phao & lông vũ',
-      'ao-khoac-long-cuu': 'Áo khoác lông cừu',
-      'ao-khoac-chong-nang': 'Áo khoác chống nắng',
-      'ao-giu-nhiet': 'Áo giữ nhiệt',
-      'ao-thu-dong': 'Áo thu đông',
-      'ao-thun-polo': 'Áo thun & polo',
-      'quan-jeans-dai': 'Quần jeans & dài',
-      'quan-short-chan-vay': 'Quần short & chân váy',
-      'ao-lot-bra': 'Áo lót & bra',
-      'quan-lot': 'Quần lót',
-      'giay-dep': 'Giày dép',
-      'tui-sach': 'Túi sách'
-    };
+    const slug = String(this.categorySlug || '').trim();
+    if (!slug) {
+      this.categoryName = '';
+      return;
+    }
 
-    const pretty = this.categorySlug
+    const cached = this.categoryNameCache.get(slug);
+    if (cached) {
+      this.categoryName = cached;
+    }
+
+    const pretty = slug
       .split('-')
       .filter(Boolean)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
 
-    this.categoryName = nameMap[this.categorySlug] || pretty;
+    this.categoryName = pretty;
+
+    const url = `${environment.apiBaseUrl}/api/categories/tree`;
+    this.http
+      .get<ApiResponse<CategoryNode[]>>(url)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const rows = Array.isArray(res?.data) ? res.data : [];
+          const context = this.findCategoryContextBySlug(rows, slug);
+          this.categoryLevel = Number(context.level || 0);
+          if (context.name) {
+            this.categoryNameCache.set(slug, context.name);
+            this.categoryName = context.name;
+          }
+          if (context.rootId) {
+            this.categoryRootId = context.rootId;
+            this.rootRoundCategories = this.buildRootRoundCategories(rows, context.rootId, this.categoryLevel === 0);
+            this.loadCategorySections(context.rootId);
+          }
+        },
+        error: () => {
+          // keep fallback pretty name
+          this.categoryLevel = 0;
+          this.rootRoundCategories = [];
+        }
+      });
+  }
+
+  private findCategoryContextBySlug(nodes: CategoryNode[], slug: string): { name: string; rootId: number | null; level: number } {
+    const all = this.flattenCategories(nodes);
+    const byId = new Map<number, CategoryNode>();
+    for (const node of all) {
+      if (node?.id) byId.set(node.id, node);
+    }
+
+    const target = all.find((node) => String(node?.slug || '').trim() === String(slug || '').trim()) || null;
+    if (!target) {
+      return { name: '', rootId: null, level: 0 };
+    }
+
+    let current: CategoryNode | null = target;
+    let level = 0;
+    while (current && current.parentId != null && byId.has(Number(current.parentId))) {
+      current = byId.get(Number(current.parentId)) || current;
+      level += 1;
+      if (current.parentId == null) break;
+    }
+
+    return {
+      name: String(target.name || '').trim(),
+      rootId: current?.id ?? target.id ?? null,
+      level
+    };
+  }
+
+  private findCategoryNameBySlug(nodes: CategoryNode[], slug: string): string {
+    const target = String(slug || '').trim();
+    if (!target) return '';
+
+    const stack: CategoryNode[] = Array.isArray(nodes) ? [...nodes] : [];
+    while (stack.length) {
+      const n = stack.shift();
+      if (!n) continue;
+      if (String(n.slug || '').trim() === target) return String(n.name || '').trim();
+      const kids = Array.isArray(n.children) ? n.children : [];
+      stack.unshift(...kids);
+    }
+    return '';
+  }
+
+  private flattenCategories(nodes: CategoryNode[]): CategoryNode[] {
+    const out: CategoryNode[] = [];
+    const walk = (node: CategoryNode) => {
+      if (!node) return;
+      out.push(node);
+      (node.children || []).forEach(walk);
+    };
+    (nodes || []).forEach(walk);
+    return out;
+  }
+
+  private buildRootRoundCategories(
+    nodes: CategoryNode[],
+    rootId: number,
+    isRootPage: boolean
+  ): Array<{ id: number; name: string; slug: string; imageUrl: string; initial: string }> {
+    if (!isRootPage || !rootId) return [];
+
+    const root = this.flattenCategories(nodes).find((node) => Number(node?.id) === Number(rootId));
+    const children = Array.isArray(root?.children) ? root!.children! : [];
+
+    return children
+      .filter((child) => !!child?.id && !!String(child?.slug || '').trim())
+      .map((child) => ({
+        id: Number(child.id),
+        name: String(child.name || '').trim(),
+        slug: String(child.slug || '').trim(),
+        imageUrl: this.normalizeImageUrl(String(child.imageUrl || '').trim()),
+        initial: String(child.name || '?').trim().charAt(0).toUpperCase()
+      }));
+  }
+
+  private loadCategorySections(rootId: number): void {
+    const url = `${environment.apiBaseUrl}/api/home-sections`;
+    this.http
+      .get<ApiResponse<HomeSectionResponse[]>>(url)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const rows = Array.isArray(res?.data) ? res.data : [];
+          const hero = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_HERO`);
+          const vouchers = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_VOUCHERS`);
+          const products = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_PRODUCTS`);
+
+          this.categoryHeroEnabled = this.isRootCategoryPage && !!hero && hero.enabled !== false;
+          const heroItems = Array.isArray(hero?.items) ? hero!.items! : [];
+          this.categoryHeroBanners = heroItems
+            .filter((item) => item?.enabled !== false && String(item?.itemType || '').toUpperCase() === 'LINK')
+            .map((item) => ({
+              imageUrl: this.normalizeImageUrl(String(item?.imageUrl || '').trim()),
+              alt: String(item?.title || this.categoryName || 'Category banner')
+            }))
+            .filter((item) => !!item.imageUrl);
+
+          this.categoryVouchersEnabled = this.isRootCategoryPage && !!vouchers && vouchers.enabled !== false;
+          this.categoryVouchersTitle = String(vouchers?.title || 'Voucher danh má»¥c');
+          const voucherItems = Array.isArray(vouchers?.items) ? vouchers!.items! : [];
+          this.categoryVouchers = voucherItems
+            .filter((item) => item?.enabled !== false && String(item?.itemType || '').toUpperCase() === 'COUPON')
+            .map((item) => ({
+              title: String(item?.title || item?.coupon?.description || 'Voucher'),
+              code: String(item?.coupon?.code || item?.code || ''),
+              note: String(item?.note || item?.description || ''),
+              minOrderAmount: Number(item?.coupon?.minOrderAmount || item?.coupon?.minimumOrder || 0)
+            }))
+            .filter((item) => !!item.code);
+
+          this.categoryProductsEnabled = this.isRootCategoryPage && !!products && products.enabled !== false;
+          this.configuredProductsTitle = this.isRootCategoryPage ? String(products?.title || '').trim() : '';
+        },
+        error: () => {
+          this.categoryHeroEnabled = false;
+          this.categoryHeroBanners = [];
+          this.categoryVouchersEnabled = false;
+          this.categoryVouchers = [];
+          this.categoryProductsEnabled = false;
+          this.configuredProductsTitle = '';
+        }
+      });
+  }
+
+  copyVoucher(code: string): void {
+    const value = String(code || '').trim();
+    if (!value) return;
+    navigator.clipboard.writeText(value).catch(() => undefined);
+  }
+
+  scrollTrack(el: HTMLElement | null | undefined, dx: number): void {
+    if (!el) return;
+    el.scrollBy({ left: Number(dx || 0), behavior: 'smooth' });
+  }
+
+  private normalizeImageUrl(raw: string): string {
+    const url = String(raw || '').trim();
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url;
+    return `${environment.apiBaseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   private loadProducts(): void {
@@ -332,18 +552,19 @@ export class CategoryDetailComponent implements OnInit {
     if (this.filters.category) params.set('category', this.filters.category);
     if (this.filters.minPrice !== undefined) params.set('minPrice', String(this.filters.minPrice));
     if (this.filters.maxPrice !== undefined) params.set('maxPrice', String(this.filters.maxPrice));
+    if (this.filters.colors?.length) params.set('colors', this.filters.colors.join(','));
     if (this.filters.sizes?.length) params.set('sizes', this.filters.sizes.join(','));
     if (this.filters.subCategories?.length) params.set('subCategories', this.filters.subCategories.join(','));
     if (this.filters.targets?.length) params.set('targets', this.filters.targets.join(','));
     if (this.filters.sort) params.set('sort', this.filters.sort);
-    params.set('page', String(this.filters.page || 1));
+    params.set('page', String((this.filters.page || 1) - 1));
     params.set('limit', String(this.filters.limit || 20));
 
     const url = `${environment.apiBaseUrl}/api/products/search?${params.toString()}`;
     this.http.get<ApiResponse<ProductSearchData>>(url).subscribe({
       next: (res) => {
         if (!res?.success) {
-          this.error = res?.message || 'Không thể tải sản phẩm.';
+          this.error = res?.message || 'KhĂ´ng thá»ƒ táº£i sáº£n pháº©m.';
           this.loading = false;
           return;
         }
@@ -353,13 +574,17 @@ export class CategoryDetailComponent implements OnInit {
 
         this.products = items.map((p) => {
           const discount = p.discountPercent ?? undefined;
+          // Use placeholder image if no imageUrl - use a better looking placeholder
+          const imageUrl = p.imageUrl || this.productFallbackImage;
+
           return {
             id: p.id,
             name: p.name,
             slug: p.slug,
             price: p.price,
-            priceText: `${p.price}đ`,
-            imageUrl: p.imageUrl || 'https://via.placeholder.com/300x400?text=Product',
+            oldPrice: p.oldPrice || (discount ? Math.round(p.price / (1 - discount / 100)) : undefined),
+            priceText: `${new Intl.NumberFormat('vi-VN').format(p.price)}Ä‘`,
+            imageUrl,
             badge: p.badge || undefined,
             discount,
             rating: (p.rating as unknown as number) || undefined,
@@ -387,11 +612,12 @@ export class CategoryDetailComponent implements OnInit {
   private loadMockData(): void {
     const mockProducts: Product[] = Array.from({ length: 20 }, (_, i) => ({
       id: i + 1,
-      name: `Sản phẩm ${this.categoryName} ${i + 1}`,
+      name: `Sáº£n pháº©m ${this.categoryName} ${i + 1}`,
       slug: `san-pham-${i + 1}`,
       price: Math.floor(Math.random() * 900000) + 100000,
-      priceText: `${Math.floor(Math.random() * 900000) + 100000}đ`,
-      imageUrl: 'https://via.placeholder.com/300x400?text=Product',
+      oldPrice: Math.floor(Math.random() * 900000) + 300000,
+      priceText: `${new Intl.NumberFormat('vi-VN').format(Math.floor(Math.random() * 900000) + 100000)}Ä‘`,
+      imageUrl: `https://picsum.photos/seed/product${i + 1}/300/400.jpg`,
       badge: Math.random() > 0.7 ? (Math.random() > 0.5 ? 'Hot' : 'New') : undefined,
       discount: Math.random() > 0.6 ? Math.floor(Math.random() * 30) + 5 : undefined,
       rating: Math.round((Math.random() * 2 + 3) * 10) / 10,
@@ -421,8 +647,18 @@ export class CategoryDetailComponent implements OnInit {
 
   resetPrice(): void {
     this.minPrice = 0;
-    this.maxPrice = 3000000;
+    this.maxPrice = this.priceMax;
     this.onPriceRangeChange();
+  }
+
+  onColorChange(color: string, checked: boolean): void {
+    if (checked) {
+      this.selectedColors = [...this.selectedColors, color];
+    } else {
+      this.selectedColors = this.selectedColors.filter(c => c !== color);
+    }
+    this.filters.colors = this.selectedColors.length ? this.selectedColors : undefined;
+    this.applyFilters();
   }
 
   onSizeChange(size: string, checked: boolean): void {
@@ -445,7 +681,7 @@ export class CategoryDetailComponent implements OnInit {
     this.applyFilters();
   }
 
-  onTargetChange(target: 'Nữ' | 'Nam' | 'Khác', checked: boolean): void {
+  onTargetChange(target: 'N?' | 'Nam' | 'Kh?c', checked: boolean): void {
     if (checked) {
       this.selectedTargets = [...this.selectedTargets, target];
     } else {
@@ -482,6 +718,11 @@ export class CategoryDetailComponent implements OnInit {
     this.router.navigate(['/product', slug]);
   }
 
+  onProductImageError(product: Product): void {
+    if (!product) return;
+    product.imageUrl = this.productFallbackImage;
+  }
+
   // Helper for pagination UI
   getVisiblePages(): number[] {
     const delta = 2;
@@ -510,3 +751,7 @@ export class CategoryDetailComponent implements OnInit {
     return rangeWithDots;
   }
 }
+
+
+
+

@@ -1,8 +1,9 @@
+﻿
 <div class="space-y-6">
-  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+  <div class="page-hero bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-start sm:items-center gap-4 min-w-0">
-        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+        <div class="hero-icon w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
           <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M20 7h-7V4a2 2 0 0 0-2-2H4v7h3v11a2 2 0 0 0 2 2h11V7Z" />
             <path d="M9 11h7" />
@@ -10,8 +11,8 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }}</h1>
-          <p class="text-blue-100 text-sm sm:text-base">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/kích cỡ' }}</p>
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">{{ isEdit ? 'Sá»­a sáº£n pháº©m' : 'ThĂªm sáº£n pháº©m' }} </h1>
+          <p class="text-blue-100 text-sm sm:text-base">{{ isEdit ? 'Cáº­p nháº­t thĂ´ng tin sáº£n pháº©m vĂ  biáº¿n thá»ƒ' : 'Táº¡o má»›i sáº£n pháº©m vĂ  cáº¥u hĂ¬nh biáº¿n thá»ƒ mĂ u/kĂ­ch cá»¡' }}</p>
         </div>
       </div>
 
@@ -21,7 +22,7 @@
           type="button"
           (click)="back()"
         >
-          <span>← Quay lại</span>
+          <span>â† Quay láº¡i</span>
         </button>
         <button
           class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
@@ -29,87 +30,191 @@
           (click)="submit()"
           [disabled]="saving"
         >
-          <span>{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</span>
+          <span>{{ saving ? 'Äang lÆ°u...' : (isEdit ? 'LÆ°u thay Ä‘á»•i' : 'Táº¡o sáº£n pháº©m') }}</span>
         </button>
       </div>
     </div>
   </div>
 
-  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">{{ error }}</div>
-  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl font-semibold">{{ success }}</div>
+  <div class="toast" *ngIf="toastOpen" [class.is-error]="toastType==='error'" [class.is-success]="toastType==='success'">
+    <div class="toast__body">{{ toastMessage }}</div>
+    <button class="toast__close" type="button" (click)="closeToast()">Ă—</button>
+  </div>
+
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" *ngIf="error">
+    <div class="text-red-800 font-semibold mb-1">Lá»—i</div>
+    <div class="text-red-700">{{ error }}</div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Product form tabs">
+    <button
+      *ngFor="let t of tabs"
+      type="button"
+      class="tab"
+      role="tab"
+      [class.is-active]="isTab(t.key)"
+      [attr.aria-selected]="isTab(t.key)"
+      (click)="setTab(t.key)"
+    >
+      {{ t.label }}
+    </button>
+  </div>
 
   <div class="layout" [class.disabled]="loading">
     <form class="form" [formGroup]="form" (ngSubmit)="$event.preventDefault(); submit()">
-      <div class="card">
-        <div class="card-head">Thông tin cơ bản</div>
+      <div class="cat-overlay" *ngIf="branchModalOpen">
+        <div class="cat-modal">
+          <div class="cat-head">
+            <div class="cat-title">Chá»n chi nhĂ¡nh</div>
+            <button class="btn ghost" type="button" (click)="closeBranchModal()">Ă—</button>
+          </div>
+
+          <div class="cat-body">
+            <div class="cat-search">
+              <input class="input" [(ngModel)]="branchFilter" [ngModelOptions]="{ standalone: true }" name="branchFilterModal" placeholder="TĂ¬m chi nhĂ¡nh (mĂ£/tĂªn)..." />
+              <div class="cat-search-hint">Tick vĂ o chi nhĂ¡nh báº¡n muá»‘n Ă¡p dá»¥ng.</div>
+            </div>
+
+            <div class="cat-tree">
+              <div class="cat-nodes">
+                <div class="cat-row" *ngFor="let b of filteredBranches; trackBy: trackByBranchId">
+                  <div class="cat-left" style="padding-left:12px">
+                    <span class="cat-name">{{ b.code }} - {{ b.name }}</span>
+                  </div>
+                  <div class="cat-right">
+                    <label class="cat-check">
+                      <input type="checkbox" [checked]="selectedBranchIds.has(b.id)" (change)="toggleBranchSelection(b.id, $any($event.target).checked)" />
+                      <span>Chá»n</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-actions">
+            <button class="btn ghost" type="button" (click)="closeBranchModal()">ÄĂ³ng</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="isTab('BASIC')" id="prod-sec-basic">
+        <div class="card-head">ThĂ´ng tin cÆ¡ báº£n</div>
         <div class="card-body">
+          <div class="basic-topbar">
+            <button class="btn ghost basic-topbar__btn" type="button" (click)="openBranchModal()" [disabled]="!canEditStock">
+              <span>Chá»n chi nhĂ¡nh</span>
+              <span class="basic-topbar__count">{{ selectedBranchIds.size }}</span>
+            </button>
+            <button class="btn ghost basic-topbar__btn" type="button" (click)="openCategoryModal()">
+              <span>Chá»n danh má»¥c</span>
+              <span class="basic-topbar__count">{{ selectedCategoryLeafs.length }}</span>
+            </button>
+          </div>
+
           <div class="grid2">
             <div class="field">
-              <label class="label">Tên sản phẩm *</label>
-              <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
+              <label class="label">TĂªn sáº£n pháº©m</label>
+              <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Ăo khoĂ¡c giĂ³ basic" />
             </div>
 
             <div class="field">
-              <label class="label">Đường dẫn *</label>
+              <label class="label">ÄÆ°á»ng dáº«n</label>
               <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
             </div>
           </div>
 
           <div class="grid2">
             <div class="field">
-              <label class="label">Brand *</label>
+              <label class="label">Brand</label>
               <input class="input" formControlName="brand" placeholder="FashionHub" />
             </div>
 
             <div class="field">
-              <label class="label">Loại sản phẩm *</label>
+              <label class="label">Loáº¡i sáº£n pháº©m</label>
               <select class="input" formControlName="productTypeId" [disabled]="productTypesLoading">
-                <option [ngValue]="null">-- Chọn loại sản phẩm --</option>
+                <option [ngValue]="null">-- Chá»n loáº¡i sáº£n pháº©m --</option>
                 <option *ngFor="let pt of activeProductTypes" [ngValue]="pt.id">{{ pt.name }}</option>
               </select>
             </div>
 
+            <div class="field field--span2" *ngIf="availableSizeGroups.length > 0">
+              <label class="label">NhĂ³m size / giá»›i tĂ­nh</label>
+              <div class="branch-picker">
+                <label class="branch-pill" *ngFor="let g of availableSizeGroups">
+                  <input
+                    type="checkbox"
+                    class="accent-blue-600"
+                    [ngModel]="selectedSizeGroupKeys.has(g.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="toggleSizeGroupSelection(g.key, $event)"
+                  />
+                  <span class="branch-pill__text">{{ g.label }}</span>
+                </label>
+
+                <div class="size-inline-summary" *ngIf="selectedSizeGroups.length > 0">
+                  <span class="size-inline-item" *ngFor="let sg of selectedSizeGroups">
+                    <span class="size-group__title">{{ sg.label }}:</span>
+                    <span class="size-group__list">{{ sizesOfGroup(sg.key).join(', ') }}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div class="field">
-              <label class="label">Trạng thái</label>
+              <label class="label">Tráº¡ng thĂ¡i</label>
               <label class="switch">
                 <input type="checkbox" formControlName="active" />
-                <span>{{ form.value.active === false ? 'Ẩn' : 'Bật' }}</span>
+                <span>{{ form.value.active === false ? 'áº¨n' : 'Báº­t' }}</span>
               </label>
             </div>
           </div>
 
           <div class="grid2">
             <div class="field">
-              <label class="label">Kích cỡ (CSV)</label>
+              <label class="label">KĂ­ch cá»¡ (CSV)</label>
               <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
             </div>
 
             <div class="field">
-              <label class="label">Màu sắc (CSV)</label>
-              <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
+              <label class="label">MĂ u sáº¯c (CSV)</label>
+              <input class="input" formControlName="colorsCsv" placeholder="Äen,Tráº¯ng" />
             </div>
           </div>
 
-          <div class="variant-toolbar">
-            <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Tạo biến thể theo màu</button>
-            <div class="variant-toolbar__meta">Tổng tồn: <code>{{ form.value.stock }}</code></div>
-          </div>
-        </div>
-      </div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">GiĂ¡</label>
+              <div class="vnd-input">
+                <input
+                  class="input"
+                  type="text"
+                  inputmode="numeric"
+                  [value]="formatVnd(form.get('price')?.value)"
+                  (focus)="onVndControlFocus('price', $event)"
+                  (input)="onVndControlInput('price', $event)"
+                  (blur)="onVndControlBlur('price', $event)"
+                />
+                <span class="vnd-suffix">VNÄ</span>
+              </div>
+            </div>
 
-      <div class="card">
-        <div class="card-head">Danh mục *</div>
-        <div class="card-body">
-          <div class="cat-toolbar">
-            <button class="btn ghost" type="button" (click)="openCategoryModal()">Chọn danh mục</button>
-            <button class="btn ghost" type="button" (click)="clearSelectedCategories()" [disabled]="selectedCategoryLeafs.length===0">Xóa chọn</button>
+            <div class="field">
+              <label class="label">GiĂ¡ cÅ©</label>
+              <div class="vnd-input">
+                <input
+                  class="input"
+                  type="text"
+                  inputmode="numeric"
+                  [value]="formatVnd(form.get('oldPrice')?.value)"
+                  (focus)="onVndControlFocus('oldPrice', $event)"
+                  (input)="onVndControlInput('oldPrice', $event)"
+                  (blur)="onVndControlBlur('oldPrice', $event)"
+                />
+                <span class="vnd-suffix">VNÄ</span>
+              </div>
+            </div>
           </div>
-
-          <div class="cat-selected" *ngIf="selectedCategoryLeafs.length > 0">
-            <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
-          </div>
-
-          <div class="hint">Đã chọn: <code>{{ selectedCategoryLeafs.length }}</code> danh mục</div>
 
           <input type="hidden" formControlName="category" />
         </div>
@@ -118,14 +223,14 @@
       <div class="cat-overlay" *ngIf="categoryModalOpen">
         <div class="cat-modal">
           <div class="cat-head">
-            <div class="cat-title">Chọn danh mục</div>
-            <button class="btn ghost" type="button" (click)="closeCategoryModal()">×</button>
+            <div class="cat-title">Chá»n danh má»¥c</div>
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">Ă—</button>
           </div>
 
           <div class="cat-body">
             <div class="cat-search">
-              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="Tìm danh mục..." />
-              <div class="cat-search-hint">Bạn có thể tick ở cả cấp 1/2/3.</div>
+              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="TĂ¬m danh má»¥c..." />
+              <div class="cat-search-hint">Báº¡n cĂ³ thá»ƒ tick á»Ÿ cáº£ cáº¥p 1/2/3.</div>
             </div>
 
             <div class="cat-tree">
@@ -142,9 +247,9 @@
                         type="button"
                         *ngIf="node.children?.length"
                         (click)="toggleExpandCategory(node)"
-                        [attr.aria-label]="isExpandedCategory(node) ? 'Thu gọn' : 'Mở rộng'"
+                        [attr.aria-label]="isExpandedCategory(node) ? 'Thu gá»n' : 'Má»Ÿ rá»™ng'"
                       >
-                        {{ isExpandedCategory(node) ? '−' : '+' }}
+                        {{ isExpandedCategory(node) ? 'âˆ’' : '+' }}
                       </button>
                       <span class="cat-name">{{ node.name }}</span>
                     </div>
@@ -152,7 +257,7 @@
                     <div class="cat-right">
                       <label class="cat-check">
                         <input type="checkbox" [checked]="selectedCategoryIds.has(node.id)" (change)="toggleCategory(node)" />
-                        <span>Chọn</span>
+                        <span>Chá»n</span>
                       </label>
                     </div>
                   </div>
@@ -166,87 +271,123 @@
           </div>
 
           <div class="cat-actions">
-            <button class="btn ghost" type="button" (click)="closeCategoryModal()">Đóng</button>
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">ÄĂ³ng</button>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-head">Tồn kho theo chi nhánh (Size + Màu)</div>
+      <div class="card" *ngIf="isTab('BASIC')">
+        <div class="card-head">Táº¡o ma tráº­n / biáº¿n thá»ƒ</div>
         <div class="card-body">
-          <div class="matrix-wrap" *ngIf="(variantBranchRows || []).length > 0 && (branches || []).length > 0">
-            <table class="matrix-table">
-              <thead>
-                <tr>
-                  <th>Màu</th>
-                  <th>Size</th>
-                  <th>Giá</th>
-                  <th>Giá cũ</th>
-                  <th *ngFor="let b of branches">{{ b.code }}</th>
-                  <th>Tổng</th>
-                  <th>Ảnh</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of variantBranchRows; let ri = index">
-                  <td class="matrix-color">{{ row.color }}</td>
-                  <td class="matrix-size">{{ row.size }}</td>
-                  <td>
-                    <input
-                      class="input matrix-input"
-                      type="number"
-                      [(ngModel)]="row.price"
-                      (input)="onVariantRowPriceChanged(row)"
-                      [ngModelOptions]="{ standalone: true }"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      class="input matrix-input"
-                      type="number"
-                      [(ngModel)]="row.oldPrice"
-                      (input)="onVariantRowPriceChanged(row)"
-                      [ngModelOptions]="{ standalone: true }"
-                    />
-                  </td>
-                  <td *ngFor="let cell of row.stocks">
-                    <input
-                      class="input matrix-input"
-                      type="number"
-                      [(ngModel)]="cell.stock"
-                      (input)="onVariantBranchMatrixChanged()"
-                      [ngModelOptions]="{ standalone: true }"
-                    />
-                  </td>
-                  <td class="matrix-total"><code>{{ row.total }}</code></td>
-                  <td class="matrix-image">
-                    <div class="matrix-image-cell">
-                      <img class="matrix-thumb" *ngIf="matrixImagePreview(row.imageUrl)" [src]="matrixImagePreview(row.imageUrl)" alt="preview" />
-                      <input class="file-input" type="file" accept="image/*" [id]="'matrixImg' + ri" (change)="onMatrixImageFileSelect(ri, $event)" />
-                      <label class="btn ghost file-btn" [for]="'matrixImg' + ri">Chọn ảnh</label>
-                      <button class="btn ghost danger" type="button" (click)="clearMatrixImage(ri)" *ngIf="row.imageUrl" style="margin-left:8px">Xóa</button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div *ngIf="!canEditStock" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div class="text-yellow-800 font-semibold">đŸ“‹ Chá»‰ cĂ³ Manager má»›i cĂ³ thá»ƒ nháº­p sá»‘ lÆ°á»£ng tá»“n kho</div>
+            <div class="text-yellow-700 text-sm mt-1">Báº¡n cĂ³ thá»ƒ sá»­a thĂ´ng tin sáº£n pháº©m, nhÆ°ng viá»‡c nháº­p tá»“n kho sáº½ do Manager chi nhĂ¡nh thá»±c hiá»‡n.</div>
+          </div>
+          <div class="variant-toolbar" style="margin:0">
+            <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Táº¡o biáº¿n thá»ƒ theo mĂ u</button>
+            <button class="btn ghost" type="button" (click)="importMatrixFile()" [disabled]="variantBranchRows.length === 0">
+              đŸ“¥ Import ma tráº­n tá»« file
+            </button>
+            <button class="btn ghost" type="button" (click)="exportMatrixTemplate()" [disabled]="variantBranchRows.length === 0">
+              đŸ“¤ Export máº«u ma tráº­n
+            </button>
+            <input type="file" #matrixFileInput hidden accept=".csv,.xlsx,.xls" (change)="onMatrixFileSelected($event)" />
           </div>
 
-          <div class="empty" *ngIf="(branches || []).length === 0">
-            Chưa có chi nhánh.
-          </div>
+          <div class="hint" *ngIf="selectedBranchIds.size===0">Chá»n kho (chi nhĂ¡nh) trÆ°á»›c rá»“i má»›i táº¡o ma tráº­n.</div>
 
-          <div class="empty" *ngIf="(branches || []).length > 0 && (variantBranchRows || []).length === 0">
-            Chưa có dòng size + màu. Vui lòng tạo biến thể theo màu trước.
+          <div class="variant-matrix" *ngIf="variants.length > 0 && selectedBranches.length > 0">
+            <div class="empty" *ngIf="variantBranchRows.length === 0">ChÆ°a cĂ³ dĂ²ng ma tráº­n (v2026-03-17). HĂ£y nháº­p Size/MĂ u (CSV) vĂ  báº¥m â€œTáº¡o biáº¿n thá»ƒ theo mĂ uâ€.</div>
+
+            <div class="matrix-wrap" *ngIf="variantBranchRows.length > 0">
+              <table class="matrix-table matrix-table--center">
+                <thead>
+                  <tr>
+                    <th style="width:70px">STT</th>
+                    <th>Giá»›i tĂ­nh</th>
+                    <th>MĂ u sáº¯c</th>
+                    <th>Size</th>
+                    <th style="width:100px">CĂ¢n náº·ng (kg)</th>
+                    <th *ngFor="let b of selectedBranches; trackBy: trackByBranchId" style="width:140px">
+                      SL - {{ branchLabelById(b.id) }}
+                    </th>
+                    <th style="width:140px">Tá»•ng</th>
+                    <th style="width:160px">GiĂ¡</th>
+                    <th style="width:160px">áº¢nh</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let r of variantBranchRows; let ri = index">
+                    <td><b>{{ ri + 1 }}</b></td>
+                    <td>{{ r.genderLabel }}</td>
+                    <td>{{ r.color }}</td>
+                    <td class="matrix-size">{{ r.size }}</td>
+                    <td>
+                      <input
+                        class="input matrix-input"
+                        type="number"
+                        [ngModel]="r.weightKg"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="setVariantWeightKg(r, $event)"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.35"
+                      />
+                    </td>
+                    <td *ngFor="let b of selectedBranches; trackBy: trackByBranchId">
+                      <input
+                        class="input matrix-input"
+                        type="number"
+                        [ngModel]="variantBranchStockValue(r, b.id)"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="setVariantBranchStockValue(r, b.id, $event)"
+                        [disabled]="!canEditStock"
+                      />
+                    </td>
+                    <td><b>{{ r.total || 0 }}</b></td>
+                    <td>
+                      <ng-container *ngIf="canEditMatrixPrice; else priceReadonly">
+                        <div class="vnd-input vnd-input--matrix">
+                          <input
+                            class="input matrix-input"
+                            type="text"
+                            inputmode="numeric"
+                            [value]="formatVnd(r.price)"
+                            (focus)="onVndRowPriceFocus(r, $event)"
+                            (input)="onVndRowPriceInput(r, $event)"
+                            (blur)="onVndRowPriceBlur(r, $event)"
+                          />
+                          <span class="vnd-suffix">VNÄ</span>
+                        </div>
+                      </ng-container>
+                      <ng-template #priceReadonly>
+                        <span>{{ formatVnd(r.price) }} VNÄ</span>
+                      </ng-template>
+                    </td>
+                    <td class="matrix-image">
+                      <div class="matrix-image-cell">
+                        <ng-container *ngIf="matrixImagePreview(r.imageUrl) as imgSrc">
+                          <button class="thumb-btn" type="button" (click)="openCropMatrix(ri)">
+                            <img class="matrix-thumb" [src]="imgSrc" alt="preview" />
+                          </button>
+                        </ng-container>
+                        <input class="file-input" type="file" accept="image/*" [id]="'matrixImg_' + ri" (change)="onMatrixImageFileSelect(ri, $event)" />
+                        <label class="btn ghost file-btn" [for]="'matrixImg_' + ri">Chá»n áº£nh</label>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-head">Ảnh sản phẩm (tổng)</div>
+      <div class="card" *ngIf="isTab('IMAGES')">
+        <div class="card-head">áº¢nh sáº£n pháº©m (tá»•ng)</div>
         <div class="card-body">
           <div class="img-layout-toolbar">
-            <div class="img-layout-label">Bố cục hiển thị</div>
+            <div class="img-layout-label">Bá»‘ cá»¥c hiá»ƒn thá»‹</div>
             <select
               class="input img-layout-select"
               [ngModel]="imageLayout"
@@ -254,10 +395,10 @@
               [ngModelOptions]="{ standalone: true }"
               name="imageLayout"
             >
-              <option value="free">Tự do</option>
-              <option value="1-4">1 lớn - 4 nhỏ</option>
-              <option value="1-3">1 lớn - 3 nhỏ</option>
-              <option value="2-2">2 - 2 (4 ảnh bằng nhau)</option>
+              <option value="free">Tá»± do</option>
+              <option value="1-4">1 lá»›n - 4 nhá»</option>
+              <option value="1-3">1 lá»›n - 3 nhá»</option>
+              <option value="2-2">2 - 2 (4 áº£nh báº±ng nhau)</option>
             </select>
           </div>
 
@@ -268,44 +409,44 @@
               </button>
               <input type="hidden" [formControlName]="i" />
               <input class="file-input" type="file" accept="image/*" [id]="'mainFile' + i" (change)="onFileSelect(i, $event)" />
-              <label class="btn ghost file-btn" [for]="'mainFile' + i">Chọn ảnh</label>
-              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
-              <button class="btn ghost danger" type="button" (click)="removeImage(i)">Xóa</button>
+              <label class="btn ghost file-btn" [for]="'mainFile' + i">Chá»n áº£nh</label>
+              <button class="btn ghost" type="button" (click)="setMain(i)" title="Äáº·t áº£nh chĂ­nh">{{ i === 0 ? 'áº¢nh chĂ­nh' : 'Äáº·t áº£nh chĂ­nh' }}</button>
+              <button class="btn ghost danger" type="button" (click)="removeImage(i)">XĂ³a</button>
             </div>
-            <button class="btn ghost add-btn" type="button" (click)="addImage()">+ Thêm ảnh</button>
+            <button class="btn ghost add-btn" type="button" (click)="addImage()">+ ThĂªm áº£nh</button>
           </div>
 
           <div class="img-grid" formArrayName="images" *ngIf="imageLayout !== 'free'" [class.layout-1-4]="imageLayout==='1-4'" [class.layout-1-3]="imageLayout==='1-3'" [class.layout-2-2]="imageLayout==='2-2'">
             <div class="slot" *ngFor="let c of images.controls; let i = index" [class.slot-0]="i===0" [class.empty]="!mainPreview(i)">
               <button class="slot-preview" type="button" *ngIf="mainPreview(i)" (click)="openCropMain(i)">
                 <img class="slot-img" [src]="mainPreview(i)" alt="preview" />
-                <div class="slot-badge" *ngIf="i===0">Chính</div>
+                <div class="slot-badge" *ngIf="i===0">ChĂ­nh</div>
               </button>
 
               <div class="slot-empty" *ngIf="!mainPreview(i)">
-                <div class="slot-empty-title">Chưa có ảnh</div>
-                <div class="slot-empty-sub">Bấm chọn ảnh để thêm</div>
+                <div class="slot-empty-title">ChÆ°a cĂ³ áº£nh</div>
+                <div class="slot-empty-sub">Báº¥m chá»n áº£nh Ä‘á»ƒ thĂªm</div>
               </div>
 
               <input type="hidden" [formControlName]="i" />
               <input class="file-input" type="file" accept="image/*" [id]="'mainGridFile' + i" (change)="onFileSelect(i, $event)" />
 
               <div class="slot-actions">
-                <label class="btn ghost file-btn" [for]="'mainGridFile' + i">Chọn ảnh</label>
-                <button class="btn ghost" type="button" (click)="setMain(i)" [disabled]="i===0">{{ i === 0 ? 'Ảnh chính' : 'Đặt chính' }}</button>
-                <button class="btn ghost danger" type="button" (click)="clearImage(i)">Xóa</button>
+                <label class="btn ghost file-btn" [for]="'mainGridFile' + i">Chá»n áº£nh</label>
+                <button class="btn ghost" type="button" (click)="setMain(i)" [disabled]="i===0">{{ i === 0 ? 'áº¢nh chĂ­nh' : 'Äáº·t chĂ­nh' }}</button>
+                <button class="btn ghost danger" type="button" (click)="clearImage(i)">XĂ³a</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-head">Mô tả</div>
+      <div class="card" *ngIf="isTab('DESCRIPTION')">
+        <div class="card-head">MĂ´ táº£</div>
         <div class="card-body">
           <div class="field">
-            <label class="label">Nội dung</label>
-            <textarea class="textarea" rows="6" formControlName="description" placeholder="Mô tả sản phẩm..."></textarea>
+            <label class="label">Ná»™i dung</label>
+            <textarea class="textarea" rows="6" formControlName="description" placeholder="MĂ´ táº£ sáº£n pháº©m..."></textarea>
           </div>
         </div>
       </div>
@@ -313,20 +454,31 @@
 
     <div class="side">
       <div class="card sticky">
-        <div class="card-head">Tóm tắt</div>
+        <div class="card-head">TĂ³m táº¯t</div>
         <div class="card-body">
           <div class="summary">
-            <div class="s-row"><span>Tên</span><b>{{ form.value.name || '-' }}</b></div>
-            <div class="s-row"><span>Đường dẫn</span><b>{{ form.value.slug || '-' }}</b></div>
-            <div class="s-row"><span>Giá</span><b>{{ form.value.price }}</b></div>
-            <div class="s-row"><span>Tồn</span><b>{{ form.value.stock }}</b></div>
-            <div class="s-row"><span>Danh mục</span><b>{{ selectedCategoryLeafs.length }}</b></div>
-            <div class="s-row"><span>Biến thể</span><b>{{ variants.length }}</b></div>
+            <div class="s-row"><span>TĂªn</span><b>{{ form.value.name || '-' }}</b></div>
+            <div class="s-row"><span>ÄÆ°á»ng dáº«n</span><b>{{ form.value.slug || '-' }}</b></div>
+            <div class="s-row"><span>GiĂ¡</span><b>{{ formatVnd(form.value.price) }} VNÄ</b></div>
+            <div class="s-row"><span>Danh má»¥c</span><b>{{ selectedCategoryLeafs.length }}</b></div>
+            <div class="s-row"><span>Biáº¿n thá»ƒ</span><b>{{ variants.length }}</b></div>
           </div>
 
           <div class="side-actions">
-            <button class="btn" type="button" (click)="submit()" [disabled]="saving">{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</button>
-            <button class="btn ghost" type="button" (click)="back()">Quay lại danh sách</button>
+            <button class="btn" type="button" (click)="submit()" [disabled]="saving">{{ saving ? 'Äang lÆ°u...' : (isEdit ? 'LÆ°u thay Ä‘á»•i' : 'Táº¡o sáº£n pháº©m') }}</button>
+            <button class="btn ghost" type="button" (click)="back()">Quay láº¡i danh sĂ¡ch</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card side-progress">
+        <div class="card-body">
+          <div class="completion completion--side" aria-label="Completion">
+            <div class="completion__label">HoĂ n thĂ nh</div>
+            <div class="completion__value">{{ completionPercent }}%</div>
+            <div class="completion__bar" aria-hidden="true">
+              <div class="completion__bar-fill" [style.width.%]="completionPercent"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -337,8 +489,8 @@
 <div class="crop-overlay" *ngIf="cropOpen">
   <div class="crop-modal">
     <div class="crop-head">
-      <div class="crop-title">Cắt ảnh</div>
-      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">×</button>
+      <div class="crop-title">Cáº¯t áº£nh</div>
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Ă—</button>
     </div>
 
     <div class="crop-body">
@@ -352,12 +504,14 @@
         (mouseup)="onCropMouseUp($event)"
         (mouseleave)="onCropMouseUp($event)"
       ></canvas>
-      <div class="crop-hint">Kéo chuột để chọn vùng cắt. Kéo vùng đã chọn để di chuyển.</div>
+      <div class="crop-hint">KĂ©o chuá»™t Ä‘á»ƒ chá»n vĂ¹ng cáº¯t. KĂ©o vĂ¹ng Ä‘Ă£ chá»n Ä‘á»ƒ di chuyá»ƒn.</div>
     </div>
 
     <div class="crop-actions">
-      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Hủy</button>
-      <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cắt & Lưu</button>
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Há»§y</button>
+      <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cáº¯t & LÆ°u</button>
     </div>
   </div>
 </div>
+
+

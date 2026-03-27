@@ -12,6 +12,7 @@ public class ProductDto {
     private String description;
     private BigDecimal price;
     private BigDecimal oldPrice;
+    private Double weightKg;
     private Long productTypeId;
     private String gender;
     private String imageUrl;
@@ -33,6 +34,7 @@ public class ProductDto {
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setOldPrice(product.getOldPrice());
+        dto.setWeightKg(product.getWeightKg());
         dto.setProductTypeId(product.getProductTypeId());
         dto.setGender(product.getGender());
         dto.setImageUrl(product.getImageUrl());
@@ -66,6 +68,9 @@ public class ProductDto {
 
     public BigDecimal getOldPrice() { return oldPrice; }
     public void setOldPrice(BigDecimal oldPrice) { this.oldPrice = oldPrice; }
+
+    public Double getWeightKg() { return weightKg; }
+    public void setWeightKg(Double weightKg) { this.weightKg = weightKg; }
 
     public Long getProductTypeId() { return productTypeId; }
     public void setProductTypeId(Long productTypeId) { this.productTypeId = productTypeId; }

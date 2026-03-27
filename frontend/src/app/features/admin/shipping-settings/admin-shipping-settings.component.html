@@ -10,456 +10,182 @@
              <path d="M12 22V12" />
            </svg>
          </div>
-         <div class="min-w-0">
-           <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Cấu hình phí vận chuyển</h1>
-           <p class="text-blue-100 text-sm sm:text-base">Quản lý phí vận chuyển theo tỉnh thành và khoảng cách</p>
-         </div>
-       </div>
-
-       <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
-         <button
-           type="button"
-           (click)="onExcelInputClick()"
-           class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold whitespace-nowrap text-sm"
-         >
-           <span>Nhập Excel</span>
-         </button>
-         <input
-           type="file"
-           id="excelFile"
-           accept=".xlsx"
-           (change)="onExcelSelected($event)"
-           style="display: none;"
-         />
-
-         <button
-           type="button"
-           (click)="exportToExcel()"
-           [disabled]="provincesInfo.length === 0"
-           class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
-         >
-           <span>Xuất Excel</span>
-         </button>
-
-         <button
-          type="button"
-          (click)="openConfigModal()"
-          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
-        >
-          <span>Cấu hình</span>
-        </button>
-
-        <button
-          type="button"
-          (click)="openFormulaModal()"
-          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
-        >
-          <span>Công thức</span>
-        </button>
-
-        <button
-          type="button"
-          (click)="openSyncModal()"
-          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
-        >
-          <span>Đồng bộ</span>
-        </button>
-       </div>
-     </div>
-   </div>
-
-   <!-- Stats (giống /admin/users) -->
-   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-       <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng tỉnh</div>
-       <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ provincesInfo.length }}</div>
-     </div>
-     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-       <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Đã cấu hình</div>
-       <div class="mt-1 text-2xl font-extrabold text-green-600">{{ getProvincesWithConfig().length }}</div>
-     </div>
-     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-       <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Chưa cấu hình</div>
-       <div class="mt-1 text-2xl font-extrabold text-red-600">{{ getProvincesWithoutConfig().length }}</div>
-     </div>
-   </div>
-
-   <!-- Search + Filter bar -->
-   <div class="bg-white rounded-2xl shadow-sm border border-gray-100">
-     <div class="p-5 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-       <div class="flex-1 min-w-[260px]">
-         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tìm kiếm</label>
-         <div class="relative">
-           <input
-             class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm font-semibold text-gray-900 placeholder-gray-400 shadow-sm focus:outline-none focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-200/60"
-             [(ngModel)]="searchTerm"
-             (ngModelChange)="filterProvinces(searchTerm)"
-             placeholder="Tìm theo tên tỉnh hiện tại / trước sáp nhập..."
-           />
-         </div>
-       </div>
-
-       <div class="flex flex-wrap items-end gap-3">
-         <div>
-           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Hiển thị tên</label>
-           <div class="inline-flex rounded-xl border-2 border-gray-200 bg-white p-1 shadow-sm">
-             <button
-               type="button"
-               (click)="setNameMode('after')"
-               class="px-3 py-2 text-sm font-bold rounded-lg transition-colors"
-               [class.bg-blue-600]="nameMode === 'after'"
-               [class.text-white]="nameMode === 'after'"
-               [class.text-gray-700]="nameMode !== 'after'"
-             >
-               Sau sáp nhập
-             </button>
-             <button
-               type="button"
-               (click)="setNameMode('before')"
-               class="px-3 py-2 text-sm font-bold rounded-lg transition-colors"
-               [class.bg-blue-600]="nameMode === 'before'"
-               [class.text-white]="nameMode === 'before'"
-               [class.text-gray-700]="nameMode !== 'before'"
-             >
-               Trước sáp nhập
-             </button>
-           </div>
-         </div>
-
-         <div>
-           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Trạng thái</label>
-           <div class="relative">
-             <select
-               class="appearance-none min-w-[180px] px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
-               [(ngModel)]="statusFilter"
-               (ngModelChange)="filterByStatus(statusFilter)"
-             >
-               <option value="ALL">Tất cả</option>
-               <option value="CONFIGURED">Đã cấu hình</option>
-               <option value="UNCONFIGURED">Chưa cấu hình</option>
-             </select>
-           </div>
-         </div>
-
-         <button
-           type="button"
-           (click)="searchTerm=''; statusFilter='ALL'; filterProvinces('')"
-           class="inline-flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-blue-50 transition-colors"
-         >
-           <span>Xóa lọc</span>
-         </button>
-       </div>
-     </div>
-   </div>
-
-   <!-- Import status -->
-   <div *ngIf="importStatus" class="rounded-xl border-2 px-4 py-3 font-semibold"
-        [class.border-green-200]="importStatus.success"
-        [class.bg-green-50]="importStatus.success"
-        [class.text-green-700]="importStatus.success"
-        [class.border-red-200]="!importStatus.success"
-        [class.bg-red-50]="!importStatus.success"
-        [class.text-red-700]="!importStatus.success">
-     {{ importStatus.message }}
-     <span *ngIf="importStatus.success"> (Đã nhập: {{ importStatus.imported }})</span>
-   </div>
-
-   <!-- Main: Provinces table (1 bảng, không còn 2 cột) -->
-   <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-     <div class="overflow-x-auto">
-       <table class="min-w-full divide-y divide-gray-200">
-         <thead class="sticky top-0 z-10">
-           <tr class="bg-gradient-to-r from-blue-50 to-sky-50 divide-x divide-gray-200">
-             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">STT</th>
-             <th class="px-4 py-3 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider">Tỉnh/TP</th>
-             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Trạng thái</th>
-             <th
-               *ngFor="let seg of getDistanceTemplateColumns(); let i = index"
-               class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider"
-             >
-               {{ seg.minDistance }}-{{ seg.maxDistance }} km
-             </th>
-             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Thao tác</th>
-           </tr>
-           <tr class="bg-white divide-x divide-gray-200" *ngIf="getDistanceTemplateColumns().length > 0">
-             <th class="px-4 py-2"></th>
-             <th class="px-4 py-2"></th>
-             <th class="px-4 py-2"></th>
-             <th
-               *ngFor="let seg of getDistanceTemplateColumns()"
-               class="px-4 py-2 text-center text-xs font-semibold text-gray-600"
-             >
-               {{ seg.shippingMethod === 'FAST' ? 'Giao hàng nhanh' : (seg.shippingMethod === 'EXPRESS' ? 'Hỏa tốc' : 'Giao hàng tiết kiệm') }}
-             </th>
-             <th class="px-4 py-2"></th>
-           </tr>
-         </thead>
-         <tbody class="divide-y divide-gray-100 bg-white">
-           <tr *ngIf="loading">
-             <td [attr.colspan]="4 + getDistanceTemplateColumns().length" class="px-6 py-10 text-center text-gray-600 font-semibold">Đang tải dữ liệu...</td>
-           </tr>
-
-           <tr
-             *ngFor="let province of filteredProvinces; let rowIndex = index"
-             class="hover:bg-blue-50/40 transition-colors cursor-pointer divide-x divide-gray-200"
-             [class.bg-blue-50]="selectedProvince?.currentName === province.currentName"
-             (click)="selectProvince(province)"
-           >
-             <td class="px-4 py-3 text-sm font-bold text-gray-900 text-center">{{ rowIndex + 1 }}</td>
-             <td class="px-4 py-3 text-sm font-extrabold text-gray-900">
-               {{ getDisplayedProvinceName(province) }}
-             </td>
-             <td class="px-4 py-3 text-center">
-               <ng-container *ngIf="getConfigForCurrentProvinceName(province.currentName) as cfg; else notConfigured">
-                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
-                   Đã cấu hình
-                 </span>
-               </ng-container>
-               <ng-template #notConfigured>
-                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
-                   Chưa cấu hình
-                 </span>
-               </ng-template>
-             </td>
-
-             <td
-               *ngFor="let seg of getDistanceTemplateColumns(); let segIndex = index"
-               class="px-4 py-3 text-center"
-               (click)="$event.stopPropagation()"
-             >
-               <input
-                 type="number"
-                 class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500"
-                 [ngModel]="getFeeForProvinceSegment(province.currentName, segIndex)"
-                 (ngModelChange)="setFeeForProvinceSegment(province.currentName, segIndex, $event)"
-                 min="0"
-                 placeholder="0"
-               />
-             </td>
-
-             <td class="px-4 py-3 text-center" (click)="$event.stopPropagation()">
-               <button
-                 type="button"
-                 (click)="clearPricesForProvince(province.currentName)"
-                 [disabled]="!getConfigForCurrentProvinceName(province.currentName)"
-                 class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
-                 title="Xóa giá"
-                 aria-label="Xóa giá"
-               >
-                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                   <polyline points="3 6 5 6 21 6" />
-                   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                   <path d="M10 11v6" />
-                   <path d="M14 11v6" />
-                   <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                 </svg>
-               </button>
-             </td>
-           </tr>
-         </tbody>
-       </table>
-     </div>
-   </div>
-
-   <!-- Modal: cấu hình khoảng cách -->
-   <div
-     *ngIf="isConfigModalOpen"
-     class="fixed inset-0 z-50 flex items-center justify-center"
-     aria-modal="true"
-     role="dialog"
-   >
-     <div class="absolute inset-0 bg-black/40" (click)="closeConfigModal()"></div>
-
-     <div class="relative w-[95vw] max-w-4xl max-h-[90vh] overflow-auto bg-white rounded-2xl shadow-2xl border border-gray-100">
-       <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-         <div class="text-lg font-extrabold text-gray-900">Cấu hình khoảng cách</div>
-         <button
-           type="button"
-           class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-           (click)="closeConfigModal()"
-           title="Đóng"
-         >
-           ✕
-         </button>
-       </div>
-
-       <div class="p-5 space-y-4">
-         <div class="flex items-center justify-between">
-           <div class="text-md font-extrabold text-gray-900">Cấu hình các đoạn khoảng cách</div>
-           <button
-             type="button"
-             (click)="showAddDistanceForm = !showAddDistanceForm"
-             class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-           >
-             {{ showAddDistanceForm ? 'Hủy' : 'Thêm đoạn' }}
-           </button>
-         </div>
-
-         <div *ngIf="showAddDistanceForm" class="bg-gray-50 rounded-xl p-4">
-           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-             <div>
-               <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Từ (km)</label>
-               <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" [(ngModel)]="newDistanceConfig.minDistance" min="0" />
-             </div>
-             <div>
-               <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Đến (km)</label>
-               <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" [(ngModel)]="newDistanceConfig.maxDistance" min="0" />
-             </div>
-             <div>
-               <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Hình thức giao hàng</label>
-               <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" [(ngModel)]="newDistanceConfig.shippingMethod">
-                 <option value="FAST">Giao hàng nhanh</option>
-                 <option value="ECONOMY">Giao hàng tiết kiệm</option>
-                 <option value="EXPRESS">Hỏa tốc</option>
-               </select>
-             </div>
-           </div>
-           <div class="flex justify-end gap-2 mt-3">
-             <button type="button" (click)="addDistanceConfig()" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-               {{ editingDistanceIndex !== null ? 'Cập nhật' : 'Thêm' }}
-             </button>
-             <button type="button" (click)="resetDistanceForm()" class="px-3 py-2 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-800">
-               Hủy
-             </button>
-           </div>
-         </div>
-
-         <div class="space-y-2">
-           <div
-             *ngFor="let dist of getDistanceTemplateColumns(); let i = index"
-             class="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between"
-           >
-             <div>
-               <div class="text-sm font-semibold text-gray-900">{{ dist.minDistance }} - {{ dist.maxDistance }} km</div>
-               <div class="text-xs text-gray-500">
-                 {{ dist.shippingMethod === 'FAST' ? 'Giao hàng nhanh' : (dist.shippingMethod === 'EXPRESS' ? 'Hỏa tốc' : 'Giao hàng tiết kiệm') }}
-               </div>
-             </div>
-             <div class="flex gap-1">
-               <button type="button" (click)="editDistanceConfig(i)" class="w-10 h-10 rounded-xl border border-gray-200 bg-white hover:bg-blue-50">✏️</button>
-               <button type="button" (click)="deleteDistanceConfig(i)" class="w-10 h-10 rounded-xl border border-red-200 bg-white hover:bg-red-50">🗑️</button>
-             </div>
-           </div>
-           <div *ngIf="getDistanceTemplateColumns().length === 0" class="text-center py-6 text-gray-500 text-sm italic">
-             Chưa có cấu hình khoảng cách nào.
-           </div>
-         </div>
-
-         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" (click)="closeConfigModal()" class="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-50">
-            Đóng
-          </button>
+          <div class="min-w-0">
+            <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Cấu hình phí vận chuyển</h1>
+            <p class="text-blue-100 text-sm sm:text-base">Quản lý phí vận chuyển theo đơn vị vận chuyển và bảng giá cân nặng</p>
+          </div>
         </div>
       </div>
     </div>
+
+   <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+     <div class="p-5 border-b border-gray-200">
+       <div class="text-lg font-extrabold text-gray-900">Đơn vị vận chuyển</div>
+       <div class="text-sm text-gray-600 font-semibold mt-1">Chọn đơn vị và nhập bảng giá theo mẫu.</div>
+     </div>
+
+     <div class="p-5 space-y-4">
+       <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
+         <div>
+           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Đơn vị vận chuyển</label>
+           <select
+             class="appearance-none w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
+             [ngModel]="carrierConfig?.carrier || 'GHTK_EXPRESS'"
+             (ngModelChange)="onCarrierChanged($event)"
+           >
+             <option *ngFor="let opt of carrierOptions" [value]="opt.value">{{ opt.label }}</option>
+           </select>
+         </div>
+
+         <div class="lg:col-span-2 flex justify-end">
+           <button
+             type="button"
+             (click)="saveCarrierConfig()"
+             [disabled]="carrierSaving"
+             class="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-extrabold text-sm hover:bg-blue-700 disabled:opacity-60"
+           >
+             <span>{{ carrierSaving ? 'Đang lưu...' : 'Lưu bảng giá' }}</span>
+           </button>
+         </div>
+       </div>
+
+       <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+         <div class="rounded-2xl border border-gray-200 overflow-hidden">
+           <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
+             <div class="font-extrabold text-gray-900">Mẫu 1: Gửi hàng từ Hà Nội &amp; TP.HCM</div>
+             <div class="text-xs text-gray-600 font-semibold">Theo bảng giá Express (VNĐ). Mốc cân nặng: 3kg / 0.5kg; +0.5kg tiếp theo.</div>
+           </div>
+           <div class="overflow-x-auto">
+             <table class="min-w-full border border-gray-200 border-collapse">
+               <thead>
+                 <tr class="bg-white">
+                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Tuyến</th>
+                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Loại</th>
+                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Giá gốc</th>
+                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Kg gốc</th>
+                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">+0.5kg</th>
+                 </tr>
+               </thead>
+               <tbody class="bg-white">
+                 <ng-container *ngFor="let lane of expressLaneMeta">
+                   <tr class="bg-white">
+                     <td class="px-3 py-2 text-sm font-extrabold text-gray-900 border border-gray-200" [attr.rowspan]="wardTypeMeta.length">{{ lane.label }}</td>
+                     <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[0].label }}</td>
+                     <td class="px-3 py-2 text-center border border-gray-200">
+                       <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseFee')"
+                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseFee')"
+                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseFee', $event)" />
+                     </td>
+                     <td class="px-3 py-2 text-center border border-gray-200">
+                       <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
+                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
+                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseWeightKg', $event)" />
+                     </td>
+                     <td class="px-3 py-2 text-center border border-gray-200">
+                       <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
+                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
+                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg', $event)" />
+                     </td>
+                   </tr>
+                   <tr class="bg-white" *ngIf="wardTypeMeta.length > 1">
+                     <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[1].label }}</td>
+                     <td class="px-3 py-2 text-center border border-gray-200">
+                       <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseFee')"
+                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseFee')"
+                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseFee', $event)" />
+                     </td>
+                     <td class="px-3 py-2 text-center border border-gray-200">
+                       <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
+                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
+                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseWeightKg', $event)" />
+                     </td>
+                     <td class="px-3 py-2 text-center border border-gray-200">
+                       <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
+                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
+                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg', $event)" />
+                     </td>
+                   </tr>
+                 </ng-container>
+               </tbody>
+             </table>
+           </div>
+         </div>
+
+         <div class="rounded-2xl border border-gray-200 overflow-hidden">
+           <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
+             <div class="font-extrabold text-gray-900">Mẫu 2: Gửi hàng từ 32 tỉnh thành (trừ Hà Nội &amp; TP.HCM)</div>
+             <div class="text-xs text-gray-600 font-semibold">Theo bảng giá Express (VNĐ). Không có tuyến “Đặc biệt” trong mẫu này.</div>
+           </div>
+           <div class="overflow-x-auto">
+             <table class="min-w-full border border-gray-200 border-collapse">
+               <thead>
+                 <tr class="bg-white">
+                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Tuyến</th>
+                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Loại</th>
+                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Giá gốc</th>
+                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Kg gốc</th>
+                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">+0.5kg</th>
+                 </tr>
+               </thead>
+               <tbody class="bg-white">
+                 <ng-container *ngFor="let lane of expressLaneMeta">
+                   <ng-container *ngIf="lane.lane !== 'DAC_BIET_TIEU_CHUAN' && lane.lane !== 'DAC_BIET_NHANH'">
+                     <tr class="bg-white">
+                       <td class="px-3 py-2 text-sm font-extrabold text-gray-900 border border-gray-200" [attr.rowspan]="wardTypeMeta.length">{{ lane.label }}</td>
+                       <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[0].label }}</td>
+                       <td class="px-3 py-2 text-center border border-gray-200">
+                         <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseFee')"
+                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseFee')"
+                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseFee', $event)" />
+                       </td>
+                       <td class="px-3 py-2 text-center border border-gray-200">
+                         <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
+                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
+                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseWeightKg', $event)" />
+                       </td>
+                       <td class="px-3 py-2 text-center border border-gray-200">
+                         <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
+                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
+                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg', $event)" />
+                       </td>
+                     </tr>
+                     <tr class="bg-white" *ngIf="wardTypeMeta.length > 1">
+                       <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[1].label }}</td>
+                       <td class="px-3 py-2 text-center border border-gray-200">
+                         <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseFee')"
+                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseFee')"
+                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseFee', $event)" />
+                       </td>
+                       <td class="px-3 py-2 text-center border border-gray-200">
+                         <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
+                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
+                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseWeightKg', $event)" />
+                       </td>
+                       <td class="px-3 py-2 text-center border border-gray-200">
+                         <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
+                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
+                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
+                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg', $event)" />
+                       </td>
+                     </tr>
+                   </ng-container>
+                 </ng-container>
+               </tbody>
+             </table>
+           </div>
+         </div>
+       </div>
+     </div>
   </div>
-
-   <!-- Modal: đồng bộ cấu hình Trước/Sau -->
-   <div
-     *ngIf="isSyncModalOpen"
-     class="fixed inset-0 z-50 flex items-center justify-center"
-     aria-modal="true"
-     role="dialog"
-   >
-     <div class="absolute inset-0 bg-black/40" (click)="closeSyncModal()"></div>
-
-     <div class="relative w-[95vw] max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-100">
-       <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-         <div class="text-lg font-extrabold text-gray-900">Đồng bộ cấu hình</div>
-         <button
-           type="button"
-           class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-           (click)="closeSyncModal()"
-           title="Đóng"
-         >
-           ✕
-         </button>
-       </div>
-
-       <div class="p-5 space-y-3">
-         <div class="text-sm text-gray-700 font-semibold">
-           Chọn hướng đồng bộ (hiện tại đồng bộ theo các tỉnh trùng tên).
-         </div>
-
-         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-           <button
-             type="button"
-             class="px-4 py-3 rounded-xl border-2 border-gray-200 bg-white font-extrabold text-gray-900 hover:bg-blue-50"
-             (click)="syncConfigs('before_to_after')"
-           >
-             Trước → Sau
-           </button>
-           <button
-             type="button"
-             class="px-4 py-3 rounded-xl border-2 border-gray-200 bg-white font-extrabold text-gray-900 hover:bg-blue-50"
-             (click)="syncConfigs('after_to_before')"
-           >
-             Sau → Trước
-           </button>
-         </div>
-
-         <div class="flex justify-end pt-2">
-           <button type="button" (click)="closeSyncModal()" class="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-50">
-             Đóng
-           </button>
-         </div>
-       </div>
-     </div>
-   </div>
-
-   <!-- Modal: công thức tính phí -->
-   <div
-     *ngIf="isFormulaModalOpen"
-     class="fixed inset-0 z-50 flex items-center justify-center"
-     aria-modal="true"
-     role="dialog"
-   >
-     <div class="absolute inset-0 bg-black/40" (click)="closeFormulaModal()"></div>
-
-     <div class="relative w-[95vw] max-w-3xl max-h-[90vh] overflow-auto bg-white rounded-2xl shadow-2xl border border-gray-100">
-       <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-         <div class="text-lg font-extrabold text-gray-900">Công thức tính phí vận chuyển</div>
-         <button
-           type="button"
-           class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-           (click)="closeFormulaModal()"
-           title="Đóng"
-         >
-           ✕
-         </button>
-       </div>
-
-       <div class="p-5 space-y-4">
-         <div class="text-sm font-semibold text-gray-700">
-           Bạn nhập công thức để hệ thống áp dụng cho:
-         </div>
-
-         <div class="grid grid-cols-1 gap-4">
-           <div>
-             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Trong tỉnh</label>
-             <textarea
-               class="w-full min-h-[110px] px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
-               [(ngModel)]="formulaIntraProvince"
-               placeholder="Ví dụ: fee = baseFee"
-             ></textarea>
-           </div>
-
-           <div>
-             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Liên tỉnh</label>
-             <textarea
-               class="w-full min-h-[110px] px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
-               [(ngModel)]="formulaInterProvince"
-               placeholder="Ví dụ: fee = baseFee + extra"
-             ></textarea>
-           </div>
-         </div>
-
-         <div class="flex justify-end">
-           <button type="button" (click)="closeFormulaModal()" class="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-50">
-             Đóng
-           </button>
-         </div>
-       </div>
-     </div>
-   </div>
- </div>
+</div>

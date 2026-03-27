@@ -24,6 +24,33 @@ export type ShippingMethod = 'FAST' | 'ECONOMY' | 'EXPRESS';
 
 export type ProvinceConfigMode = 'before' | 'after';
 
+export type ShippingCarrier = 'GHTK_EXPRESS';
+
+export type ExpressOriginGroup = 'HN_HCM' | 'OTHER_32';
+
+export type ExpressLane = 'NOI_TINH' | 'NOI_MIEN' | 'LIEN_MIEN_GAN' | 'LIEN_MIEN_XA' | 'DAC_BIET_TIEU_CHUAN' | 'DAC_BIET_NHANH';
+
+export type WardType = 'PHUONG' | 'XA';
+
+export interface ExpressLanePrice {
+  baseFee: number;
+  baseWeightKg: number;
+  extraPerHalfKg: number;
+}
+
+export interface ExpressTemplateConfig {
+  originGroup: ExpressOriginGroup;
+  lanes: Record<ExpressLane, Record<WardType, ExpressLanePrice>>;
+}
+
+export interface ShippingCarrierConfig {
+  carrier: ShippingCarrier;
+  express: {
+    hnHcm: ExpressTemplateConfig;
+    other32: ExpressTemplateConfig;
+  };
+}
+
 export interface ShippingSettings {
   freeShippingThreshold: number;
   defaultFee: number;
@@ -42,10 +69,38 @@ export class ShippingConfigService {
   private readonly STORAGE_KEY_BEFORE = 'shipping_configs_before';
   private readonly SETTINGS_KEY = 'shipping_settings';
   private readonly DISTANCE_TEMPLATE_KEY = 'shipping_distance_template';
+  private readonly CARRIER_CONFIG_KEY = 'shipping_carrier_config_v1';
 
   private shippingConfigsAfter$ = new BehaviorSubject<ProvinceShippingConfig[]>([]);
   private shippingConfigsBefore$ = new BehaviorSubject<ProvinceShippingConfig[]>([]);
   private distanceTemplate$ = new BehaviorSubject<DistanceConfig[]>([]);
+  private carrierConfig$ = new BehaviorSubject<ShippingCarrierConfig>({
+    carrier: 'GHTK_EXPRESS',
+    express: {
+      hnHcm: {
+        originGroup: 'HN_HCM',
+        lanes: {
+          NOI_TINH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          NOI_MIEN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          LIEN_MIEN_GAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          LIEN_MIEN_XA: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          DAC_BIET_TIEU_CHUAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          DAC_BIET_NHANH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } }
+        }
+      },
+      other32: {
+        originGroup: 'OTHER_32',
+        lanes: {
+          NOI_TINH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          NOI_MIEN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          LIEN_MIEN_GAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          LIEN_MIEN_XA: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          DAC_BIET_TIEU_CHUAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
+          DAC_BIET_NHANH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } }
+        }
+      }
+    }
+  });
   private settings$ = new BehaviorSubject<ShippingSettings>({
     freeShippingThreshold: 500000,
     defaultFee: 30000,
@@ -127,6 +182,15 @@ export class ShippingConfigService {
 
   constructor() {
     this.loadFromStorage();
+  }
+
+  getCarrierConfig(): Observable<ShippingCarrierConfig> {
+    return this.carrierConfig$.asObservable();
+  }
+
+  updateCarrierConfig(cfg: ShippingCarrierConfig): void {
+    this.carrierConfig$.next(cfg);
+    this.saveCarrierConfigToStorage();
   }
 
   private normalizeShippingMethod(value: any): ShippingMethod {
@@ -281,6 +345,14 @@ export class ShippingConfigService {
     }
   }
 
+  private saveCarrierConfigToStorage(): void {
+    try {
+      localStorage.setItem(this.CARRIER_CONFIG_KEY, JSON.stringify(this.carrierConfig$.value));
+    } catch {
+      // ignore
+    }
+  }
+
   importFromCSV(csvData: string): { success: boolean; message: string; imported: number } {
     try {
       const lines = csvData.split('\n').filter(line => line.trim());
@@ -404,6 +476,16 @@ export class ShippingConfigService {
         const parsedTpl = JSON.parse(storedTemplate);
         const normalizedTpl = Array.isArray(parsedTpl) ? parsedTpl.map((d: any) => this.normalizeDistanceConfig(d)) : [];
         this.distanceTemplate$.next(normalizedTpl);
+      }
+
+      const storedCarrier = localStorage.getItem(this.CARRIER_CONFIG_KEY);
+      if (storedCarrier) {
+        const parsed = JSON.parse(storedCarrier);
+        if (parsed && typeof parsed === 'object') {
+          this.carrierConfig$.next(parsed as ShippingCarrierConfig);
+        }
+      } else {
+        this.saveCarrierConfigToStorage();
       }
     } catch (error) {
       console.error('Error loading shipping config from storage:', error);
