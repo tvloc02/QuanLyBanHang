@@ -11,8 +11,8 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">{{ isEdit ? 'Sá»­a sáº£n pháº©m' : 'ThĂªm sáº£n pháº©m' }} </h1>
-          <p class="text-blue-100 text-sm sm:text-base">{{ isEdit ? 'Cáº­p nháº­t thĂ´ng tin sáº£n pháº©m vĂ  biáº¿n thá»ƒ' : 'Táº¡o má»›i sáº£n pháº©m vĂ  cáº¥u hĂ¬nh biáº¿n thá»ƒ mĂ u/kĂ­ch cá»¡' }}</p>
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }} </h1>
+          <p class="text-blue-100 text-sm sm:text-base">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/kích cỡ' }}</p>
         </div>
       </div>
 
@@ -22,7 +22,7 @@
           type="button"
           (click)="back()"
         >
-          <span>â† Quay láº¡i</span>
+          <span>← Quay lại</span>
         </button>
         <button
           class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
@@ -30,7 +30,7 @@
           (click)="submit()"
           [disabled]="saving"
         >
-          <span>{{ saving ? 'Äang lÆ°u...' : (isEdit ? 'LÆ°u thay Ä‘á»•i' : 'Táº¡o sáº£n pháº©m') }}</span>
+          <span>{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</span>
         </button>
       </div>
     </div>
@@ -38,11 +38,11 @@
 
   <div class="toast" *ngIf="toastOpen" [class.is-error]="toastType==='error'" [class.is-success]="toastType==='success'">
     <div class="toast__body">{{ toastMessage }}</div>
-    <button class="toast__close" type="button" (click)="closeToast()">Ă—</button>
+    <button class="toast__close" type="button" (click)="closeToast()">×</button>
   </div>
 
   <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" *ngIf="error">
-    <div class="text-red-800 font-semibold mb-1">Lá»—i</div>
+    <div class="text-red-800 font-semibold mb-1">Lỗi</div>
     <div class="text-red-700">{{ error }}</div>
   </div>
 
@@ -65,14 +65,14 @@
       <div class="cat-overlay" *ngIf="branchModalOpen">
         <div class="cat-modal">
           <div class="cat-head">
-            <div class="cat-title">Chá»n chi nhĂ¡nh</div>
-            <button class="btn ghost" type="button" (click)="closeBranchModal()">Ă—</button>
+            <div class="cat-title">Chọn chi nhánh</div>
+            <button class="btn ghost" type="button" (click)="closeBranchModal()">×</button>
           </div>
 
           <div class="cat-body">
             <div class="cat-search">
-              <input class="input" [(ngModel)]="branchFilter" [ngModelOptions]="{ standalone: true }" name="branchFilterModal" placeholder="TĂ¬m chi nhĂ¡nh (mĂ£/tĂªn)..." />
-              <div class="cat-search-hint">Tick vĂ o chi nhĂ¡nh báº¡n muá»‘n Ă¡p dá»¥ng.</div>
+              <input class="input" [(ngModel)]="branchFilter" [ngModelOptions]="{ standalone: true }" name="branchFilterModal" placeholder="Tìm chi nhánh (mã/tên)..." />
+              <div class="cat-search-hint">Tick vào chi nhánh bạn muốn áp dụng.</div>
             </div>
 
             <div class="cat-tree">
@@ -84,7 +84,7 @@
                   <div class="cat-right">
                     <label class="cat-check">
                       <input type="checkbox" [checked]="selectedBranchIds.has(b.id)" (change)="toggleBranchSelection(b.id, $any($event.target).checked)" />
-                      <span>Chá»n</span>
+                      <span>Chọn</span>
                     </label>
                   </div>
                 </div>
@@ -93,33 +93,33 @@
           </div>
 
           <div class="cat-actions">
-            <button class="btn ghost" type="button" (click)="closeBranchModal()">ÄĂ³ng</button>
+            <button class="btn ghost" type="button" (click)="closeBranchModal()">Đóng</button>
           </div>
         </div>
       </div>
 
       <div class="card" *ngIf="isTab('BASIC')" id="prod-sec-basic">
-        <div class="card-head">ThĂ´ng tin cÆ¡ báº£n</div>
+        <div class="card-head">Thông tin cơ bản</div>
         <div class="card-body">
           <div class="basic-topbar">
             <button class="btn ghost basic-topbar__btn" type="button" (click)="openBranchModal()" [disabled]="!canEditStock">
-              <span>Chá»n chi nhĂ¡nh</span>
+              <span>Chọn chi nhánh</span>
               <span class="basic-topbar__count">{{ selectedBranchIds.size }}</span>
             </button>
             <button class="btn ghost basic-topbar__btn" type="button" (click)="openCategoryModal()">
-              <span>Chá»n danh má»¥c</span>
+              <span>Chọn danh mục</span>
               <span class="basic-topbar__count">{{ selectedCategoryLeafs.length }}</span>
             </button>
           </div>
 
           <div class="grid2">
             <div class="field">
-              <label class="label">TĂªn sáº£n pháº©m</label>
-              <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Ăo khoĂ¡c giĂ³ basic" />
+              <label class="label">Tên sản phẩm</label>
+              <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
             </div>
 
             <div class="field">
-              <label class="label">ÄÆ°á»ng dáº«n</label>
+              <label class="label">Đường dẫn</label>
               <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
             </div>
           </div>
@@ -131,15 +131,15 @@
             </div>
 
             <div class="field">
-              <label class="label">Loáº¡i sáº£n pháº©m</label>
+              <label class="label">Loại sản phẩm</label>
               <select class="input" formControlName="productTypeId" [disabled]="productTypesLoading">
-                <option [ngValue]="null">-- Chá»n loáº¡i sáº£n pháº©m --</option>
+                <option [ngValue]="null">-- Chọn loại sản phẩm --</option>
                 <option *ngFor="let pt of activeProductTypes" [ngValue]="pt.id">{{ pt.name }}</option>
               </select>
             </div>
 
             <div class="field field--span2" *ngIf="availableSizeGroups.length > 0">
-              <label class="label">NhĂ³m size / giá»›i tĂ­nh</label>
+              <label class="label">Nhóm size / giới tính</label>
               <div class="branch-picker">
                 <label class="branch-pill" *ngFor="let g of availableSizeGroups">
                   <input
@@ -162,29 +162,29 @@
             </div>
 
             <div class="field">
-              <label class="label">Tráº¡ng thĂ¡i</label>
+              <label class="label">Trạng thái</label>
               <label class="switch">
                 <input type="checkbox" formControlName="active" />
-                <span>{{ form.value.active === false ? 'áº¨n' : 'Báº­t' }}</span>
+                <span>{{ form.value.active === false ? 'Ẩn' : 'Bật' }}</span>
               </label>
             </div>
           </div>
 
           <div class="grid2">
             <div class="field">
-              <label class="label">KĂ­ch cá»¡ (CSV)</label>
+              <label class="label">Kích cỡ (CSV)</label>
               <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
             </div>
 
             <div class="field">
-              <label class="label">MĂ u sáº¯c (CSV)</label>
-              <input class="input" formControlName="colorsCsv" placeholder="Äen,Tráº¯ng" />
+              <label class="label">Màu sắc (CSV)</label>
+              <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
             </div>
           </div>
 
           <div class="grid2">
             <div class="field">
-              <label class="label">GiĂ¡</label>
+              <label class="label">Giá</label>
               <div class="vnd-input">
                 <input
                   class="input"
@@ -195,12 +195,12 @@
                   (input)="onVndControlInput('price', $event)"
                   (blur)="onVndControlBlur('price', $event)"
                 />
-                <span class="vnd-suffix">VNÄ</span>
+                <span class="vnd-suffix">VNĐ</span>
               </div>
             </div>
 
             <div class="field">
-              <label class="label">GiĂ¡ cÅ©</label>
+              <label class="label">Giá cũ</label>
               <div class="vnd-input">
                 <input
                   class="input"
@@ -211,7 +211,7 @@
                   (input)="onVndControlInput('oldPrice', $event)"
                   (blur)="onVndControlBlur('oldPrice', $event)"
                 />
-                <span class="vnd-suffix">VNÄ</span>
+                <span class="vnd-suffix">VNĐ</span>
               </div>
             </div>
           </div>
@@ -223,14 +223,14 @@
       <div class="cat-overlay" *ngIf="categoryModalOpen">
         <div class="cat-modal">
           <div class="cat-head">
-            <div class="cat-title">Chá»n danh má»¥c</div>
-            <button class="btn ghost" type="button" (click)="closeCategoryModal()">Ă—</button>
+            <div class="cat-title">Chọn danh mục</div>
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">×</button>
           </div>
 
           <div class="cat-body">
             <div class="cat-search">
-              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="TĂ¬m danh má»¥c..." />
-              <div class="cat-search-hint">Báº¡n cĂ³ thá»ƒ tick á»Ÿ cáº£ cáº¥p 1/2/3.</div>
+              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="Tìm danh mục..." />
+              <div class="cat-search-hint">Bạn có thể tick ở cả cấp 1/2/3.</div>
             </div>
 
             <div class="cat-tree">
@@ -257,7 +257,7 @@
                     <div class="cat-right">
                       <label class="cat-check">
                         <input type="checkbox" [checked]="selectedCategoryIds.has(node.id)" (change)="toggleCategory(node)" />
-                        <span>Chá»n</span>
+                        <span>Chọn</span>
                       </label>
                     </div>
                   </div>
@@ -271,49 +271,49 @@
           </div>
 
           <div class="cat-actions">
-            <button class="btn ghost" type="button" (click)="closeCategoryModal()">ÄĂ³ng</button>
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">Đóng</button>
           </div>
         </div>
       </div>
 
       <div class="card" *ngIf="isTab('BASIC')">
-        <div class="card-head">Táº¡o ma tráº­n / biáº¿n thá»ƒ</div>
+        <div class="card-head">Tạo ma trận / biến thể</div>
         <div class="card-body">
           <div *ngIf="!canEditStock" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <div class="text-yellow-800 font-semibold">đŸ“‹ Chá»‰ cĂ³ Manager má»›i cĂ³ thá»ƒ nháº­p sá»‘ lÆ°á»£ng tá»“n kho</div>
-            <div class="text-yellow-700 text-sm mt-1">Báº¡n cĂ³ thá»ƒ sá»­a thĂ´ng tin sáº£n pháº©m, nhÆ°ng viá»‡c nháº­p tá»“n kho sáº½ do Manager chi nhĂ¡nh thá»±c hiá»‡n.</div>
+            <div class="text-yellow-800 font-semibold">Chỉ có Manager mới có thể nhập số lượng tồn kho</div>
+            <div class="text-yellow-700 text-sm mt-1">Bạn có thể sửa thông tin sản phẩm, nhưng việc nhập tồn kho sẽ do Manager chi nhánh thực hiện.</div>
           </div>
           <div class="variant-toolbar" style="margin:0">
-            <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Táº¡o biáº¿n thá»ƒ theo mĂ u</button>
+            <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Tạo biến thể theo màu</button>
             <button class="btn ghost" type="button" (click)="importMatrixFile()" [disabled]="variantBranchRows.length === 0">
-              đŸ“¥ Import ma tráº­n tá»« file
+              Import ma trận từ file
             </button>
             <button class="btn ghost" type="button" (click)="exportMatrixTemplate()" [disabled]="variantBranchRows.length === 0">
-              đŸ“¤ Export máº«u ma tráº­n
+              Export mẫu ma trận
             </button>
             <input type="file" #matrixFileInput hidden accept=".csv,.xlsx,.xls" (change)="onMatrixFileSelected($event)" />
           </div>
 
-          <div class="hint" *ngIf="selectedBranchIds.size===0">Chá»n kho (chi nhĂ¡nh) trÆ°á»›c rá»“i má»›i táº¡o ma tráº­n.</div>
+          <div class="hint" *ngIf="selectedBranchIds.size===0">Chọn kho (chi nhánh) trước rồi mới tạo ma trận.</div>
 
           <div class="variant-matrix" *ngIf="variants.length > 0 && selectedBranches.length > 0">
-            <div class="empty" *ngIf="variantBranchRows.length === 0">ChÆ°a cĂ³ dĂ²ng ma tráº­n (v2026-03-17). HĂ£y nháº­p Size/MĂ u (CSV) vĂ  báº¥m â€œTáº¡o biáº¿n thá»ƒ theo mĂ uâ€.</div>
+            <div class="empty" *ngIf="variantBranchRows.length === 0">Chưa có dòng ma trận. Hãy nhập Size/Màu (CSV) và bấm “Tạo biến thể theo màu”.</div>
 
             <div class="matrix-wrap" *ngIf="variantBranchRows.length > 0">
               <table class="matrix-table matrix-table--center">
                 <thead>
                   <tr>
                     <th style="width:70px">STT</th>
-                    <th>Giá»›i tĂ­nh</th>
-                    <th>MĂ u sáº¯c</th>
+                    <th>Giới tính</th>
+                    <th>Màu sắc</th>
                     <th>Size</th>
-                    <th style="width:100px">CĂ¢n náº·ng (kg)</th>
+                    <th style="width:100px">Cân nặng (kg)</th>
                     <th *ngFor="let b of selectedBranches; trackBy: trackByBranchId" style="width:140px">
                       SL - {{ branchLabelById(b.id) }}
                     </th>
                     <th style="width:140px">Tá»•ng</th>
-                    <th style="width:160px">GiĂ¡</th>
-                    <th style="width:160px">áº¢nh</th>
+                    <th style="width:160px">Giá</th>
+                    <th style="width:160px">Ảnh</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,11 +357,11 @@
                             (input)="onVndRowPriceInput(r, $event)"
                             (blur)="onVndRowPriceBlur(r, $event)"
                           />
-                          <span class="vnd-suffix">VNÄ</span>
+                          <span class="vnd-suffix">VNĐ</span>
                         </div>
                       </ng-container>
                       <ng-template #priceReadonly>
-                        <span>{{ formatVnd(r.price) }} VNÄ</span>
+                        <span>{{ formatVnd(r.price) }} VNĐ</span>
                       </ng-template>
                     </td>
                     <td class="matrix-image">
@@ -372,7 +372,7 @@
                           </button>
                         </ng-container>
                         <input class="file-input" type="file" accept="image/*" [id]="'matrixImg_' + ri" (change)="onMatrixImageFileSelect(ri, $event)" />
-                        <label class="btn ghost file-btn" [for]="'matrixImg_' + ri">Chá»n áº£nh</label>
+                        <label class="btn ghost file-btn" [for]="'matrixImg_' + ri">Chọn ảnh</label>
                       </div>
                     </td>
                   </tr>
@@ -384,10 +384,10 @@
       </div>
 
       <div class="card" *ngIf="isTab('IMAGES')">
-        <div class="card-head">áº¢nh sáº£n pháº©m (tá»•ng)</div>
+        <div class="card-head">Ảnh sản phẩm (tổng)</div>
         <div class="card-body">
           <div class="img-layout-toolbar">
-            <div class="img-layout-label">Bá»‘ cá»¥c hiá»ƒn thá»‹</div>
+            <div class="img-layout-label">Bố cục hiển thị</div>
             <select
               class="input img-layout-select"
               [ngModel]="imageLayout"
@@ -395,10 +395,10 @@
               [ngModelOptions]="{ standalone: true }"
               name="imageLayout"
             >
-              <option value="free">Tá»± do</option>
-              <option value="1-4">1 lá»›n - 4 nhá»</option>
-              <option value="1-3">1 lá»›n - 3 nhá»</option>
-              <option value="2-2">2 - 2 (4 áº£nh báº±ng nhau)</option>
+              <option value="free">Tự do</option>
+              <option value="1-4">1 lớn - 4 nhỏ</option>
+              <option value="1-3">1 lớn - 3 nhỏ</option>
+              <option value="2-2">2 - 2 (4 ảnh bằng nhau)</option>
             </select>
           </div>
 
@@ -409,32 +409,32 @@
               </button>
               <input type="hidden" [formControlName]="i" />
               <input class="file-input" type="file" accept="image/*" [id]="'mainFile' + i" (change)="onFileSelect(i, $event)" />
-              <label class="btn ghost file-btn" [for]="'mainFile' + i">Chá»n áº£nh</label>
-              <button class="btn ghost" type="button" (click)="setMain(i)" title="Äáº·t áº£nh chĂ­nh">{{ i === 0 ? 'áº¢nh chĂ­nh' : 'Äáº·t áº£nh chĂ­nh' }}</button>
-              <button class="btn ghost danger" type="button" (click)="removeImage(i)">XĂ³a</button>
+              <label class="btn ghost file-btn" [for]="'mainFile' + i">Chọn ảnh</label>
+              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
+              <button class="btn ghost danger" type="button" (click)="removeImage(i)">Xóa</button>
             </div>
-            <button class="btn ghost add-btn" type="button" (click)="addImage()">+ ThĂªm áº£nh</button>
+            <button class="btn ghost add-btn" type="button" (click)="addImage()">+ Thêm ảnh</button>
           </div>
 
           <div class="img-grid" formArrayName="images" *ngIf="imageLayout !== 'free'" [class.layout-1-4]="imageLayout==='1-4'" [class.layout-1-3]="imageLayout==='1-3'" [class.layout-2-2]="imageLayout==='2-2'">
             <div class="slot" *ngFor="let c of images.controls; let i = index" [class.slot-0]="i===0" [class.empty]="!mainPreview(i)">
               <button class="slot-preview" type="button" *ngIf="mainPreview(i)" (click)="openCropMain(i)">
                 <img class="slot-img" [src]="mainPreview(i)" alt="preview" />
-                <div class="slot-badge" *ngIf="i===0">ChĂ­nh</div>
+                <div class="slot-badge" *ngIf="i===0">Chính</div>
               </button>
 
               <div class="slot-empty" *ngIf="!mainPreview(i)">
-                <div class="slot-empty-title">ChÆ°a cĂ³ áº£nh</div>
-                <div class="slot-empty-sub">Báº¥m chá»n áº£nh Ä‘á»ƒ thĂªm</div>
+                <div class="slot-empty-title">Chưa có ảnh</div>
+                <div class="slot-empty-sub">Bấm chọn ảnh để thêm</div>
               </div>
 
               <input type="hidden" [formControlName]="i" />
               <input class="file-input" type="file" accept="image/*" [id]="'mainGridFile' + i" (change)="onFileSelect(i, $event)" />
 
               <div class="slot-actions">
-                <label class="btn ghost file-btn" [for]="'mainGridFile' + i">Chá»n áº£nh</label>
-                <button class="btn ghost" type="button" (click)="setMain(i)" [disabled]="i===0">{{ i === 0 ? 'áº¢nh chĂ­nh' : 'Äáº·t chĂ­nh' }}</button>
-                <button class="btn ghost danger" type="button" (click)="clearImage(i)">XĂ³a</button>
+                <label class="btn ghost file-btn" [for]="'mainGridFile' + i">Chọn ảnh</label>
+                <button class="btn ghost" type="button" (click)="setMain(i)" [disabled]="i===0">{{ i === 0 ? 'Ảnh chính' : 'Đặt chính' }}</button>
+                <button class="btn ghost danger" type="button" (click)="clearImage(i)">Xóa</button>
               </div>
             </div>
           </div>
@@ -442,11 +442,11 @@
       </div>
 
       <div class="card" *ngIf="isTab('DESCRIPTION')">
-        <div class="card-head">MĂ´ táº£</div>
+        <div class="card-head">Mô tả</div>
         <div class="card-body">
           <div class="field">
-            <label class="label">Ná»™i dung</label>
-            <textarea class="textarea" rows="6" formControlName="description" placeholder="MĂ´ táº£ sáº£n pháº©m..."></textarea>
+            <label class="label">Nội dung</label>
+            <textarea class="textarea" rows="6" formControlName="description" placeholder="Mô tả sản phẩm..."></textarea>
           </div>
         </div>
       </div>
@@ -454,19 +454,19 @@
 
     <div class="side">
       <div class="card sticky">
-        <div class="card-head">TĂ³m táº¯t</div>
+        <div class="card-head">Tóm tắt</div>
         <div class="card-body">
           <div class="summary">
-            <div class="s-row"><span>TĂªn</span><b>{{ form.value.name || '-' }}</b></div>
-            <div class="s-row"><span>ÄÆ°á»ng dáº«n</span><b>{{ form.value.slug || '-' }}</b></div>
-            <div class="s-row"><span>GiĂ¡</span><b>{{ formatVnd(form.value.price) }} VNÄ</b></div>
-            <div class="s-row"><span>Danh má»¥c</span><b>{{ selectedCategoryLeafs.length }}</b></div>
-            <div class="s-row"><span>Biáº¿n thá»ƒ</span><b>{{ variants.length }}</b></div>
+            <div class="s-row"><span>Tên</span><b>{{ form.value.name || '-' }}</b></div>
+            <div class="s-row"><span>Đường dẫn</span><b>{{ form.value.slug || '-' }}</b></div>
+            <div class="s-row"><span>Giá</span><b>{{ formatVnd(form.value.price) }} VNĐ</b></div>
+            <div class="s-row"><span>Danh mục</span><b>{{ selectedCategoryLeafs.length }}</b></div>
+            <div class="s-row"><span>Biến thể</span><b>{{ variants.length }}</b></div>
           </div>
 
           <div class="side-actions">
-            <button class="btn" type="button" (click)="submit()" [disabled]="saving">{{ saving ? 'Äang lÆ°u...' : (isEdit ? 'LÆ°u thay Ä‘á»•i' : 'Táº¡o sáº£n pháº©m') }}</button>
-            <button class="btn ghost" type="button" (click)="back()">Quay láº¡i danh sĂ¡ch</button>
+            <button class="btn" type="button" (click)="submit()" [disabled]="saving">{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</button>
+            <button class="btn ghost" type="button" (click)="back()">Quay lại danh sách</button>
           </div>
         </div>
       </div>
@@ -474,7 +474,7 @@
       <div class="card side-progress">
         <div class="card-body">
           <div class="completion completion--side" aria-label="Completion">
-            <div class="completion__label">HoĂ n thĂ nh</div>
+            <div class="completion__label">Hoàn thành</div>
             <div class="completion__value">{{ completionPercent }}%</div>
             <div class="completion__bar" aria-hidden="true">
               <div class="completion__bar-fill" [style.width.%]="completionPercent"></div>
@@ -489,8 +489,8 @@
 <div class="crop-overlay" *ngIf="cropOpen">
   <div class="crop-modal">
     <div class="crop-head">
-      <div class="crop-title">Cáº¯t áº£nh</div>
-      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Ă—</button>
+      <div class="crop-title">Cắt ảnh</div>
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">×</button>
     </div>
 
     <div class="crop-body">
@@ -504,12 +504,12 @@
         (mouseup)="onCropMouseUp($event)"
         (mouseleave)="onCropMouseUp($event)"
       ></canvas>
-      <div class="crop-hint">KĂ©o chuá»™t Ä‘á»ƒ chá»n vĂ¹ng cáº¯t. KĂ©o vĂ¹ng Ä‘Ă£ chá»n Ä‘á»ƒ di chuyá»ƒn.</div>
+      <div class="crop-hint">Kéo chuột để chọn vùng cắt. Kéo vùng đã chọn để di chuyển.</div>
     </div>
 
     <div class="crop-actions">
       <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Há»§y</button>
-      <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cáº¯t & LÆ°u</button>
+      <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cắt & Lưu</button>
     </div>
   </div>
 </div>
