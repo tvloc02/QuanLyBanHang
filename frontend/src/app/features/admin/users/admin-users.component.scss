@@ -1,4 +1,112 @@
- 
+@import '../products/admin-product-form.component.scss';
+
+.users-page {
+  .filters-card {
+    padding: 0;
+    border-radius: 26px;
+  }
+
+  .filters-card > div {
+    padding: 22px 24px;
+  }
+}
+
+.page-hero {
+  border-radius: 24px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #4f6ff0 0%, #4b7cff 55%, #5b8bff 100%);
+  box-shadow: 0 18px 40px rgba(79, 111, 240, 0.24);
+}
+
+.hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.stats {
+  gap: 18px !important;
+}
+
+.stat {
+  background: #ffffff;
+  border: 1px solid #e5edf9;
+  border-radius: 24px;
+  padding: 18px 20px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+}
+
+.users-page > .bg-white.rounded-2xl.shadow-lg,
+.users-page > .bg-white.rounded-2xl.shadow-sm {
+  border-radius: 26px !important;
+  border: 1px solid #e5edf9 !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05) !important;
+}
+
+.users-page table thead tr {
+  background: linear-gradient(180deg, #f7f9ff 0%, #eef3ff 100%) !important;
+}
+
+.users-page table thead th {
+  font-size: 11px !important;
+  letter-spacing: 0.06em;
+}
+
+.users-page .modal {
+  border-radius: 26px;
+  border: 1px solid #e5edf9;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+.users-page .modal-head {
+  padding: 20px 22px 10px;
+}
+
+.users-page .modal-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #15254b;
+}
+
+.users-page tbody td .flex.items-center.justify-center.gap-2 > button {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05) !important;
+}
+
+.users-page tbody td .flex.items-center.justify-center.gap-2 > button:nth-child(1) {
+  border-color: rgba(59, 130, 246, 0.22) !important;
+  color: #3b82f6 !important;
+  background: #ffffff !important;
+}
+
+.users-page tbody td .flex.items-center.justify-center.gap-2 > button:nth-child(2) {
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4f46e5 !important;
+  background: #ffffff !important;
+}
+
+.users-page tbody td .flex.items-center.justify-center.gap-2 > button:nth-child(3) {
+  border-color: rgba(245, 158, 11, 0.28) !important;
+  color: #d97706 !important;
+  background: #ffffff !important;
+}
+
+.users-page tbody td .flex.items-center.justify-center.gap-2 > button:nth-child(4) {
+  border-color: rgba(168, 85, 247, 0.24) !important;
+  color: #9333ea !important;
+  background: #ffffff !important;
+}
+
+.users-page tbody td .flex.items-center.justify-center.gap-2 > button:nth-child(5) {
+  border-color: rgba(239, 68, 68, 0.24) !important;
+  color: #ef4444 !important;
+  background: #ffffff !important;
+}
 
 .strong {
   font-weight: 800;

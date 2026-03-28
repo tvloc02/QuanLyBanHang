@@ -82,6 +82,12 @@ type VariantBranchMatrixRow = {
   imageUrl: string;
 };
 
+type Segment = {
+  label: string;
+  value: number;
+  color: string;
+};
+
 @Component({
   selector: 'app-admin-product-detail',
   standalone: true,
@@ -190,6 +196,98 @@ export class AdminProductDetailComponent {
     return p.imageUrl ? [this.resolveImageUrl(p.imageUrl)].filter(Boolean) : [];
   }
 
+  get mainImage(): string {
+    return this.images[0] || 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'><rect width='600' height='600' fill='#f3f4f6'/><circle cx='300' cy='220' r='84' fill='#d1d5db'/><rect x='160' y='340' width='280' height='32' rx='16' fill='#e5e7eb'/><rect x='195' y='395' width='210' height='24' rx='12' fill='#e5e7eb'/></svg>"
+    );
+  }
+
+  get soldCount(): number {
+    return Math.max(0, Number(this.product?.soldCount || 0));
+  }
+
+  get averageRating(): number {
+    const raw = Number(this.product?.rating);
+    return Number.isFinite(raw) ? Math.max(0, Math.min(5, raw)) : 0;
+  }
+
+  get totalInventory(): number {
+    if (this.hasVariantBranchStocks && this.variantBranchMatrixRows.length > 0) {
+      return this.variantBranchMatrixRows.reduce((sum, row) => sum + row.total, 0);
+    }
+    if ((this.branchStocks || []).length > 0) {
+      return this.branchStocks.reduce((sum, row) => sum + Math.max(0, Number(row?.stock || 0)), 0);
+    }
+    return Math.max(0, Number(this.product?.stock || 0));
+  }
+
+  get inventoryValue(): number {
+    return this.totalInventory * Math.max(0, Number(this.product?.price || 0));
+  }
+
+  get lowStockCount(): number {
+    if (this.hasVariantBranchStocks && this.variantBranchMatrixRows.length > 0) {
+      return this.variantBranchMatrixRows.filter((row) => row.total <= 5).length;
+    }
+    return (this.branchStocks || []).filter((row) => Number(row?.stock || 0) <= 5).length;
+  }
+
+  get variantCount(): number {
+    return (this.product?.variants || []).length;
+  }
+
+  get branchCount(): number {
+    return this.selectedBranches.length;
+  }
+
+  get sizeCount(): number {
+    return (this.product?.sizes || []).length;
+  }
+
+  get colorCount(): number {
+    return (this.product?.colors || []).length;
+  }
+
+  get sellThroughRate(): number {
+    const sold = this.soldCount;
+    const total = sold + this.totalInventory;
+    if (total <= 0) return 0;
+    return Math.round((sold / total) * 100);
+  }
+
+  get salesSegments(): Segment[] {
+    return [
+      { label: 'Đã bán', value: this.soldCount, color: '#4f6ff0' },
+      { label: 'Tồn kho', value: this.totalInventory, color: '#60d6d2' },
+      { label: 'Sắp hết', value: this.lowStockCount, color: '#f59e0b' }
+    ];
+  }
+
+  get salesDonutStyle(): string {
+    return this.buildConicStyle(this.salesSegments);
+  }
+
+  get branchBars(): Array<{ label: string; value: number; percent: number }> {
+    const rows = this.selectedBranches.map((b) => ({
+      label: this.branchLabelById(b.id),
+      value: this.stockByBranchId(b.id)
+    }));
+    const max = Math.max(1, ...rows.map((x) => x.value));
+    return rows.map((x) => ({ ...x, percent: Math.max(8, Math.round((x.value / max) * 100)) }));
+  }
+
+  private buildConicStyle(segments: Segment[]): string {
+    const total = Math.max(1, segments.reduce((sum, item) => sum + Math.max(0, item.value), 0));
+    let current = 0;
+    const parts = segments.map((item) => {
+      const start = current;
+      const angle = (Math.max(0, item.value) / total) * 360;
+      current += angle;
+      return `${item.color} ${start}deg ${current}deg`;
+    });
+    return `conic-gradient(${parts.join(', ')})`;
+  }
+
   load(): void {
     if (!Number.isFinite(this.id)) {
       this.error = 'ID sản phẩm không hợp lệ.';
@@ -240,8 +338,7 @@ export class AdminProductDetailComponent {
     for (const x of this.variantBranchStocks || []) if (typeof x?.branchId === 'number') ids.add(x.branchId);
     const rows = (this.branches || []).filter((b) => b && typeof b.id === 'number' && ids.has(b.id));
     if (rows.length > 0) return rows;
-    return Array.from(ids)
-      .map((id) => ({ id, name: `#${id}` } as AdminBranchResponse));
+    return Array.from(ids).map((id) => ({ id, name: `#${id}` } as AdminBranchResponse));
   }
 
   get hasVariantBranchStocks(): boolean {
@@ -276,13 +373,13 @@ export class AdminProductDetailComponent {
     }
 
     const rows = Array.from(rowsByKey.values());
-    for (const r of rows) {
-      r.total = (r.branchStocks || []).reduce((sum, s) => sum + Math.max(0, Number(s?.stock || 0)), 0);
+    for (const row of rows) {
+      row.total = (row.branchStocks || []).reduce((sum, s) => sum + Math.max(0, Number(s?.stock || 0)), 0);
     }
 
     rows.sort((a, b) => {
-      const c = a.color.localeCompare(b.color, 'vi', { sensitivity: 'base' });
-      if (c !== 0) return c;
+      const colorCmp = a.color.localeCompare(b.color, 'vi', { sensitivity: 'base' });
+      if (colorCmp !== 0) return colorCmp;
       return a.size.localeCompare(b.size, 'vi', { sensitivity: 'base' });
     });
     return rows;
@@ -291,15 +388,15 @@ export class AdminProductDetailComponent {
   variantBranchCellStock(row: VariantBranchMatrixRow, branchId: number): number {
     const bid = Number(branchId);
     const cell = (row?.branchStocks || []).find((x) => x && x.branchId === bid);
-    const v = Number(cell?.stock ?? 0);
-    return Number.isFinite(v) ? v : 0;
+    const value = Number(cell?.stock ?? 0);
+    return Number.isFinite(value) ? value : 0;
   }
 
   stockByBranchId(branchId: number): number {
     const bid = Number(branchId);
     const row = (this.branchStocks || []).find((x) => x && x.branchId === bid);
-    const v = Number(row?.stock ?? 0);
-    return Number.isFinite(v) ? v : 0;
+    const value = Number(row?.stock ?? 0);
+    return Number.isFinite(value) ? value : 0;
   }
 
   back(): void {

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -238,6 +238,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         });
 
         this.applyVn2ToForm();
+        this.seedAddressesFromProfile();
       },
       error: (err) => {
         this.loading = false;
@@ -615,6 +616,78 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  private seedAddressesFromProfile(): void {
+    if (this.addresses.length > 0 || !this.me) return;
+
+    const fullName = String(this.me.fullName || '').trim();
+    const phone = String(this.me.phone || '').trim();
+    const addressParts = [
+      String(this.me.addressDetail || '').trim(),
+      String(this.me.ward || '').trim(),
+      String(this.me.province || '').trim()
+    ].filter(Boolean);
+
+    if (!fullName && !phone && addressParts.length === 0) return;
+
+    this.addresses = [{
+      id: Date.now(),
+      name: fullName || 'Người nhận',
+      phone: phone || '',
+      address: addressParts.join(', '),
+      isPrimary: true
+    }];
+
+    this.saveAddressesToStorage();
+  }
+
+  private syncPrimaryAddressToBackend(successMessage: string): void {
+    const primary = this.addresses.find((addr) => addr.isPrimary) || this.addresses[0];
+    if (!primary) return;
+
+    const v = this.form.value;
+    const prov = this.vn2ProvinceOptions.find((x) => x.code === String(v.vn2ProvinceCode || ''));
+    const com = this.vn2CommuneOptions.find((x) => x.code === String(v.vn2CommuneCode || ''));
+    const fullNameToSend = primary.name?.trim() || String(v.fullName || '').trim() || String(this.me?.fullName || '').trim();
+    const phoneToSend = primary.phone?.trim() || String(v.phone || '').trim() || String(this.me?.phone || '').trim();
+    const province = String(prov?.name || v.province || this.me?.province || '').trim();
+    const ward = String(com?.name || v.ward || this.me?.ward || '').trim();
+    const addressDetail = String(v.addressDetail || '').trim() || primary.address;
+
+    this.addressLoading = true;
+    this.userData.updateMe({
+      fullName: fullNameToSend || null,
+      phone: phoneToSend || null,
+      province: province || null,
+      district: null,
+      ward: ward || null,
+      addressDetail: addressDetail || null,
+      latitude: typeof v.latitude === 'number' ? v.latitude : (typeof this.me?.latitude === 'number' ? this.me.latitude : null),
+      longitude: typeof v.longitude === 'number' ? v.longitude : (typeof this.me?.longitude === 'number' ? this.me.longitude : null)
+    }).subscribe({
+      next: (res) => {
+        this.addressLoading = false;
+        this.me = res?.data || this.me;
+        const d = res?.data;
+        this.form.patchValue({
+          fullName: d?.fullName || fullNameToSend,
+          phone: d?.phone || phoneToSend,
+          province: d?.province || province,
+          district: d?.district || '',
+          ward: d?.ward || ward,
+          addressDetail: d?.addressDetail || addressDetail,
+          latitude: typeof d?.latitude === 'number' ? d.latitude : this.form.value.latitude,
+          longitude: typeof d?.longitude === 'number' ? d.longitude : this.form.value.longitude
+        });
+        this.applyVn2ToForm();
+        this.showToast('success', successMessage);
+      },
+      error: (err) => {
+        this.addressLoading = false;
+        this.showToast('error', err?.error?.message || 'Không thể lưu địa chỉ lên hệ thống.');
+      }
+    });
+  }
+
   isNewAddressValid(): boolean {
     return !!(this.newAddress.name?.trim() && 
               this.newAddress.phone?.trim() && 
@@ -662,7 +735,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.saveAddressesToStorage();
     this.showAddAddressForm = false;
     this.resetNewAddress();
-    this.showToast('success', 'Đã thêm địa chỉ mới thành công.');
+    this.syncPrimaryAddressToBackend('Đã thêm địa chỉ mới thành công.');
     console.log('📍 Added new address:', address);
   }
 
@@ -678,7 +751,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.addresses.unshift(primaryAddress);
 
     this.saveAddressesToStorage();
-    this.showToast('success', 'Đã cập nhật địa chỉ chính.');
+    this.syncPrimaryAddressToBackend('Đã cập nhật địa chỉ chính.');
     console.log('📍 Set primary address:', primaryAddress);
   }
 
@@ -767,14 +840,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.addresses.splice(index, 1);
     
     // If deleted address was primary, set first address as primary
-    if (address.isPrimary && this.addresses.length > 0) {
-      this.addresses[0].isPrimary = true;
+      if (address.isPrimary && this.addresses.length > 0) {
+        this.addresses[0].isPrimary = true;
+      }
+  
+      this.saveAddressesToStorage();
+      this.syncPrimaryAddressToBackend('Đã xóa địa chỉ thành công.');
+      console.log('📍 Deleted address:', address);
     }
-
-    this.saveAddressesToStorage();
-    this.showToast('success', 'Đã xóa địa chỉ thành công.');
-    console.log('📍 Deleted address:', address);
-  }
 
   private saveAddressesToStorage(): void {
     try {

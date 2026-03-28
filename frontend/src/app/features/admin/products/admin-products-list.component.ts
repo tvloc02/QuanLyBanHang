@@ -141,12 +141,16 @@ export class AdminProductsListComponent {
     return (this.products || []).length;
   }
 
-  get activeProducts(): number {
-    return (this.products || []).filter((p) => (p as any)?.active !== false).length;
+  get totalQuantity(): number {
+    return (this.products || []).reduce((sum, p) => sum + Math.max(0, Number((p as any)?.stock || 0)), 0);
   }
 
-  get inactiveProducts(): number {
-    return (this.products || []).filter((p) => (p as any)?.active === false).length;
+  get totalSoldQuantity(): number {
+    return (this.products || []).reduce((sum, p) => sum + this.soldCount(p), 0);
+  }
+
+  get totalRemainingQuantity(): number {
+    return (this.products || []).reduce((sum, p) => sum + this.remainingCount(p), 0);
   }
 
   resolveApiUrl(input?: string | null): string {
@@ -221,23 +225,6 @@ export class AdminProductsListComponent {
     return (this.page - 1) * this.pageSize + indexInPage + 1;
   }
 
-  pagesToShow(): number[] {
-    const total = this.pageCount;
-    const current = this.page;
-
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => i + 1);
-    }
-
-    const windowSize = 5;
-    const half = Math.floor(windowSize / 2);
-    let start = Math.max(1, current - half);
-    let end = Math.min(total, start + windowSize - 1);
-    start = Math.max(1, end - windowSize + 1);
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }
-
   goToPage(p: number): void {
     const total = this.pageCount;
     const next = Math.min(Math.max(1, Math.floor(p)), total);
@@ -263,7 +250,7 @@ export class AdminProductsListComponent {
     const header = [
       'STT',
       'Mã sản phẩm',
-      'Tên Sản phẩm',
+      'Tên sản phẩm',
       'Danh mục',
       'Màu sắc',
       'Kích cỡ',
@@ -336,7 +323,7 @@ export class AdminProductsListComponent {
           URL.revokeObjectURL(dlUrl);
         },
         error: (err) => {
-          this.error = err?.error?.message || 'Không thể xuất Excel + ảnh.';
+          this.error = err?.error?.message || 'Không thể xuất Excel và ảnh.';
         }
       });
   }
@@ -427,20 +414,6 @@ export class AdminProductsListComponent {
     return out;
   }
 
-  private flattenLeafCategories(nodes: CategoryNode[]): CategoryNode[] {
-    const out: CategoryNode[] = [];
-    const walk = (n: CategoryNode) => {
-      const children = Array.isArray(n.children) ? n.children : [];
-      if (children.length === 0) {
-        out.push(n);
-        return;
-      }
-      children.forEach(walk);
-    };
-    (nodes || []).forEach(walk);
-    return out;
-  }
-
   isLevel3Category(level: number): boolean {
     return Number(level) === 2;
   }
@@ -474,13 +447,6 @@ export class AdminProductsListComponent {
       }
     }
     return out;
-  }
-
-  get filteredImportLeafCategories(): CategoryNode[] {
-    const q = (this.importCategoryFilter || '').trim().toLowerCase();
-    const list = this.importLeafCategories || [];
-    if (!q) return list;
-    return list.filter((x) => `${x.name} ${x.slug}`.toLowerCase().includes(q));
   }
 
   toggleImportCategory(cat: CategoryNode): void {
@@ -580,7 +546,7 @@ export class AdminProductsListComponent {
     const hasVariants = (Array.isArray(p.colors) && p.colors.length > 0) || (Array.isArray(p.sizes) && p.sizes.length > 0);
 
     const criteria = [hasName, hasPrice, hasImage, hasCategory, hasVariants];
-    const metCount = criteria.filter(c => c).length;
+    const metCount = criteria.filter((c) => c).length;
 
     if (metCount === criteria.length) return 'green';
     if (metCount >= 3) return 'yellow';
