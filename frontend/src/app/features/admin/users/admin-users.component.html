@@ -137,18 +137,17 @@
     </div>
   </div>
 
-  <!-- Modal s?a ng??i d?ng -->
   <div class="overlay" *ngIf="editOpen">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="S?a ng??i d?ng">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Sửa người dùng">
       <div class="modal-head">
-        <div class="modal-title">S?a ng??i d?ng</div>
-        <button class="icon" type="button" (click)="cancelEdit()">?</button>
+        <div class="modal-title">Sửa người dùng</div>
+        <button class="icon" type="button" (click)="cancelEdit()">×</button>
       </div>
       <div class="form" style="padding:16px">
         <div class="grid2">
           <div class="field">
-            <label class="label">H? t?n</label>
-            <input class="input" [(ngModel)]="editForm.fullName" placeholder="VD: Nguy?n V?n A" />
+            <label class="label">Họ tên</label>
+            <input class="input" [(ngModel)]="editForm.fullName" placeholder="VD: Nguyễn Văn A" />
           </div>
           <div class="field">
             <label class="label">Email</label>
@@ -161,51 +160,50 @@
             <input class="input" [(ngModel)]="editForm.username" (input)="editUsernameTouched = true" placeholder="username" />
           </div>
           <div class="field">
-            <label class="label">S? ?i?n tho?i</label>
+            <label class="label">Số điện thoại</label>
             <input class="input" [(ngModel)]="editForm.phone" placeholder="0987..." />
           </div>
         </div>
         <div class="grid2">
           <div class="field">
-            <label class="label">Vai tr?</label>
+            <label class="label">Vai trò</label>
             <select class="input" [(ngModel)]="editForm.role" (ngModelChange)="onEditRoleOrBranchChanged()">
-              <option value="ADMIN">Qu?n tr?</option>
-              <option value="MANAGER">Qu?n l?</option>
-              <option value="STAFF">Nh?n vi?n</option>
+              <option value="ADMIN">Quản trị</option>
+              <option value="MANAGER">Quản lý</option>
+              <option value="STAFF">Nhân viên</option>
             </select>
           </div>
           <div class="field">
-            <label class="label">Tr?ng th?i</label>
+            <label class="label">Trạng thái</label>
             <select class="input" [(ngModel)]="editForm.enabled">
-              <option [ngValue]="true">Ho?t ??ng</option>
-              <option [ngValue]="false">Kh?a</option>
+              <option [ngValue]="true">Hoạt động</option>
+              <option [ngValue]="false">Khóa</option>
             </select>
           </div>
         </div>
 
         <div class="grid1" *ngIf="editForm.role === 'MANAGER' || editForm.role === 'STAFF'">
           <div class="field">
-            <label class="label">Chi nh?nh</label>
+            <label class="label">Chi nhánh</label>
             <select class="input" [(ngModel)]="editForm.branchId" (ngModelChange)="onEditRoleOrBranchChanged()">
-              <option [ngValue]="null">-- Ch?n chi nh?nh --</option>
+              <option [ngValue]="null">-- Chọn chi nhánh --</option>
               <option *ngFor="let b of branches" [ngValue]="b.id">{{ b.code }} - {{ b.name }}</option>
             </select>
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn ghost" type="button" (click)="cancelEdit()">H?y</button>
-          <button class="btn" type="button" (click)="submitEdit()" [disabled]="editLoading">{{ editLoading ? '?ang l?u...' : 'L?u thay ??i' }}</button>
+          <button class="btn ghost" type="button" (click)="cancelEdit()">Hủy</button>
+          <button class="btn" type="button" (click)="submitEdit()" [disabled]="editLoading">{{ editLoading ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal xem chi ti?t ng??i d?ng -->
   <div class="overlay" *ngIf="viewOpen && selectedUser">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Xem ng??i d?ng">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Xem người dùng">
       <div class="modal-head">
-        <div class="modal-title">Th?ng tin ng??i d?ng</div>
-        <button class="icon" type="button" (click)="closeView()">?</button>
+        <div class="modal-title">Thông tin người dùng</div>
+        <button class="icon" type="button" (click)="closeView()">×</button>
       </div>
       <div class="form" style="padding:16px">
         <div class="grid2">
@@ -214,15 +212,15 @@
             <div class="value">#{{ selectedUser.id }}</div>
           </div>
           <div class="field">
-            <label class="label">Tr?ng th?i</label>
+            <label class="label">Trạng thái</label>
             <div class="value">
-              <span class="badge" [class.off]="selectedUser.enabled === false">{{ selectedUser.enabled === false ? 'Kh?a' : 'Ho?t ??ng' }}</span>
+              <span class="badge" [class.off]="selectedUser.enabled === false">{{ selectedUser.enabled === false ? 'Khóa' : 'Hoạt động' }}</span>
             </div>
           </div>
         </div>
         <div class="grid2">
           <div class="field">
-            <label class="label">H? t?n</label>
+            <label class="label">Họ tên</label>
             <div class="value strong">{{ selectedUser.fullName || '-' }}</div>
           </div>
           <div class="field">
@@ -242,19 +240,19 @@
         </div>
         <div class="grid1">
           <div class="field">
-            <label class="label">Vai tr?</label>
+            <label class="label">Vai trò</label>
             <div class="value">{{ formatRoles(selectedUser.roles) }}</div>
           </div>
         </div>
 
         <div class="grid1" *ngIf="primaryRole(selectedUser) === 'MANAGER' || primaryRole(selectedUser) === 'STAFF'">
           <div class="field">
-            <label class="label">Chi nh?nh</label>
+            <label class="label">Chi nhánh</label>
             <div class="value">{{ branchLabel(selectedUser.branchId) }}</div>
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn" type="button" (click)="closeView()">??ng</button>
+          <button class="btn" type="button" (click)="closeView()">Đóng</button>
         </div>
       </div>
     </div>
@@ -265,115 +263,110 @@
   <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200 border border-gray-200">
-      <thead class="sticky top-0 z-10">
-        <tr class="bg-gradient-to-r from-blue-50 to-sky-50">
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider w-24">STT</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">M? nh?n vi?n</th>
-          <th class="px-4 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Ng??i d?ng</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Email</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">SĐT</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Chi nh?nh</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Vai tr?</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Tr?ng th?i</th>
-          <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Thao t?c</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100 bg-white">
-        <tr *ngIf="loading">
-          <td colspan="9" class="px-6 py-10 text-center text-gray-600 font-semibold">?ang t?i d? li?u...</td>
-        </tr>
-        <tr *ngIf="!loading && totalFiltered === 0">
-          <td colspan="9" class="px-6 py-10 text-center text-gray-600 font-semibold">{{ rows.length === 0 ? 'Ch?a c? ng??i d?ng.' : 'Kh?ng t?m th?y ng??i d?ng ph? h?p.' }}</td>
-        </tr>
-        <tr *ngFor="let r of pagedRows; let i = index" class="hover:bg-blue-50/40 transition-colors">
-          <td class="px-4 py-4 text-center">
-            <div class="text-sm font-extrabold text-gray-700">{{ (page - 1) * pageSize + i + 1 }}</div>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <div class="text-sm font-extrabold text-gray-900 truncate">{{ r.username || '-' }}</div>
-          </td>
-
-          <td class="px-4 py-4 text-left border-l border-gray-200">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm" style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)">
-                {{ (r.fullName || r.username || r.email || 'U').toString().trim().charAt(0).toUpperCase() }}
-              </div>
-              <div class="min-w-0">
-                <div class="text-sm font-extrabold text-gray-900 truncate">{{ r.fullName || '-' }}</div>
-                <div *ngIf="primaryRole(r) === 'MANAGER' || primaryRole(r) === 'STAFF'" class="text-[11px] font-semibold text-gray-400 truncate">
-                  {{ branchCode(r.branchId) }}
+        <thead class="sticky top-0 z-10">
+          <tr class="bg-gradient-to-r from-blue-50 to-sky-50">
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider w-24">STT</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Mã nhân viên</th>
+            <th class="px-4 py-4 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Người dùng</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Email</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">SĐT</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Chi nhánh</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Vai trò</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Trạng thái</th>
+            <th class="px-4 py-4 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border-l border-gray-200">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 bg-white">
+          <tr *ngIf="loading">
+            <td colspan="9" class="px-6 py-10 text-center text-gray-600 font-semibold">Đang tải dữ liệu...</td>
+          </tr>
+          <tr *ngIf="!loading && totalFiltered === 0">
+            <td colspan="9" class="px-6 py-10 text-center text-gray-600 font-semibold">{{ rows.length === 0 ? 'Chưa có người dùng.' : 'Không tìm thấy người dùng phù hợp.' }}</td>
+          </tr>
+          <tr *ngFor="let r of pagedRows; let i = index" class="hover:bg-blue-50/40 transition-colors">
+            <td class="px-4 py-4 text-center">
+              <div class="text-sm font-extrabold text-gray-700">{{ (page - 1) * pageSize + i + 1 }}</div>
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <div class="text-sm font-extrabold text-gray-900 truncate">{{ r.username || '-' }}</div>
+            </td>
+            <td class="px-4 py-4 text-left border-l border-gray-200">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm" style="background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)">
+                  {{ (r.fullName || r.username || r.email || 'U').toString().trim().charAt(0).toUpperCase() }}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-sm font-extrabold text-gray-900 truncate">{{ r.fullName || '-' }}</div>
+                  <div *ngIf="primaryRole(r) === 'MANAGER' || primaryRole(r) === 'STAFF'" class="text-[11px] font-semibold text-gray-400 truncate">
+                    {{ branchCode(r.branchId) }}
+                  </div>
                 </div>
               </div>
-            </div>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <div class="text-sm font-semibold text-gray-700 truncate">{{ r.email || '-' }}</div>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <div class="text-sm font-semibold text-gray-700 truncate">{{ r.phone || '-' }}</div>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <div class="text-sm font-semibold text-gray-700 truncate">{{ (primaryRole(r) === 'MANAGER' || primaryRole(r) === 'STAFF') ? branchCode(r.branchId) : '-' }}</div>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <span
-              class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm bg-gray-50 text-gray-800 border border-gray-200"
-              [ngClass]="{
-                'bg-red-100 text-red-800 border-red-200': primaryRole(r) === 'ADMIN',
-                'bg-indigo-100 text-indigo-800 border-indigo-200': primaryRole(r) === 'MANAGER',
-                'bg-blue-100 text-blue-800 border-blue-200': primaryRole(r) === 'STAFF'
-              }"
-            >
-              {{ roleLabel(primaryRole(r)) }}
-            </span>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <span
-              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border"
-              [ngClass]="r.enabled === false
-                ? 'bg-red-100 text-red-800 border-red-200'
-                : 'bg-green-100 text-green-800 border-green-200'"
-            >
-              {{ r.enabled === false ? 'Kh?a' : 'Ho?t ??ng' }}
-            </span>
-          </td>
-          <td class="px-4 py-4 text-center border-l border-gray-200">
-            <div class="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                (click)="onResetPassword(r)"
-                title="Reset m?t kh?u"
-                aria-label="Reset m?t kh?u"
-                class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm"
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <div class="text-sm font-semibold text-gray-700 truncate">{{ r.email || '-' }}</div>
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <div class="text-sm font-semibold text-gray-700 truncate">{{ r.phone || '-' }}</div>
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <div class="text-sm font-semibold text-gray-700 truncate">{{ (primaryRole(r) === 'MANAGER' || primaryRole(r) === 'STAFF') ? branchCode(r.branchId) : '-' }}</div>
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <span
+                class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm bg-gray-50 text-gray-800 border border-gray-200"
+                [ngClass]="{
+                  'bg-red-100 text-red-800 border-red-200': primaryRole(r) === 'ADMIN',
+                  'bg-indigo-100 text-indigo-800 border-indigo-200': primaryRole(r) === 'MANAGER',
+                  'bg-blue-100 text-blue-800 border-blue-200': primaryRole(r) === 'STAFF'
+                }"
               >
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11V7a4 4 0 0 1 8 0v4"/><rect x="3" y="11" width="14" height="10" rx="2"/><path d="M7 15h6"/></svg>
-              </button>
-              <button type="button" (click)="onView(r)" title="Xem" aria-label="Xem" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-              <button type="button" (click)="onEdit(r)" title="S?a" aria-label="S?a" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-colors shadow-sm">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
-              </button>
-              <button
-                type="button"
-                (click)="onToggleEnabled(r)"
-                [title]="(r.enabled === false ? 'M? kh?a' : 'Kh?a') + ' t?i kho?n'"
-                [attr.aria-label]="(r.enabled === false ? 'M? kh?a' : 'Kh?a') + ' t?i kho?n'"
-                class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 bg-white transition-colors shadow-sm"
-                [ngClass]="r.enabled === false
-                  ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                  : 'border-purple-200 text-purple-700 hover:bg-purple-50'"
+                {{ roleLabel(primaryRole(r)) }}
+              </span>
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <span
+                class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border"
+                [ngClass]="r.enabled === false ? 'bg-red-100 text-red-800 border-red-200' : 'bg-green-100 text-green-800 border-green-200'"
               >
-                <svg *ngIf="r.enabled !== false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <svg *ngIf="r.enabled === false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V9a5 5 0 0 1 7.5-4.33"/></svg>
-              </button>
-              <button type="button" (click)="onDelete(r)" title="X?a" aria-label="X?a" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors shadow-sm">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
+                {{ r.enabled === false ? 'Khóa' : 'Hoạt động' }}
+              </span>
+            </td>
+            <td class="px-4 py-4 text-center border-l border-gray-200">
+              <div class="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  (click)="onResetPassword(r)"
+                  title="Reset mật khẩu"
+                  aria-label="Reset mật khẩu"
+                  class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11V7a4 4 0 0 1 8 0v4"/><rect x="3" y="11" width="14" height="10" rx="2"/><path d="M7 15h6"/></svg>
+                </button>
+                <button type="button" (click)="onView(r)" title="Xem" aria-label="Xem" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button type="button" (click)="onEdit(r)" title="Sửa" aria-label="Sửa" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-colors shadow-sm">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
+                </button>
+                <button
+                  type="button"
+                  (click)="onToggleEnabled(r)"
+                  [title]="(r.enabled === false ? 'Mở khóa' : 'Khóa') + ' tài khoản'"
+                  [attr.aria-label]="(r.enabled === false ? 'Mở khóa' : 'Khóa') + ' tài khoản'"
+                  class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 bg-white transition-colors shadow-sm"
+                  [ngClass]="r.enabled === false ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' : 'border-purple-200 text-purple-700 hover:bg-purple-50'"
+                >
+                  <svg *ngIf="r.enabled !== false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <svg *ngIf="r.enabled === false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V9a5 5 0 0 1 7.5-4.33"/></svg>
+                </button>
+                <button type="button" (click)="onDelete(r)" title="Xóa" aria-label="Xóa" class="w-9 h-9 inline-flex items-center justify-center rounded-xl border-2 border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors shadow-sm">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
@@ -388,14 +381,14 @@
         </select>
 
         <div class="text-sm text-gray-700">
-          T?ng: <span class="font-bold">{{ totalFiltered }}</span>.
-          <span class="hidden sm:inline ml-1">Hi?n th? {{ rangeFrom }} - {{ rangeTo }}</span>
+          Tổng: <span class="font-bold">{{ totalFiltered }}</span>.
+          <span class="hidden sm:inline ml-1">Hiển thị {{ rangeFrom }} - {{ rangeTo }}</span>
         </div>
       </div>
 
       <div class="inline-flex items-center rounded-xl border border-gray-200 overflow-hidden bg-white">
-        <button type="button" (click)="goToPage(1)" [disabled]="page === 1" class="px-3 py-2 text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">?</button>
-        <button type="button" (click)="goToPage(page - 1)" [disabled]="page === 1" class="px-3 py-2 text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">?</button>
+        <button type="button" (click)="goToPage(1)" [disabled]="page === 1" class="px-3 py-2 text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">«</button>
+        <button type="button" (click)="goToPage(page - 1)" [disabled]="page === 1" class="px-3 py-2 text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">‹</button>
 
         <ng-container *ngFor="let p of pageItems">
           <button
@@ -407,27 +400,26 @@
           >
             {{ p }}
           </button>
-          <span *ngIf="p === '...'" class="px-4 py-2 text-sm font-bold text-gray-400 border-l border-gray-200">?</span>
+          <span *ngIf="p === '...'" class="px-4 py-2 text-sm font-bold text-gray-400 border-l border-gray-200">…</span>
         </ng-container>
 
-        <button type="button" (click)="goToPage(page + 1)" [disabled]="page === totalPages" class="px-3 py-2 text-sm font-bold text-gray-500 border-l border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">?</button>
-        <button type="button" (click)="goToPage(totalPages)" [disabled]="page === totalPages" class="px-3 py-2 text-sm font-bold text-gray-500 border-l border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">?</button>
+        <button type="button" (click)="goToPage(page + 1)" [disabled]="page === totalPages" class="px-3 py-2 text-sm font-bold text-gray-500 border-l border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">›</button>
+        <button type="button" (click)="goToPage(totalPages)" [disabled]="page === totalPages" class="px-3 py-2 text-sm font-bold text-gray-500 border-l border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">»</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal th?m ng??i d?ng -->
   <div class="overlay" *ngIf="createOpen">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Th?m ng??i d?ng">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Thêm người dùng">
       <div class="modal-head">
-        <div class="modal-title">Th?m ng??i d?ng</div>
-        <button class="icon" type="button" (click)="cancelCreate()">?</button>
+        <div class="modal-title">Thêm người dùng</div>
+        <button class="icon" type="button" (click)="cancelCreate()">×</button>
       </div>
       <div class="form" style="padding:16px">
         <div class="grid2">
           <div class="field">
-            <label class="label">H? t?n</label>
-            <input class="input" [(ngModel)]="form.fullName" placeholder="VD: Nguy?n V?n A" />
+            <label class="label">Họ tên</label>
+            <input class="input" [(ngModel)]="form.fullName" placeholder="VD: Nguyễn Văn A" />
           </div>
           <div class="field">
             <label class="label">Email</label>
@@ -440,40 +432,40 @@
             <input class="input" [(ngModel)]="form.username" (input)="createUsernameTouched = true" placeholder="username" />
           </div>
           <div class="field">
-            <label class="label">S? ?i?n tho?i</label>
+            <label class="label">Số điện thoại</label>
             <input class="input" [(ngModel)]="form.phone" placeholder="0987..." />
           </div>
         </div>
         <div class="grid2">
           <div class="field">
-            <label class="label">Vai tr?</label>
+            <label class="label">Vai trò</label>
             <select class="input" [(ngModel)]="form.role" (ngModelChange)="onCreateRoleOrBranchChanged()">
-              <option value="ADMIN">Qu?n tr?</option>
-              <option value="MANAGER">Qu?n l?</option>
-              <option value="STAFF">Nh?n vi?n</option>
+              <option value="ADMIN">Quản trị</option>
+              <option value="MANAGER">Quản lý</option>
+              <option value="STAFF">Nhân viên</option>
             </select>
           </div>
           <div class="field">
-            <label class="label">Tr?ng th?i</label>
+            <label class="label">Trạng thái</label>
             <select class="input" [(ngModel)]="form.enabled">
-              <option [ngValue]="true">Ho?t ??ng</option>
-              <option [ngValue]="false">Kh?a</option>
+              <option [ngValue]="true">Hoạt động</option>
+              <option [ngValue]="false">Khóa</option>
             </select>
           </div>
         </div>
 
         <div class="grid1" *ngIf="form.role === 'MANAGER' || form.role === 'STAFF'">
           <div class="field">
-            <label class="label">Chi nh?nh</label>
+            <label class="label">Chi nhánh</label>
             <select class="input" [(ngModel)]="form.branchId" (ngModelChange)="onCreateRoleOrBranchChanged()">
-              <option [ngValue]="null">-- Ch?n chi nh?nh --</option>
+              <option [ngValue]="null">-- Chọn chi nhánh --</option>
               <option *ngFor="let b of branches" [ngValue]="b.id">{{ b.code }} - {{ b.name }}</option>
             </select>
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn ghost" type="button" (click)="cancelCreate()">H?y</button>
-          <button class="btn" type="button" (click)="submitCreate()" [disabled]="createLoading">{{ createLoading ? '?ang l?u...' : 'T?o ng??i d?ng' }}</button>
+          <button class="btn ghost" type="button" (click)="cancelCreate()">Hủy</button>
+          <button class="btn" type="button" (click)="submitCreate()" [disabled]="createLoading">{{ createLoading ? 'Đang lưu...' : 'Tạo người dùng' }}</button>
         </div>
       </div>
     </div>
