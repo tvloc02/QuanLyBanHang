@@ -8,6 +8,20 @@ interface ApiResponse<T> {
   data: T;
 }
 
+export interface UserAddressItem {
+  id?: number | null;
+  name?: string | null;
+  phone?: string | null;
+  province?: string | null;
+  district?: string | null;
+  ward?: string | null;
+  addressDetail?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  type?: string | null;
+  isPrimary?: boolean | null;
+}
+
 export interface UserMeResponse {
   id: number;
   fullName?: string | null;
@@ -20,6 +34,7 @@ export interface UserMeResponse {
   addressDetail?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  addresses?: UserAddressItem[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -33,6 +48,7 @@ export interface UserMeUpdateRequest {
   addressDetail?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  addresses?: UserAddressItem[] | null;
 }
 
 @Injectable({ providedIn: 'root' })

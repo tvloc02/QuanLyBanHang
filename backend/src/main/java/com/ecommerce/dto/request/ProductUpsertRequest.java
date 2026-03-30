@@ -59,6 +59,16 @@ public class ProductUpsertRequest {
 
     private Long soldCount;
 
+    private Boolean promoEnabled;
+
+    private String promoLabel;
+
+    private String promoValue;
+
+    private String promoCode;
+
+    private String promoNote;
+
     private List<String> sizes = new ArrayList<>();
 
     private List<String> colors = new ArrayList<>();
@@ -230,6 +240,46 @@ public class ProductUpsertRequest {
 
     public void setSoldCount(Long soldCount) {
         this.soldCount = soldCount;
+    }
+
+    public Boolean getPromoEnabled() {
+        return promoEnabled;
+    }
+
+    public void setPromoEnabled(Boolean promoEnabled) {
+        this.promoEnabled = promoEnabled;
+    }
+
+    public String getPromoLabel() {
+        return promoLabel;
+    }
+
+    public void setPromoLabel(String promoLabel) {
+        this.promoLabel = promoLabel;
+    }
+
+    public String getPromoValue() {
+        return promoValue;
+    }
+
+    public void setPromoValue(String promoValue) {
+        this.promoValue = promoValue;
+    }
+
+    public String getPromoCode() {
+        return promoCode;
+    }
+
+    public void setPromoCode(String promoCode) {
+        this.promoCode = promoCode;
+    }
+
+    public String getPromoNote() {
+        return promoNote;
+    }
+
+    public void setPromoNote(String promoNote) {
+        this.promoNote = promoNote;
     }
 
     public List<String> getSizes() {

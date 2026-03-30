@@ -12,6 +12,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.HashSet;
@@ -43,7 +44,13 @@ public class User {
 
     private String ward;
 
+    @Lob
+    @Column(name = "address_detail", columnDefinition = "LONGTEXT")
     private String addressDetail;
+
+    @Lob
+    @Column(name = "addresses_json", columnDefinition = "LONGTEXT")
+    private String addressesJson;
 
     private Double latitude;
 
@@ -145,6 +152,14 @@ public class User {
 
     public void setAddressDetail(String addressDetail) {
         this.addressDetail = addressDetail;
+    }
+
+    public String getAddressesJson() {
+        return addressesJson;
+    }
+
+    public void setAddressesJson(String addressesJson) {
+        this.addressesJson = addressesJson;
     }
 
     public Double getLatitude() {

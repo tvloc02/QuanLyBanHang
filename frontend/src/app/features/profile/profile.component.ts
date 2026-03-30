@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { LocationService } from '../../core/services/location.service';
-import { UserDataService, UserMeResponse } from '../../core/services/user-data.service';
+import { UserAddressItem, UserDataService, UserMeResponse } from '../../core/services/user-data.service';
 
 import * as L from 'leaflet';
 
@@ -25,6 +25,14 @@ interface Address {
   name: string;
   phone: string;
   address: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  addressDetail?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  vn2ProvinceCode?: string;
+  vn2CommuneCode?: string;
   type?: string;
   isPrimary?: boolean;
 }
@@ -166,7 +174,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.load();
-    this.loadAddresses();
     this.loadVn2Provinces();
     this.configureLeafletDefaultIcon();
   }
@@ -237,8 +244,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
           longitude: typeof d?.longitude === 'number' ? d!.longitude! : null
         });
 
+        this.loadAddresses();
         this.applyVn2ToForm();
-        this.seedAddressesFromProfile();
+        this.hydrateAddressesFromMe();
       },
       error: (err) => {
         this.loading = false;
@@ -251,7 +259,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.success = '';
     this.error = '';
 
-    if (this.activeSection !== 'address' && this.form.invalid) {
+    if (this.activeSection === 'address') {
+      this.syncAddressesToBackend('Đã lưu địa chỉ thành công.');
+      return;
+    }
+
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.showToast('error', 'Vui lòng nhập đầy đủ họ tên và số điện thoại.');
       return;
@@ -609,72 +622,75 @@ export class ProfileComponent implements OnInit, OnDestroy {
       const raw = localStorage.getItem('addresses');
       const addresses = raw ? JSON.parse(raw) : [];
       this.addresses = Array.isArray(addresses) ? addresses : [];
-      console.log('📍 Loaded addresses:', this.addresses);
     } catch (error) {
-      console.error('📍 Error loading addresses:', error);
       this.addresses = [];
     }
   }
 
-  private seedAddressesFromProfile(): void {
+  private hydrateAddressesFromMe(): void {
+    const apiAddresses = Array.isArray(this.me?.addresses) ? this.me!.addresses! : [];
+    if (apiAddresses.length > 0) {
+      this.addresses = apiAddresses.map((item, index) => this.mapApiAddressToUi(item, index));
+      this.saveAddressesToStorage();
+      return;
+    }
+
     if (this.addresses.length > 0 || !this.me) return;
 
-    const fullName = String(this.me.fullName || '').trim();
-    const phone = String(this.me.phone || '').trim();
-    const addressParts = [
-      String(this.me.addressDetail || '').trim(),
-      String(this.me.ward || '').trim(),
-      String(this.me.province || '').trim()
-    ].filter(Boolean);
-
-    if (!fullName && !phone && addressParts.length === 0) return;
-
-    this.addresses = [{
+    const fallback = this.mapApiAddressToUi({
       id: Date.now(),
-      name: fullName || 'Người nhận',
-      phone: phone || '',
-      address: addressParts.join(', '),
+      name: this.me.fullName || 'Người nhận',
+      phone: this.me.phone || '',
+      province: this.me.province || '',
+      district: this.me.district || '',
+      ward: this.me.ward || '',
+      addressDetail: this.me.addressDetail || '',
+      latitude: this.me.latitude ?? null,
+      longitude: this.me.longitude ?? null,
+      type: 'Nhà Riêng',
       isPrimary: true
-    }];
+    }, 0);
 
-    this.saveAddressesToStorage();
+    if (fallback.address || fallback.name || fallback.phone) {
+      this.addresses = [fallback];
+      this.saveAddressesToStorage();
+    }
   }
 
-  private syncPrimaryAddressToBackend(successMessage: string): void {
-    const primary = this.addresses.find((addr) => addr.isPrimary) || this.addresses[0];
-    if (!primary) return;
-
-    const v = this.form.value;
-    const prov = this.vn2ProvinceOptions.find((x) => x.code === String(v.vn2ProvinceCode || ''));
-    const com = this.vn2CommuneOptions.find((x) => x.code === String(v.vn2CommuneCode || ''));
-    const fullNameToSend = primary.name?.trim() || String(v.fullName || '').trim() || String(this.me?.fullName || '').trim();
-    const phoneToSend = primary.phone?.trim() || String(v.phone || '').trim() || String(this.me?.phone || '').trim();
-    const province = String(prov?.name || v.province || this.me?.province || '').trim();
-    const ward = String(com?.name || v.ward || this.me?.ward || '').trim();
-    const addressDetail = String(v.addressDetail || '').trim() || primary.address;
-
-    this.addressLoading = true;
-    this.userData.updateMe({
-      fullName: fullNameToSend || null,
-      phone: phoneToSend || null,
-      province: province || null,
-      district: null,
-      ward: ward || null,
-      addressDetail: addressDetail || null,
-      latitude: typeof v.latitude === 'number' ? v.latitude : (typeof this.me?.latitude === 'number' ? this.me.latitude : null),
-      longitude: typeof v.longitude === 'number' ? v.longitude : (typeof this.me?.longitude === 'number' ? this.me.longitude : null)
+  private syncAddressesToBackend(successMessage: string): void {
+      const normalizedAddresses = this.addresses.map((addr, index) => this.mapUiAddressToApi(addr, index));
+      const primary = normalizedAddresses.find((addr) => addr.isPrimary) || normalizedAddresses[0];
+      if (!primary) return;
+  
+      const accountFormValue = this.form.getRawValue();
+      const fullNameToSend = String(accountFormValue.fullName || this.me?.fullName || primary.name || '').trim();
+      const phoneToSend = String(accountFormValue.phone || this.me?.phone || '').trim();
+      this.addressLoading = true;
+      this.userData.updateMe({
+        fullName: fullNameToSend || null,
+        phone: phoneToSend || null,
+      province: primary.province || null,
+      district: primary.district || null,
+      ward: primary.ward || null,
+      addressDetail: primary.addressDetail || null,
+      latitude: typeof primary.latitude === 'number' ? primary.latitude : null,
+      longitude: typeof primary.longitude === 'number' ? primary.longitude : null,
+      addresses: normalizedAddresses
     }).subscribe({
       next: (res) => {
         this.addressLoading = false;
         this.me = res?.data || this.me;
         const d = res?.data;
+        this.addresses = (Array.isArray(d?.addresses) ? d!.addresses! : normalizedAddresses)
+          .map((item, index) => this.mapApiAddressToUi(item, index));
+        this.saveAddressesToStorage();
         this.form.patchValue({
           fullName: d?.fullName || fullNameToSend,
           phone: d?.phone || phoneToSend,
-          province: d?.province || province,
+          province: d?.province || primary.province || '',
           district: d?.district || '',
-          ward: d?.ward || ward,
-          addressDetail: d?.addressDetail || addressDetail,
+          ward: d?.ward || primary.ward || '',
+          addressDetail: d?.addressDetail || primary.addressDetail || '',
           latitude: typeof d?.latitude === 'number' ? d.latitude : this.form.value.latitude,
           longitude: typeof d?.longitude === 'number' ? d.longitude : this.form.value.longitude
         });
@@ -689,9 +705,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   isNewAddressValid(): boolean {
-    return !!(this.newAddress.name?.trim() && 
-              this.newAddress.phone?.trim() && 
-              this.newAddress.address?.trim());
+    const formValue = this.form.getRawValue();
+    const addressDetail = String(formValue.addressDetail || '').trim();
+    const provinceName = String(formValue.province || '').trim();
+    const wardName = String(formValue.ward || '').trim();
+
+    return !!(
+      this.newAddress.name?.trim() &&
+      this.newAddress.phone?.trim() &&
+      addressDetail &&
+      (provinceName || wardName)
+    );
   }
 
   cancelAddAddress(): void {
@@ -710,16 +734,54 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   saveNewAddress(): void {
-    if (!this.isNewAddressValid()) {
-      this.showToast('error', 'Vui lòng nhập đầy đủ thông tin bắt buộc.');
+    const formValue = this.form.getRawValue();
+    const addressDetail = String(formValue.addressDetail || '').trim();
+    const provinceCode = String(formValue.vn2ProvinceCode || '').trim();
+    const communeCode = String(formValue.vn2CommuneCode || '').trim();
+    const provinceName = String(formValue.province || '').trim();
+    const districtName = String(formValue.district || '').trim();
+    const wardName = String(formValue.ward || '').trim();
+    const name = String(this.newAddress.name || '').trim();
+    const phone = String(this.newAddress.phone || '').trim();
+    const combinedAddress = [
+      addressDetail,
+      wardName,
+      districtName,
+      provinceName
+    ].filter(Boolean).join(', ');
+
+    this.newAddress.address = combinedAddress;
+
+    const missing: string[] = [];
+    if (!name) missing.push('họ tên');
+    if (!phone) missing.push('số điện thoại');
+    if (!addressDetail) missing.push('địa chỉ cụ thể');
+    if (!provinceName && !wardName) missing.push('tỉnh/thành hoặc phường/xã');
+
+    if (missing.length > 0 || !this.isNewAddressValid()) {
+      const message = missing.length > 0
+        ? `Thiếu: ${missing.join(', ')}.`
+        : 'Vui lòng nhập đầy đủ họ tên, số điện thoại và địa chỉ.';
+      this.addressError = message;
+      this.showToast('error', message);
       return;
     }
 
+    this.addressError = '';
+
     const address: Address = {
       id: Date.now(),
-      name: this.newAddress.name!.trim(),
-      phone: this.newAddress.phone!.trim(),
-      address: this.newAddress.address!.trim(),
+      name,
+      phone,
+      address: combinedAddress,
+      province: provinceName,
+      district: districtName,
+      ward: wardName,
+      addressDetail,
+      latitude: typeof formValue.latitude === 'number' ? formValue.latitude : null,
+      longitude: typeof formValue.longitude === 'number' ? formValue.longitude : null,
+      vn2ProvinceCode: provinceCode,
+      vn2CommuneCode: communeCode,
       type: this.newAddress.type || undefined,
       isPrimary: this.newAddress.isPrimary || false
     };
@@ -735,8 +797,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.saveAddressesToStorage();
     this.showAddAddressForm = false;
     this.resetNewAddress();
-    this.syncPrimaryAddressToBackend('Đã thêm địa chỉ mới thành công.');
-    console.log('📍 Added new address:', address);
+    this.syncAddressesToBackend('Đã thêm địa chỉ mới thành công.');
   }
 
   setPrimaryAddress(index: number): void {
@@ -751,8 +812,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.addresses.unshift(primaryAddress);
 
     this.saveAddressesToStorage();
-    this.syncPrimaryAddressToBackend('Đã cập nhật địa chỉ chính.');
-    console.log('📍 Set primary address:', primaryAddress);
+    this.syncAddressesToBackend('Đã cập nhật địa chỉ chính.');
   }
 
   // Voucher methods
@@ -845,16 +905,49 @@ export class ProfileComponent implements OnInit, OnDestroy {
       }
   
       this.saveAddressesToStorage();
-      this.syncPrimaryAddressToBackend('Đã xóa địa chỉ thành công.');
-      console.log('📍 Deleted address:', address);
+      this.syncAddressesToBackend('Đã xóa địa chỉ thành công.');
     }
 
   private saveAddressesToStorage(): void {
     try {
       localStorage.setItem('addresses', JSON.stringify(this.addresses));
-      console.log('📍 Saved addresses to storage:', this.addresses.length);
     } catch (error) {
-      console.error('📍 Error saving addresses:', error);
     }
+  }
+
+  private mapApiAddressToUi(item: UserAddressItem, index: number): Address {
+    const addressDetail = String(item.addressDetail || '').trim();
+    const ward = String(item.ward || '').trim();
+    const province = String(item.province || '').trim();
+    return {
+      id: Number(item.id ?? Date.now() + index),
+      name: String(item.name || '').trim(),
+      phone: String(item.phone || '').trim(),
+      address: [addressDetail, ward, province].filter(Boolean).join(', '),
+      province,
+      district: String(item.district || '').trim(),
+      ward,
+      addressDetail,
+      latitude: typeof item.latitude === 'number' ? item.latitude : null,
+      longitude: typeof item.longitude === 'number' ? item.longitude : null,
+      type: String(item.type || '').trim() || undefined,
+      isPrimary: Boolean(item.isPrimary)
+    };
+  }
+
+  private mapUiAddressToApi(addr: Address, index: number): UserAddressItem {
+      return {
+        id: Number(addr.id || Date.now() + index),
+        name: String(addr.name || '').trim() || null,
+        phone: String(addr.phone || '').trim() || null,
+        province: String(addr.province || '').trim() || null,
+        district: String(addr.district || '').trim() || null,
+        ward: String(addr.ward || '').trim() || null,
+        addressDetail: String(addr.addressDetail || '').trim() || null,
+        latitude: typeof addr.latitude === 'number' ? addr.latitude : null,
+        longitude: typeof addr.longitude === 'number' ? addr.longitude : null,
+        type: String(addr.type || '').trim() || null,
+        isPrimary: Boolean(addr.isPrimary || index === 0)
+      };
   }
 }

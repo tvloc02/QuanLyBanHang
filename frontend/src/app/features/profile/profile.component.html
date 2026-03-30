@@ -1,5 +1,5 @@
 ﻿<main class="bg-[var(--fh-bg)]">
-  <div class="mx-auto w-full max-w-[1600px] px-8 py-12">
+  <div class="mx-auto w-full max-w-[1800px] px-[var(--fh-gutter)] py-12">
     <a routerLink="/sale" class="inline-flex items-center gap-2 text-sm font-bold text-[var(--fh-primary)]">← Về trang chủ</a>
 
     <div class="mt-8 flex flex-wrap items-end justify-between gap-6">
@@ -40,8 +40,8 @@
     </div>
 
     <form id="profileForm" class="mt-6" [formGroup]="form" (ngSubmit)="save()">
-      <div class="grid gap-6 items-start lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div class="rounded-xl border border-[var(--fh-border)] bg-white p-6 shadow-sm self-start">
+      <div class="grid items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div class="self-start rounded-2xl border border-[var(--fh-border)] bg-white p-6 shadow-sm">
           <div class="flex items-center gap-6">
             <div class="relative h-20 w-20 overflow-hidden rounded-full border border-black/10 bg-[rgba(193,18,31,0.08)]">
               <img *ngIf="avatarPreviewUrl" [src]="avatarPreviewUrl" alt="avatar" class="h-full w-full object-cover" />
@@ -109,8 +109,8 @@
         </div>
 
         <div class="min-w-0">
-          <div *ngIf="activeSection === 'profile'" class="grid gap-6 lg:grid-cols-3">
-            <div class="rounded-xl border border-[var(--fh-border)] bg-white p-10 shadow-sm lg:col-span-2">
+          <div *ngIf="activeSection === 'profile'" class="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_380px]">
+            <div class="rounded-2xl border border-[var(--fh-border)] bg-white p-8 shadow-sm xl:p-10">
               <div class="text-2xl font-bold text-[var(--fh-text)]">Hồ Sơ Của Tôi</div>
               <div class="mt-3 text-base font-medium text-[var(--fh-muted)]">Quản lý thông tin hồ sơ để bảo mật tài khoản.</div>
 
@@ -203,19 +203,23 @@
               </div>
             </div>
 
-            <div class="rounded-xl border border-[var(--fh-border)] bg-white p-10 shadow-sm">
+            <div class="rounded-2xl border border-[var(--fh-border)] bg-white p-8 shadow-sm xl:sticky xl:top-6 xl:p-10">
               <div class="text-2xl font-bold text-[var(--fh-text)]">Ảnh đại diện</div>
               <div class="mt-3 text-base font-medium text-[var(--fh-muted)]">Dung lượng file tối đa 1 MB. Định dạng: JPEG, PNG</div>
 
-              <div class="mt-12 flex flex-col items-center gap-8">
-                <div class="relative h-48 w-48 overflow-hidden rounded-full border border-black/10 bg-[rgba(193,18,31,0.08)]">
+              <div class="mt-10 flex flex-col items-center gap-6">
+                <div class="relative h-40 w-40 overflow-hidden rounded-full border border-[rgba(193,18,31,0.14)] bg-[linear-gradient(180deg,rgba(193,18,31,0.08),rgba(193,18,31,0.03))] shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
                   <img *ngIf="avatarPreviewUrl" [src]="avatarPreviewUrl" alt="avatar" class="h-full w-full object-cover" />
-                  <div *ngIf="!avatarPreviewUrl" class="flex h-full w-full items-center justify-center text-7xl font-bold text-[var(--fh-primary)]">
+                  <div *ngIf="!avatarPreviewUrl" class="flex h-full w-full items-center justify-center text-6xl font-bold text-[var(--fh-primary)]">
                     {{ avatarInitial }}
                   </div>
                 </div>
 
-                <label class="inline-flex h-14 cursor-pointer items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-8 text-base font-semibold text-[var(--fh-text)] shadow-sm transition hover:bg-gray-50">
+                <div class="w-full rounded-2xl border border-black/5 bg-[rgba(15,23,42,0.02)] px-4 py-3 text-center text-sm font-medium text-[var(--fh-muted)]">
+                  Ảnh sẽ được hiển thị theo khung tròn ở hồ sơ và đầu trang.
+                </div>
+
+                <label class="inline-flex h-12 cursor-pointer items-center justify-center rounded-xl border border-[var(--fh-border)] bg-white px-8 text-base font-semibold text-[var(--fh-text)] shadow-sm transition hover:border-[rgba(193,18,31,0.28)] hover:bg-[rgba(193,18,31,0.05)] hover:text-[var(--fh-primary)]">
                   Chọn Ảnh
                   <input type="file" class="hidden" accept="image/*" (change)="onAvatarSelected($event)" />
                 </label>
@@ -298,11 +302,15 @@
                   <div class="grid gap-5 md:grid-cols-2">
                     <input
                       class="h-14 w-full rounded-sm border border-[var(--fh-border)] bg-white px-5 text-lg text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                      name="newAddressName"
+                      [ngModelOptions]="{ standalone: true }"
                       [(ngModel)]="newAddress.name"
                       placeholder="Họ và tên"
                     />
                     <input
                       class="h-14 w-full rounded-sm border border-[var(--fh-border)] bg-white px-5 text-lg text-[var(--fh-text)] outline-none focus:border-[rgba(193,18,31,0.35)] focus:ring-4 focus:ring-[rgba(193,18,31,0.10)]"
+                      name="newAddressPhone"
+                      [ngModelOptions]="{ standalone: true }"
                       [(ngModel)]="newAddress.phone"
                       placeholder="Số điện thoại"
                     />
@@ -393,7 +401,7 @@
                   </div>
 
                   <label class="inline-flex items-center gap-3 text-base font-medium text-[var(--fh-text)]">
-                    <input type="checkbox" class="h-5 w-5 accent-[var(--fh-primary)]" [(ngModel)]="newAddress.isPrimary" />
+                    <input type="checkbox" class="h-5 w-5 accent-[var(--fh-primary)]" name="newAddressIsPrimary" [ngModelOptions]="{ standalone: true }" [(ngModel)]="newAddress.isPrimary" />
                     Đặt làm địa chỉ mặc định
                   </label>
 
@@ -409,14 +417,13 @@
                     >
                       Trở Lại
                     </button>
-                    <button
-                      type="button"
-                      class="inline-flex h-12 min-w-[176px] items-center justify-center rounded-sm bg-[var(--fh-primary)] px-6 text-lg font-semibold text-[var(--fh-primary-contrast)] transition hover:brightness-95 disabled:opacity-60"
-                      (click)="newAddress.address = ((form.value.addressDetail || '') + (((form.value.ward || '').trim()) ? ', ' + form.value.ward : '') + (((form.value.province || '').trim()) ? ', ' + form.value.province : '')).trim(); saveNewAddress()"
-                      [disabled]="!(newAddress.name?.trim() && newAddress.phone?.trim() && form.value.addressDetail)"
-                    >
-                      Hoàn thành
-                    </button>
+                      <button
+                        type="button"
+                       class="inline-flex h-12 min-w-[176px] items-center justify-center rounded-sm bg-[var(--fh-primary)] px-6 text-lg font-semibold text-[var(--fh-primary-contrast)] shadow-sm transition hover:brightness-95"
+                       (click)="newAddress.address = ((form.value.addressDetail || '') + (((form.value.ward || '').trim()) ? ', ' + form.value.ward : '') + (((form.value.province || '').trim()) ? ', ' + form.value.province : '')).trim(); saveNewAddress()"
+                      >
+                       Hoàn thành
+                      </button>
                   </div>
                 </div>
               </div>

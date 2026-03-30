@@ -66,6 +66,21 @@ public class Product {
     @Column(name = "sold_count")
     private Long soldCount;
 
+    @Column(name = "promo_enabled")
+    private Boolean promoEnabled;
+
+    @Column(name = "promo_label")
+    private String promoLabel;
+
+    @Column(name = "promo_value")
+    private String promoValue;
+
+    @Column(name = "promo_code")
+    private String promoCode;
+
+    @Column(name = "promo_note")
+    private String promoNote;
+
     @Column(nullable = false)
     private String brand;
 
@@ -170,6 +185,21 @@ public class Product {
 
     public Long getSoldCount() { return soldCount; }
     public void setSoldCount(Long soldCount) { this.soldCount = soldCount; }
+
+    public Boolean getPromoEnabled() { return promoEnabled; }
+    public void setPromoEnabled(Boolean promoEnabled) { this.promoEnabled = promoEnabled; }
+
+    public String getPromoLabel() { return promoLabel; }
+    public void setPromoLabel(String promoLabel) { this.promoLabel = promoLabel; }
+
+    public String getPromoValue() { return promoValue; }
+    public void setPromoValue(String promoValue) { this.promoValue = promoValue; }
+
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) { this.promoCode = promoCode; }
+
+    public String getPromoNote() { return promoNote; }
+    public void setPromoNote(String promoNote) { this.promoNote = promoNote; }
 
     public String getBrand() { return brand; }
     public void setBrand(String brand) { this.brand = brand; }

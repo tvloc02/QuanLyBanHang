@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { combineLatest, forkJoin, Subscription } from 'rxjs';
 import {
   AdminCouponResponse,
   AdminDataService,
@@ -85,7 +85,7 @@ interface CategoryOption {
   templateUrl: './admin-sale-page.component.html',
   styleUrls: ['./admin-sale-page.component.scss']
 })
-export class AdminSalePageComponent implements OnInit {
+export class AdminSalePageComponent implements OnInit, OnDestroy {
   loading = false;
   saving = false;
   error = '';
@@ -105,6 +105,7 @@ export class AdminSalePageComponent implements OnInit {
   roundPickerQuery = '';
   roundPickerTempSlugs: string[] = [];
   activeCategoryEditorIndex: Record<string, number> = {};
+  private routeSub?: Subscription;
 
   private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
 
@@ -115,19 +116,20 @@ export class AdminSalePageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const rawId =
-      this.route.snapshot.paramMap.get('id') ||
-      this.route.snapshot.queryParamMap.get('id') ||
-      this.route.pathFromRoot
-        .map((r) => r.snapshot.paramMap.get('id'))
-        .find((x) => !!x) ||
-      null;
+    this.routeSub = combineLatest([
+      this.route.paramMap,
+      this.route.queryParamMap,
+      this.route.url
+    ]).subscribe(() => {
+      this.syncContextFromRoute();
+      this.load();
+      this.loadCoupons();
+      this.loadCategoryTree();
+    });
+  }
 
-    const routePath = this.route.snapshot.routeConfig?.path || '';
-    this.categoryConfigId = routePath.includes('category-config') && rawId ? Number(rawId) : null;
-    this.load();
-    this.loadCoupons();
-    this.loadCategoryTree();
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
   }
 
   private get isCategoryConfigMode(): boolean {
@@ -136,6 +138,29 @@ export class AdminSalePageComponent implements OnInit {
 
   private get sectionScopePrefix(): string {
     return this.isCategoryConfigMode ? `CATEGORY_${this.categoryConfigId}_` : 'SALE_';
+  }
+
+  private syncContextFromRoute(): void {
+    const rawId =
+      this.route.snapshot.paramMap.get('id') ||
+      this.route.snapshot.queryParamMap.get('id') ||
+      this.route.pathFromRoot
+        .map((r) => r.snapshot.paramMap.get('id'))
+        .find((x) => !!x) ||
+      null;
+
+    const routePath =
+      this.route.routeConfig?.path ||
+      this.route.snapshot.routeConfig?.path ||
+      this.route.pathFromRoot
+        .map((r) => r.routeConfig?.path || r.snapshot.routeConfig?.path || '')
+        .find((x) => String(x).includes('category-config')) ||
+      '';
+
+    this.categoryConfigId = routePath.includes('category-config') && rawId ? Number(rawId) : null;
+    if (!this.isCategoryConfigMode) {
+      this.categoryConfigName = '';
+    }
   }
 
   private get layoutKey(): string {

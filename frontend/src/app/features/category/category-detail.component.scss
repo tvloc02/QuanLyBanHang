@@ -382,48 +382,16 @@
 
 .category-voucher-shell {
   position: relative;
-  padding: 0 52px;
+  padding: 0;
 }
 
 .category-voucher-track {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
-  padding: 0 0 32px;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-}
-
-.category-voucher-track::-webkit-scrollbar {
-  display: none;
-}
-
-.category-voucher-nav {
-  position: absolute;
-  top: 50%;
-  z-index: 2;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  color: #9ca3af;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-  display: inline-flex;
-  align-items: center;
+  overflow: visible;
+  padding: 0 0 18px;
+  flex-wrap: wrap;
   justify-content: center;
-  transform: translateY(-50%);
-  font-size: 40px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.category-voucher-nav.left {
-  left: 0;
-}
-
-.category-voucher-nav.right {
-  right: 0;
 }
 
 .category-voucher-card {
@@ -482,6 +450,7 @@
   font-size: 12px;
   color: #6b7280;
   font-weight: 500;
+  line-height: 1.45;
 }
 
 .category-voucher-btn {
@@ -822,7 +791,7 @@
 .sidebar {
   background: var(--fh-surface);
   border: 1px solid var(--fh-border);
-  border-radius: 12px;
+  border-radius: 4px;
   padding: 20px;
   height: fit-content;
   position: sticky;
@@ -840,7 +809,7 @@
   margin-top: 10px;
   height: 34px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid var(--fh-border);
   background: #fff;
   font-size: 13px;
@@ -885,7 +854,7 @@
     width: 100%;
     min-width: 0;
     padding: 10px 12px;
-    border-radius: 12px;
+    border-radius: 4px;
     border: 1px solid var(--fh-border);
     background: rgba(255, 255, 255, 0.95);
     color: var(--fh-text);
@@ -905,7 +874,7 @@
 .filter-reset {
   height: 32px;
   padding: 0 12px;
-  border-radius: 12px;
+  border-radius: 4px;
   border: 1px solid rgba(193, 18, 31, 0.25);
   background: rgba(193, 18, 31, 0.1);
   color: var(--fh-primary);
@@ -1071,7 +1040,7 @@
 .sort-select {
   height: 36px;
   border: 1px solid var(--fh-border);
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 0 10px;
   font-size: 13px;
   background: #fff;
@@ -1119,7 +1088,7 @@
 .product-card {
   background: var(--fh-surface);
   border: 1px solid var(--fh-border);
-  border-radius: 12px;
+  border-radius: 4px;
   overflow: hidden;
   text-decoration: none;
   color: var(--fh-text);
@@ -1156,7 +1125,7 @@
   font-size: 11px;
   font-weight: 900;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 2px;
   text-transform: uppercase;
 }
 
@@ -1169,7 +1138,7 @@
   font-size: 11px;
   font-weight: 900;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .card-body {
@@ -1247,7 +1216,7 @@
   height: 36px;
   border: 1px solid var(--fh-border);
   background: #fff;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;

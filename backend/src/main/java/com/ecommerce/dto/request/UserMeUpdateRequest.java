@@ -1,5 +1,7 @@
 package com.ecommerce.dto.request;
 
+import java.util.List;
+
 public class UserMeUpdateRequest {
 
     private String fullName;
@@ -17,6 +19,8 @@ public class UserMeUpdateRequest {
     private Double latitude;
 
     private Double longitude;
+
+    private List<UserAddressItemRequest> addresses;
 
     public UserMeUpdateRequest() {}
 
@@ -82,5 +86,13 @@ public class UserMeUpdateRequest {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public List<UserAddressItemRequest> getAddresses() {
+        return addresses;
+    }
+
+    public void setAddresses(List<UserAddressItemRequest> addresses) {
+        this.addresses = addresses;
     }
 }

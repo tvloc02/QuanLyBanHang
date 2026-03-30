@@ -1,6 +1,7 @@
 package com.ecommerce.dto.response;
 
 import java.time.Instant;
+import java.util.List;
 
 public class UserMeResponse {
 
@@ -27,6 +28,8 @@ public class UserMeResponse {
     private Double longitude;
 
     private Long branchId;
+
+    private List<UserAddressItemResponse> addresses;
 
     private Instant createdAt;
 
@@ -128,6 +131,14 @@ public class UserMeResponse {
 
     public void setBranchId(Long branchId) {
         this.branchId = branchId;
+    }
+
+    public List<UserAddressItemResponse> getAddresses() {
+        return addresses;
+    }
+
+    public void setAddresses(List<UserAddressItemResponse> addresses) {
+        this.addresses = addresses;
     }
 
     public Instant getCreatedAt() {

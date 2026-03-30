@@ -1,0 +1,2 @@
+ALTER TABLE users
+    MODIFY COLUMN addresses_json LONGTEXT NULL;

@@ -23,7 +23,7 @@ interface Product {
   soldCount?: number;
   category?: string;
   subCategory?: string;
-  target?: 'N?' | 'Nam' | 'Kh?c';
+  target?: 'Nữ' | 'Nam' | 'Khác';
   brand?: string;
   sizes?: string[];
 }
@@ -94,7 +94,7 @@ interface Filter {
   colors?: string[];
   sizes?: string[];
   subCategories?: string[];
-  targets?: Array<'N?' | 'Nam' | 'Kh?c'>;
+  targets?: Array<'Nữ' | 'Nam' | 'Khác'>;
   sort?: 'price-asc' | 'price-desc' | 'newest' | 'bestselling';
   page?: number;
   limit?: number;
@@ -144,8 +144,10 @@ export class CategoryDetailComponent implements OnInit {
   categoryHeroEnabled = false;
   categoryHeroBanners: Array<{ imageUrl: string; alt: string }> = [];
   categoryVouchersEnabled = false;
-  categoryVouchersTitle = 'Voucher danh m?c';
+  categoryVouchersTitle = 'Voucher danh mục';
   categoryVouchers: Array<{ title: string; code: string; note: string; minOrderAmount: number }> = [];
+  categoryRoundCategoriesEnabled = false;
+  categoryRoundCategoriesTitle = 'Danh mục nổi bật';
   categoryProductsEnabled = false;
   configuredProductsTitle = '';
   rootRoundCategories: Array<{ id: number; name: string; slug: string; imageUrl: string; initial: string }> = [];
@@ -163,7 +165,7 @@ export class CategoryDetailComponent implements OnInit {
   readonly priceMax = 3000000;
   selectedSizes: string[] = [];
   selectedSubCategories: string[] = [];
-  selectedTargets: Array<'N?' | 'Nam' | 'Kh?c'> = [];
+  selectedTargets: Array<'Nữ' | 'Nam' | 'Khác'> = [];
   selectedColors: string[] = [];
   sortBy: Filter['sort'] = 'newest';
 
@@ -179,9 +181,9 @@ export class CategoryDetailComponent implements OnInit {
 
   priceSteps = Array.from({ length: 7 }, (_, i) => i * 500000);
 
-  allSubCategories = ['D?p ?? cao', 'Sandals ?? b?t', 'B?t', 'Sandals ?? cao'];
+  allSubCategories = ['Dép đế cao', 'Sandals đế bệt', 'Bốt', 'Sandals đế cao'];
 
-  allTargets: Array<'N?' | 'Nam' | 'Kh?c'> = ['N?', 'Nam', 'Kh?c'];
+  allTargets: Array<'Nữ' | 'Nam' | 'Khác'> = ['Nữ', 'Nam', 'Khác'];
 
   constructor(
     private route: ActivatedRoute,
@@ -390,7 +392,9 @@ export class CategoryDetailComponent implements OnInit {
           }
           if (context.rootId) {
             this.categoryRootId = context.rootId;
-            this.rootRoundCategories = this.buildRootRoundCategories(rows, context.rootId, this.categoryLevel === 0);
+            this.rootRoundCategories = this.categoryLevel === 0
+              ? []
+              : this.buildRootRoundCategories(rows, context.rootId, false);
             this.loadCategorySections(context.rootId);
           }
         },
@@ -486,6 +490,7 @@ export class CategoryDetailComponent implements OnInit {
           const rows = Array.isArray(res?.data) ? res.data : [];
           const hero = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_HERO`);
           const vouchers = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_VOUCHERS`);
+          const categories = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_CATEGORIES`);
           const products = rows.find((x) => String(x?.sectionKey || '').toUpperCase() === `CATEGORY_${rootId}_PRODUCTS`);
 
           this.categoryHeroEnabled = this.isRootCategoryPage && !!hero && hero.enabled !== false;
@@ -499,7 +504,7 @@ export class CategoryDetailComponent implements OnInit {
             .filter((item) => !!item.imageUrl);
 
           this.categoryVouchersEnabled = this.isRootCategoryPage && !!vouchers && vouchers.enabled !== false;
-          this.categoryVouchersTitle = String(vouchers?.title || 'Voucher danh má»¥c');
+          this.categoryVouchersTitle = String(vouchers?.title || 'Voucher danh mục');
           const voucherItems = Array.isArray(vouchers?.items) ? vouchers!.items! : [];
           this.categoryVouchers = voucherItems
             .filter((item) => item?.enabled !== false && String(item?.itemType || '').toUpperCase() === 'COUPON')
@@ -511,6 +516,28 @@ export class CategoryDetailComponent implements OnInit {
             }))
             .filter((item) => !!item.code);
 
+          this.categoryRoundCategoriesEnabled = this.isRootCategoryPage && !!categories && categories.enabled !== false;
+          this.categoryRoundCategoriesTitle = String(categories?.title || 'Danh mục nổi bật');
+          const categoryItems = Array.isArray(categories?.items) ? categories!.items! : [];
+          this.rootRoundCategories = this.categoryRoundCategoriesEnabled
+            ? categoryItems
+                .filter((item) => item?.enabled !== false && String(item?.itemType || '').toUpperCase() === 'LINK')
+                .map((item) => {
+                  const slug = String(item?.code || item?.route || '')
+                    .replace(/^\/category\//i, '')
+                    .trim();
+                  const label = String(item?.title || '').trim();
+                  return {
+                    id: Number(item?.refId || 0),
+                    name: label,
+                    slug,
+                    imageUrl: this.normalizeImageUrl(String(item?.imageUrl || '').trim()),
+                    initial: (label || '?').charAt(0).toUpperCase()
+                  };
+                })
+                .filter((item) => !!item.slug && !!item.name)
+            : [];
+
           this.categoryProductsEnabled = this.isRootCategoryPage && !!products && products.enabled !== false;
           this.configuredProductsTitle = this.isRootCategoryPage ? String(products?.title || '').trim() : '';
         },
@@ -519,6 +546,9 @@ export class CategoryDetailComponent implements OnInit {
           this.categoryHeroBanners = [];
           this.categoryVouchersEnabled = false;
           this.categoryVouchers = [];
+          this.categoryRoundCategoriesEnabled = false;
+          this.categoryRoundCategoriesTitle = 'Danh mục nổi bật';
+          this.rootRoundCategories = [];
           this.categoryProductsEnabled = false;
           this.configuredProductsTitle = '';
         }
@@ -564,7 +594,7 @@ export class CategoryDetailComponent implements OnInit {
     this.http.get<ApiResponse<ProductSearchData>>(url).subscribe({
       next: (res) => {
         if (!res?.success) {
-          this.error = res?.message || 'KhĂ´ng thá»ƒ táº£i sáº£n pháº©m.';
+          this.error = res?.message || 'Không thể tải sản phẩm.';
           this.loading = false;
           return;
         }
@@ -575,7 +605,7 @@ export class CategoryDetailComponent implements OnInit {
         this.products = items.map((p) => {
           const discount = p.discountPercent ?? undefined;
           // Use placeholder image if no imageUrl - use a better looking placeholder
-          const imageUrl = p.imageUrl || this.productFallbackImage;
+          const imageUrl = this.normalizeImageUrl(p.imageUrl || '') || this.productFallbackImage;
 
           return {
             id: p.id,
@@ -583,7 +613,7 @@ export class CategoryDetailComponent implements OnInit {
             slug: p.slug,
             price: p.price,
             oldPrice: p.oldPrice || (discount ? Math.round(p.price / (1 - discount / 100)) : undefined),
-            priceText: `${new Intl.NumberFormat('vi-VN').format(p.price)}Ä‘`,
+            priceText: `${new Intl.NumberFormat('vi-VN').format(p.price)}đ`,
             imageUrl,
             badge: p.badge || undefined,
             discount,
@@ -612,11 +642,11 @@ export class CategoryDetailComponent implements OnInit {
   private loadMockData(): void {
     const mockProducts: Product[] = Array.from({ length: 20 }, (_, i) => ({
       id: i + 1,
-      name: `Sáº£n pháº©m ${this.categoryName} ${i + 1}`,
+      name: `Sản phẩm ${this.categoryName} ${i + 1}`,
       slug: `san-pham-${i + 1}`,
       price: Math.floor(Math.random() * 900000) + 100000,
       oldPrice: Math.floor(Math.random() * 900000) + 300000,
-      priceText: `${new Intl.NumberFormat('vi-VN').format(Math.floor(Math.random() * 900000) + 100000)}Ä‘`,
+      priceText: `${new Intl.NumberFormat('vi-VN').format(Math.floor(Math.random() * 900000) + 100000)}đ`,
       imageUrl: `https://picsum.photos/seed/product${i + 1}/300/400.jpg`,
       badge: Math.random() > 0.7 ? (Math.random() > 0.5 ? 'Hot' : 'New') : undefined,
       discount: Math.random() > 0.6 ? Math.floor(Math.random() * 30) + 5 : undefined,
@@ -681,7 +711,7 @@ export class CategoryDetailComponent implements OnInit {
     this.applyFilters();
   }
 
-  onTargetChange(target: 'N?' | 'Nam' | 'Kh?c', checked: boolean): void {
+  onTargetChange(target: 'Nữ' | 'Nam' | 'Khác', checked: boolean): void {
     if (checked) {
       this.selectedTargets = [...this.selectedTargets, target];
     } else {
