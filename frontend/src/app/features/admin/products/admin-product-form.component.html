@@ -247,9 +247,9 @@
                         type="button"
                         *ngIf="node.children?.length"
                         (click)="toggleExpandCategory(node)"
-                        [attr.aria-label]="isExpandedCategory(node) ? 'Thu gá»n' : 'Má»Ÿ rá»™ng'"
+                        [attr.aria-label]="isExpandedCategory(node) ? 'Thu gọn' : 'Mở rộng'"
                       >
-                        {{ isExpandedCategory(node) ? 'âˆ’' : '+' }}
+                        {{ isExpandedCategory(node) ? '-' : '+' }}
                       </button>
                       <span class="cat-name">{{ node.name }}</span>
                     </div>
@@ -311,7 +311,7 @@
                     <th *ngFor="let b of selectedBranches; trackBy: trackByBranchId" style="width:140px">
                       SL - {{ branchLabelById(b.id) }}
                     </th>
-                    <th style="width:140px">Tá»•ng</th>
+                    <th style="width:140px">Tổng</th>
                     <th style="width:160px">Giá</th>
                     <th style="width:160px">Ảnh</th>
                   </tr>
@@ -444,9 +444,70 @@
       <div class="card" *ngIf="isTab('DESCRIPTION')">
         <div class="card-head">Mô tả</div>
         <div class="card-body">
-          <div class="field">
-            <label class="label">Nội dung</label>
-            <textarea class="textarea" rows="6" formControlName="description" placeholder="Mô tả sản phẩm..."></textarea>
+          <div class="description-builder">
+            <div class="description-toolbar">
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('image')">+ Ảnh</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-lg')">+ Tiêu đề lớn</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-sm')">+ Tiêu đề bé</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('divider')">+ Gạch ngang</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('paragraph')">+ Nội dung</button>
+            </div>
+
+            <div class="description-list">
+              <div class="description-block" *ngFor="let block of descriptionBlocks; let i = index; trackBy: trackByDescriptionBlock">
+                <div class="description-block__head">
+                  <div class="description-block__type">
+                    <span *ngIf="block.type === 'heading-lg'">Tiêu đề lớn</span>
+                    <span *ngIf="block.type === 'heading-sm'">Tiêu đề bé</span>
+                    <span *ngIf="block.type === 'paragraph'">Nội dung</span>
+                    <span *ngIf="block.type === 'divider'">Gạch ngang</span>
+                    <span *ngIf="block.type === 'image'">Ảnh</span>
+                  </div>
+                  <div class="description-block__actions">
+                    <button class="btn ghost" type="button" (click)="moveDescriptionBlockUp(i)" [disabled]="i === 0">↑</button>
+                    <button class="btn ghost" type="button" (click)="moveDescriptionBlockDown(i)" [disabled]="i === descriptionBlocks.length - 1">↓</button>
+                    <button class="btn ghost danger" type="button" (click)="removeDescriptionBlock(i)">Xóa</button>
+                  </div>
+                </div>
+
+                <div class="description-block__body" [ngSwitch]="block.type">
+                  <div *ngSwitchCase="'heading-lg'">
+                    <input class="input description-input description-input--lg" type="text" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập tiêu đề lớn..." />
+                  </div>
+
+                  <div *ngSwitchCase="'heading-sm'">
+                    <input class="input description-input description-input--sm" type="text" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập tiêu đề bé..." />
+                  </div>
+
+                  <div *ngSwitchCase="'paragraph'">
+                    <textarea class="textarea description-textarea" rows="5" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập nội dung mô tả..."></textarea>
+                  </div>
+
+                  <div *ngSwitchCase="'divider'" class="description-divider-preview">
+                    <span class="description-divider-preview__line"></span>
+                  </div>
+
+                  <div *ngSwitchCase="'image'" class="description-image-editor">
+                    <div class="description-image-preview" *ngIf="block.imageUrl; else descriptionImageEmpty">
+                      <img [src]="block.imageUrl" alt="Ảnh mô tả" />
+                    </div>
+                    <ng-template #descriptionImageEmpty>
+                      <div class="description-image-empty">Chưa có ảnh mô tả</div>
+                    </ng-template>
+
+                    <div class="description-image-actions">
+                      <label class="btn ghost file-btn">
+                        Chọn ảnh
+                        <input class="file-input" type="file" accept="image/*" (change)="onDescriptionImageSelect(i, $event)" />
+                      </label>
+                      <button class="btn ghost danger" type="button" (click)="clearDescriptionImage(i)" [disabled]="!block.imageUrl">Xóa ảnh</button>
+                    </div>
+
+                    <input class="input" type="text" [(ngModel)]="block.alt" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Mô tả ảnh (tuỳ chọn)" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -508,7 +569,7 @@
     </div>
 
     <div class="crop-actions">
-      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Há»§y</button>
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Hủy</button>
       <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cắt & Lưu</button>
     </div>
   </div>

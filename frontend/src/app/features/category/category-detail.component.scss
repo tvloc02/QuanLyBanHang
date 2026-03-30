@@ -791,17 +791,22 @@
 .sidebar {
   background: var(--fh-surface);
   border: 1px solid var(--fh-border);
-  border-radius: 4px;
-  padding: 20px;
+  border-radius: 0;
+  padding: 18px;
   height: fit-content;
   position: sticky;
   top: 80px;
+  box-shadow: none;
 }
 
 .filter-section {
-  margin-bottom: 24px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   &:last-child {
     margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 }
 
@@ -809,7 +814,7 @@
   margin-top: 10px;
   height: 34px;
   padding: 0 12px;
-  border-radius: 4px;
+  border-radius: 0;
   border: 1px solid var(--fh-border);
   background: #fff;
   font-size: 13px;
@@ -854,7 +859,7 @@
     width: 100%;
     min-width: 0;
     padding: 10px 12px;
-    border-radius: 4px;
+    border-radius: 0;
     border: 1px solid var(--fh-border);
     background: rgba(255, 255, 255, 0.95);
     color: var(--fh-text);
@@ -874,7 +879,7 @@
 .filter-reset {
   height: 32px;
   padding: 0 12px;
-  border-radius: 4px;
+  border-radius: 0;
   border: 1px solid rgba(193, 18, 31, 0.25);
   background: rgba(193, 18, 31, 0.1);
   color: var(--fh-primary);
@@ -916,7 +921,7 @@
   .size-label {
     padding: 6px 10px;
     border: 1px solid var(--fh-border);
-    border-radius: 6px;
+    border-radius: 0;
     background: #fff;
     transition: background 160ms ease, border-color 160ms ease;
   }
@@ -953,11 +958,11 @@
 }
 
 .swatch-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.22);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .swatch input:checked + .swatch-dot {
@@ -1001,7 +1006,7 @@
   .color-swatch {
     width: 20px;
     height: 20px;
-    border-radius: 4px;
+    border-radius: 0;
     border: 1px solid var(--fh-border);
   }
   .color-name {
@@ -1040,7 +1045,7 @@
 .sort-select {
   height: 36px;
   border: 1px solid var(--fh-border);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 0 10px;
   font-size: 13px;
   background: #fff;
@@ -1088,16 +1093,17 @@
 .product-card {
   background: var(--fh-surface);
   border: 1px solid var(--fh-border);
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
   text-decoration: none;
   color: var(--fh-text);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   display: flex;
   flex-direction: column;
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+    border-color: rgba(15, 23, 42, 0.18);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
   }
 }
 
@@ -1125,7 +1131,7 @@
   font-size: 11px;
   font-weight: 900;
   padding: 4px 8px;
-  border-radius: 2px;
+  border-radius: 0;
   text-transform: uppercase;
 }
 
@@ -1138,11 +1144,11 @@
   font-size: 11px;
   font-weight: 900;
   padding: 4px 8px;
-  border-radius: 2px;
+  border-radius: 0;
 }
 
 .card-body {
-  padding: 12px;
+  padding: 12px 12px 14px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -1216,13 +1222,13 @@
   height: 36px;
   border: 1px solid var(--fh-border);
   background: #fff;
-  border-radius: 4px;
+  border-radius: 0;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
   &:hover:not(:disabled) {
-    background: var(--fh-bg);
+    background: #f8fafc;
     border-color: var(--fh-primary);
   }
   &.active {

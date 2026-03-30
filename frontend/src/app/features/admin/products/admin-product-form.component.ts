@@ -118,6 +118,16 @@ interface ProductResponse {
   active?: boolean;
 }
 
+type DescriptionBlockType = 'heading-lg' | 'heading-sm' | 'divider' | 'paragraph' | 'image';
+
+interface DescriptionBlock {
+  id: string;
+  type: DescriptionBlockType;
+  text?: string;
+  imageUrl?: string;
+  alt?: string;
+}
+
 @Component({
   selector: 'app-admin-product-form',
   standalone: true,
@@ -128,6 +138,8 @@ interface ProductResponse {
 export class AdminProductFormComponent {
   loading = false;
   saving = false;
+  descriptionBlocks: DescriptionBlock[] = [];
+  private descriptionBlockSeed = 0;
 
   get canEditMatrixPrice(): boolean {
     return !this.saving;
@@ -442,6 +454,149 @@ export class AdminProductFormComponent {
     return this.activeTab === key;
   }
 
+  trackByDescriptionBlock(_: number, block: DescriptionBlock): string {
+    return block.id;
+  }
+
+  addDescriptionBlock(type: DescriptionBlockType): void {
+    this.descriptionBlocks = [...this.descriptionBlocks, this.createDescriptionBlock(type)];
+    this.syncDescriptionToForm();
+  }
+
+  moveDescriptionBlockUp(index: number): void {
+    if (index <= 0 || index >= this.descriptionBlocks.length) return;
+    const blocks = [...this.descriptionBlocks];
+    [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]];
+    this.descriptionBlocks = blocks;
+    this.syncDescriptionToForm();
+  }
+
+  moveDescriptionBlockDown(index: number): void {
+    if (index < 0 || index >= this.descriptionBlocks.length - 1) return;
+    const blocks = [...this.descriptionBlocks];
+    [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]];
+    this.descriptionBlocks = blocks;
+    this.syncDescriptionToForm();
+  }
+
+  removeDescriptionBlock(index: number): void {
+    if (index < 0 || index >= this.descriptionBlocks.length) return;
+    this.descriptionBlocks = this.descriptionBlocks.filter((_, i) => i !== index);
+    if (this.descriptionBlocks.length === 0) {
+      this.descriptionBlocks = [this.createDescriptionBlock('paragraph')];
+    }
+    this.syncDescriptionToForm();
+  }
+
+  onDescriptionBlockChanged(): void {
+    this.syncDescriptionToForm();
+  }
+
+  async onDescriptionImageSelect(index: number, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) return;
+    this.error = '';
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name || 'description-image.jpg');
+      const url = `${environment.apiBaseUrl}/api/admin/uploads`;
+      const res = await this.http.post<ApiResponse<{ url: string }>>(url, formData).toPromise();
+      const uploaded = res?.data?.url;
+      if (!uploaded) {
+        this.error = res?.message || 'Upload ảnh mô tả thất bại.';
+        return;
+      }
+      const block = this.descriptionBlocks[index];
+      if (!block) return;
+      block.imageUrl = uploaded;
+      block.alt = block.alt || 'Ảnh mô tả sản phẩm';
+      this.syncDescriptionToForm();
+    } catch (e: any) {
+      this.error = e?.error?.message || 'Không upload được ảnh mô tả.';
+    } finally {
+      if (input) input.value = '';
+    }
+  }
+
+  clearDescriptionImage(index: number): void {
+    const block = this.descriptionBlocks[index];
+    if (!block) return;
+    block.imageUrl = '';
+    this.syncDescriptionToForm();
+  }
+
+  private createDescriptionBlock(type: DescriptionBlockType): DescriptionBlock {
+    const id = `desc-block-${Date.now()}-${this.descriptionBlockSeed++}`;
+    switch (type) {
+      case 'image':
+        return { id, type, imageUrl: '', alt: '' };
+      case 'heading-lg':
+        return { id, type, text: 'Tiêu đề lớn' };
+      case 'heading-sm':
+        return { id, type, text: 'Tiêu đề nhỏ' };
+      case 'divider':
+        return { id, type };
+      default:
+        return { id, type, text: '' };
+    }
+  }
+
+  private hydrateDescriptionBlocks(raw: string | null | undefined): void {
+    const text = (raw || '').toString().trim();
+    if (!text) {
+      this.descriptionBlocks = [this.createDescriptionBlock('paragraph')];
+      this.syncDescriptionToForm();
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(text);
+      const blocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
+      if (parsed?.kind === 'blocks' && blocks.length > 0) {
+        this.descriptionBlocks = blocks.map((block: any) => ({
+          id: String(block?.id || `desc-block-${Date.now()}-${this.descriptionBlockSeed++}`),
+          type: (block?.type || 'paragraph') as DescriptionBlockType,
+          text: typeof block?.text === 'string' ? block.text : '',
+          imageUrl: typeof block?.imageUrl === 'string' ? block.imageUrl : '',
+          alt: typeof block?.alt === 'string' ? block.alt : ''
+        }));
+        this.syncDescriptionToForm();
+        return;
+      }
+    } catch {
+      // fallback to plain text block
+    }
+
+    this.descriptionBlocks = [{
+      id: `desc-block-${Date.now()}-${this.descriptionBlockSeed++}`,
+      type: 'paragraph',
+      text
+    }];
+    this.syncDescriptionToForm();
+  }
+
+  private syncDescriptionToForm(): void {
+    const blocks = (this.descriptionBlocks || [])
+      .map((block) => ({
+        id: block.id,
+        type: block.type,
+        text: (block.text || '').toString(),
+        imageUrl: (block.imageUrl || '').toString(),
+        alt: (block.alt || '').toString()
+      }))
+      .filter((block) => {
+        if (block.type === 'divider') return true;
+        if (block.type === 'image') return !!block.imageUrl;
+        return !!block.text.trim();
+      });
+
+    this.form.patchValue(
+      { description: JSON.stringify({ kind: 'blocks', blocks }) },
+      { emitEvent: false }
+    );
+  }
+
   scrollToSection(sectionId: string): void {
     const id = (sectionId || '').toString().trim();
     if (!id) return;
@@ -541,6 +696,7 @@ export class AdminProductFormComponent {
       this.loadProduct(this.id);
     } else {
       this.images.clear();
+      this.hydrateDescriptionBlocks('');
       // Bỏ addImage() mặc định để không bắt buộc có ảnh ngay lập tức
     }
 
@@ -2325,6 +2481,7 @@ export class AdminProductFormComponent {
       description: p?.description || '',
       active: p?.active !== false
     });
+    this.hydrateDescriptionBlocks(p?.description || '');
 
     console.log('Form category after patch:', this.form.value.category);
 
@@ -2405,6 +2562,7 @@ export class AdminProductFormComponent {
     if (this.saving) return;
     this.error = '';
     this.success = '';
+    this.syncDescriptionToForm();
 
     if (this.form.invalid) {
       this.error = 'Vui lòng điền đầy đủ thông tin bắt buộc (Tên, Slug, Danh mục, Giá).';
