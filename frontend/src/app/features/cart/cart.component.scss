@@ -6,6 +6,59 @@
   padding-right: var(--fh-gutter);
 }
 
+/* Square-ish system overrides */
+.cart-section,
+.order-summary,
+.cart-item,
+.selected-address-card,
+.voucher-inline-card,
+.address-item,
+.voucher-item,
+.payment-method,
+.empty-address,
+.empty-cart {
+  border-radius: 6px !important;
+}
+
+.item-image img,
+.address-card,
+.summary-card,
+.modal-block,
+.voucher-list,
+.address-list {
+  border-radius: 6px !important;
+}
+
+.secondary-btn,
+.primary-btn,
+.ghost-btn,
+.clear-cart-btn,
+.continue-shopping-btn,
+.continue-shopping-empty-btn,
+.continue-shopping-link,
+.voucher-list-btn,
+.checkout-btn,
+.remove-item-btn,
+.close-modal-btn,
+.form-actions button,
+.modal-actions-row button,
+.quantity-control,
+.quantity-control button,
+.field input,
+.field select,
+.discount-input,
+.discount-inline-input {
+  border-radius: 4px !important;
+}
+
+.default-badge {
+  border-radius: 4px !important;
+}
+
+.item-select span {
+  border-radius: 4px !important;
+}
+
 /* ===== Cart page cleanup overrides ===== */
 .cart-page {
   background: #f8fafc;

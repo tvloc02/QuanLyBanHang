@@ -272,7 +272,7 @@
         <div class="modal-title">Import Excel danh mục cấp 2 &amp; cấp 3</div>
         <button class="icon" type="button" (click)="cancelImport()">✕</button>
       </div>
-      <div class="form" style="padding:16px">
+      <div class="form categories-modal-form" style="padding:16px">
         <div class="field">
           <label class="label">Danh mục lớn (cấp 1)</label>
           <select class="input" [(ngModel)]="importRootId">
@@ -311,7 +311,7 @@
         <div class="modal-title">{{ createMode === 'root' ? 'Tạo danh mục lớn' : 'Tạo danh mục con' }}</div>
         <button class="icon" type="button" (click)="cancelCreate()">✕</button>
       </div>
-      <div class="form" style="padding:16px">
+      <div class="form categories-modal-form" style="padding:16px">
         <div class="grid2">
           <div class="field">
             <label class="label">Tên danh mục</label>
@@ -351,11 +351,11 @@
             <div class="tree-editor__title">Danh mục cấp 2 &amp; cấp 3</div>
             <div class="tree-editor__actions">
               <button class="btn small ghost" type="button" (click)="downloadTemplate()">File mẫu</button>
-              <input class="file-input" type="file" accept=".xlsx" id="catImportCreate" (change)="onCreateEditorImportFileSelected($event)" />
-              <label class="btn small ghost file-btn" for="catImportCreate">Import</label>
               <button class="btn small ghost" type="button" (click)="exportCreateEditorExcel()">Export</button>
-              <button class="btn small" type="button" (click)="addLv2()">+ Cấp 2</button>
             </div>
+          </div>
+          <div class="tree-editor__toolbar">
+            <button class="btn small" type="button" (click)="addLv2()">+ Cấp 2</button>
           </div>
 
           <div class="tree-editor__empty" *ngIf="lv2Forms.length === 0">Chưa thêm danh mục cấp 2.</div>
@@ -406,7 +406,7 @@
         <div class="modal-title">Cấu hình danh mục lớn</div>
         <button class="icon" type="button" (click)="cancelEdit()">✕</button>
       </div>
-      <div class="form" style="padding:16px">
+      <div class="form categories-modal-form" style="padding:16px">
         <div class="grid2">
           <div class="field">
             <label class="label">Tên danh mục</label>
@@ -439,10 +439,11 @@
             <div class="tree-editor__title">Danh mục cấp 2 &amp; cấp 3</div>
             <div class="tree-editor__actions">
               <button class="btn small ghost" type="button" (click)="downloadTemplate()">File mẫu</button>
-              <button class="btn small ghost" type="button" (click)="openImportForRoot(editForm.id || null)" [disabled]="!editForm.id">Import</button>
               <button class="btn small ghost" type="button" (click)="exportExcel(editForm.id || null)" [disabled]="!editForm.id">Export</button>
-              <button class="btn small" type="button" (click)="addEditLv2()">+ Cấp 2</button>
             </div>
+          </div>
+          <div class="tree-editor__toolbar">
+            <button class="btn small" type="button" (click)="addEditLv2()">+ Cấp 2</button>
           </div>
 
           <div class="tree-editor__empty" *ngIf="editLv2Forms.length === 0">Chưa có danh mục cấp 2.</div>
