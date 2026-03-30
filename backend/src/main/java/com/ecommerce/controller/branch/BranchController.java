@@ -38,6 +38,26 @@ public class BranchController {
         this.variantStockRepository = variantStockRepository;
     }
 
+    @GetMapping("/list")
+    public ResponseEntity<ApiResponse<List<BranchOptionResponse>>> list() {
+        List<BranchOptionResponse> out = branchRepository.findAll().stream()
+            .filter(b -> b != null && (b.getActive() == null || b.getActive()))
+            .sorted(Comparator.comparing((Branch b) -> b.getName() == null ? "" : b.getName()))
+            .map(b -> {
+                BranchOptionResponse row = new BranchOptionResponse();
+                row.setId(b.getId());
+                row.setName(b.getName());
+                row.setAddress(b.getAddress());
+                row.setProvince(b.getProvince());
+                row.setWard(b.getWard());
+                row.setStock(null);
+                return row;
+            })
+            .toList();
+
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
     @GetMapping("/options")
     public ResponseEntity<ApiResponse<List<BranchOptionResponse>>> options(
         @RequestParam("productId") Long productId,

@@ -256,6 +256,12 @@ export class AdminProductFormComponent {
 
   activeTab: 'BASIC' | 'IMAGES' | 'DESCRIPTION' = 'BASIC';
 
+  readonly cleanTabs: Array<{ key: AdminProductFormComponent['activeTab']; label: string }> = [
+    { key: 'BASIC', label: 'Thông tin' },
+    { key: 'IMAGES', label: 'Ảnh' },
+    { key: 'DESCRIPTION', label: 'Mô tả' }
+  ];
+
   readonly tabs: Array<{ key: AdminProductFormComponent['activeTab']; label: string }> = [
     { key: 'BASIC', label: 'Thông tin' },
     { key: 'IMAGES', label: 'Ảnh' },
@@ -460,6 +466,14 @@ export class AdminProductFormComponent {
 
   addDescriptionBlock(type: DescriptionBlockType): void {
     this.descriptionBlocks = [...this.descriptionBlocks, this.createDescriptionBlock(type)];
+    this.syncDescriptionToForm();
+  }
+
+  insertDescriptionBlockAfter(index: number, type: DescriptionBlockType): void {
+    const blocks = [...this.descriptionBlocks];
+    const insertAt = Math.max(0, Math.min(index + 1, blocks.length));
+    blocks.splice(insertAt, 0, this.createDescriptionBlock(type));
+    this.descriptionBlocks = blocks;
     this.syncDescriptionToForm();
   }
 

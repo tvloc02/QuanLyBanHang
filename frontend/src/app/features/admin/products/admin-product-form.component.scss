@@ -256,6 +256,19 @@
   gap: 10px;
 }
 
+.description-toolbar--bottom {
+  padding-top: 2px;
+}
+
+.description-empty {
+  padding: 18px 20px;
+  border: 1px dashed #dfe6f5;
+  border-radius: 18px;
+  background: #f8fbff;
+  color: #667792;
+  font-weight: 700;
+}
+
 .description-list {
   display: grid;
   gap: 14px;
@@ -266,6 +279,7 @@
   border-radius: 20px;
   background: #fbfdff;
   overflow: hidden;
+  width: 100%;
 }
 
 .description-block__head {
@@ -302,23 +316,35 @@
   display: grid;
   gap: 14px;
   padding: 18px;
+  width: 100%;
+}
+
+.description-block__body > * {
+  width: 100%;
+  min-width: 0;
 }
 
 .description-input--lg {
   min-height: 58px;
   font-size: 28px;
   font-weight: 900;
+  width: 100%;
 }
 
 .description-input--sm {
   min-height: 52px;
   font-size: 20px;
   font-weight: 800;
+  width: 100%;
 }
 
 .description-textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   min-height: 180px;
   line-height: 1.75;
+  resize: vertical;
 }
 
 .description-divider-preview {
@@ -336,6 +362,7 @@
 .description-image-editor {
   display: grid;
   gap: 12px;
+  width: 100%;
 }
 
 .description-image-preview,
@@ -366,6 +393,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.description-block__insert {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 18px 18px;
+  border-top: 1px dashed #dfe6f5;
+  background: #f7faff;
 }
 
 .grid2 {

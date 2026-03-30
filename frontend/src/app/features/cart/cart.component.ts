@@ -105,6 +105,7 @@ export class CartComponent implements OnInit {
   discountMessage = '';
   discountAmount = 0;
   discountModalOpen = false;
+  addressModalOpen = false;
   discountLoading = false;
   discountLoadError = '';
   discountOptions: CouponDto[] = [];
@@ -507,6 +508,12 @@ export class CartComponent implements OnInit {
     }
   }
 
+  toggleItemSelection(index: number, checked: boolean): void {
+    if (index < 0 || index >= this.items.length) return;
+    this.items[index].selected = checked;
+    this.persistCart();
+  }
+
   checkout(): void {
     if (this.selectedItemsCount === 0) {
       alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
@@ -572,6 +579,14 @@ export class CartComponent implements OnInit {
 
   closeDiscountModal(): void {
     this.discountModalOpen = false;
+  }
+
+  openAddressModal(): void {
+    this.addressModalOpen = true;
+  }
+
+  closeAddressModal(): void {
+    this.addressModalOpen = false;
   }
 
   private loadDiscountOptions(userId: number): void {
@@ -775,6 +790,11 @@ export class CartComponent implements OnInit {
   selectAddress(index: number): void {
     this.selectedAddressIndex = index;
     console.log('🛒 Selected address:', this.addresses[index]);
+  }
+
+  selectAddressFromModal(index: number): void {
+    this.selectAddress(index);
+    this.closeAddressModal();
   }
 
   // Address management methods

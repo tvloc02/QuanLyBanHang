@@ -48,7 +48,7 @@
 
   <div class="tabs" role="tablist" aria-label="Product form tabs">
     <button
-      *ngFor="let t of tabs"
+      *ngFor="let t of cleanTabs"
       type="button"
       class="tab"
       role="tab"
@@ -445,12 +445,16 @@
         <div class="card-head">Mô tả</div>
         <div class="card-body">
           <div class="description-builder">
-            <div class="description-toolbar">
+            <div class="description-toolbar" *ngIf="descriptionBlocks.length === 0">
               <button class="btn ghost" type="button" (click)="addDescriptionBlock('image')">+ Ảnh</button>
               <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-lg')">+ Tiêu đề lớn</button>
               <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-sm')">+ Tiêu đề bé</button>
               <button class="btn ghost" type="button" (click)="addDescriptionBlock('divider')">+ Gạch ngang</button>
               <button class="btn ghost" type="button" (click)="addDescriptionBlock('paragraph')">+ Nội dung</button>
+            </div>
+
+            <div class="description-empty" *ngIf="descriptionBlocks.length === 0">
+              Chưa có block mô tả. Hãy chọn một loại nội dung để bắt đầu.
             </div>
 
             <div class="description-list">
@@ -506,7 +510,23 @@
                     <input class="input" type="text" [(ngModel)]="block.alt" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Mô tả ảnh (tuỳ chọn)" />
                   </div>
                 </div>
+
+                <div class="description-block__insert">
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'image')">+ Ảnh</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'heading-lg')">+ Tiêu đề lớn</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'heading-sm')">+ Tiêu đề bé</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'divider')">+ Gạch ngang</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'paragraph')">+ Nội dung</button>
+                </div>
               </div>
+            </div>
+
+            <div class="description-toolbar description-toolbar--bottom" *ngIf="descriptionBlocks.length > 0">
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('image')">+ Ảnh</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-lg')">+ Tiêu đề lớn</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-sm')">+ Tiêu đề bé</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('divider')">+ Gạch ngang</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('paragraph')">+ Nội dung</button>
             </div>
           </div>
         </div>
