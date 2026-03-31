@@ -34,6 +34,8 @@ public class OrderCreateRequest {
 
     private Double shippingLongitude;
 
+    private String orderCode;
+
     public OrderCreateRequest() {}
 
     public Long getUserId() {
@@ -130,5 +132,13 @@ public class OrderCreateRequest {
 
     public void setShippingLongitude(Double shippingLongitude) {
         this.shippingLongitude = shippingLongitude;
+    }
+
+    public String getOrderCode() {
+        return orderCode;
+    }
+
+    public void setOrderCode(String orderCode) {
+        this.orderCode = orderCode;
     }
 }

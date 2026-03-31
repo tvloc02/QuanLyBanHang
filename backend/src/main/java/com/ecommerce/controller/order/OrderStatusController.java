@@ -55,6 +55,7 @@ public class OrderStatusController {
 
         OrderStatusLookupResponse res = new OrderStatusLookupResponse();
         res.setOrderId(order.getId());
+        res.setOrderCode(order.getOrderCode());
         res.setStatus(order.getStatus());
         res.setTotal(order.getTotal());
         res.setCreatedAt(order.getCreatedAt());

@@ -54,6 +54,7 @@ export class AdminShellComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.sidebarCollapsed = localStorage.getItem('adminSidebarCollapsed') === '1';
     this.roles = this.auth.getRoles();
+    this.redirectManagerToOrdersIfNeeded(this.router.url);
     this.clockTimer = setInterval(() => {
       this.now = new Date();
     }, 1000 * 30);
@@ -79,6 +80,7 @@ export class AdminShellComponent implements OnInit, OnDestroy {
     this.routerSub = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
+        this.redirectManagerToOrdersIfNeeded(e.urlAfterRedirects);
         this.syncOpenGroupFromUrl(e.urlAfterRedirects);
         this.closeUserMenu();
         // Reload categories when navigating to ensure fresh data
@@ -220,6 +222,14 @@ export class AdminShellComponent implements OnInit, OnDestroy {
     }
 
     this.openGroup = this.activeGroup;
+  }
+
+  private redirectManagerToOrdersIfNeeded(url: string): void {
+    const normalized = (url || '').split('?')[0];
+    if (normalized !== '/admin') return;
+    if (this.hasRole('MANAGER') && !this.hasRole('ADMIN')) {
+      this.router.navigate(['/admin/orders'], { queryParams: { view: 'NEW' } });
+    }
   }
 
   private getGroupFromUrl(url: string): string | null {

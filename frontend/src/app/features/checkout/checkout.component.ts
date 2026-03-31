@@ -54,7 +54,6 @@ interface CheckoutAddress {
   name?: string | null;
   phone?: string | null;
   address?: string | null;
-  type?: string | null;
   province?: string | null;
   district?: string | null;
   ward?: string | null;
@@ -314,6 +313,7 @@ export class CheckoutComponent implements OnInit {
       const requestOptions = token
         ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) }
         : {};
+      const createdOrderIds: number[] = [];
       const shipments = this.checkoutShipments.length
         ? this.checkoutShipments
         : [{
@@ -335,11 +335,14 @@ export class CheckoutComponent implements OnInit {
 
         const payload = {
           userId,
+          orderCode: shipment.displayOrderCode || this.mainOrderCode,
           items: shipmentItems.map((item) => ({
             productId: item.id,
             productName: item.name || 'Sản phẩm',
             quantity: Math.max(1, Number(item.quantity || 0)),
-            unitPrice: Math.max(0, Number(item.price || 0))
+            unitPrice: Math.max(0, Number(item.price || 0)),
+            size: item.size || null,
+            color: item.color || null
           })),
           couponCode: null,
           shippingFee: Math.max(0, Number(shipment.selectedOption?.fee || 0)),
@@ -360,15 +363,31 @@ export class CheckoutComponent implements OnInit {
         if (!res?.success) {
           throw new Error(res?.message || 'Đặt hàng thất bại.');
         }
+
+        const orderId = Number(res?.data?.id);
+        if (Number.isFinite(orderId) && orderId > 0) {
+          createdOrderIds.push(orderId);
+        }
       }
 
       this.placing = false;
-      localStorage.removeItem('cart');
+      localStorage.setItem('cart', '[]');
       localStorage.removeItem('checkoutData');
+      window.dispatchEvent(new Event('cart-updated'));
       this.placed = true;
 
       window.setTimeout(() => {
-        this.router.navigateByUrl('/');
+        const firstOrderId = createdOrderIds[0];
+        if (firstOrderId) {
+          this.router.navigate(['/order-lookup'], {
+            queryParams: {
+              orderId: firstOrderId,
+              phone: this.phone.trim()
+            }
+          });
+          return;
+        }
+        this.router.navigateByUrl('/order-lookup');
       }, 1200);
     } catch (err: any) {
       this.placing = false;

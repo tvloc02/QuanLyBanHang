@@ -52,7 +52,7 @@
           <td>{{ p.category }}</td>
           <td>{{ p.brand }}</td>
           <td class="right">{{ p.price }}</td>
-          <td class="right">{{ p.stock }}</td>
+          <td class="right">{{ getDisplayStock(p) }}</td>
           <td>
             <span class="badge" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Bật' }}</span>
           </td>

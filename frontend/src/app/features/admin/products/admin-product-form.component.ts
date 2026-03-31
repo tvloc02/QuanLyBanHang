@@ -1508,6 +1508,10 @@ export class AdminProductFormComponent {
     return this.resolveImageUrl((url || '').toString());
   }
 
+  resolveDescriptionImageUrl(url?: string | null): string {
+    return this.resolveImageUrl((url || '').toString());
+  }
+
   async onMatrixImageFileSelect(rowIndex: number, event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input?.files?.[0];

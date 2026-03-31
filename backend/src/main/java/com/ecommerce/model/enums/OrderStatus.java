@@ -6,6 +6,7 @@
      PACKING,
      SHIPPING,
      DELIVERED,
+     COMPLETED,
      CANCELLED,
      REFUNDED
  }

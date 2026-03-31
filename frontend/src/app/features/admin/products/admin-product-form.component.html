@@ -484,7 +484,7 @@
                   </div>
 
                   <div *ngSwitchCase="'paragraph'">
-                    <textarea class="textarea description-textarea" rows="5" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập nội dung mô tả..."></textarea>
+                    <textarea class="textarea description-textarea" rows="3" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập nội dung mô tả..."></textarea>
                   </div>
 
                   <div *ngSwitchCase="'divider'" class="description-divider-preview">
@@ -493,7 +493,7 @@
 
                   <div *ngSwitchCase="'image'" class="description-image-editor">
                     <div class="description-image-preview" *ngIf="block.imageUrl; else descriptionImageEmpty">
-                      <img [src]="block.imageUrl" alt="Ảnh mô tả" />
+                      <img [src]="resolveDescriptionImageUrl(block.imageUrl)" alt="Ảnh mô tả" />
                     </div>
                     <ng-template #descriptionImageEmpty>
                       <div class="description-image-empty">Chưa có ảnh mô tả</div>

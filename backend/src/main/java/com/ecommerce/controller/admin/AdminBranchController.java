@@ -9,10 +9,12 @@ import com.ecommerce.dto.response.ApiResponse;
 import com.ecommerce.model.entity.Branch;
 import com.ecommerce.model.entity.BranchManager;
 import com.ecommerce.model.entity.BranchProductStock;
+import com.ecommerce.model.entity.BranchProductVariantStock;
 import com.ecommerce.model.entity.User;
 import com.ecommerce.model.enums.UserRole;
 import com.ecommerce.repository.BranchManagerRepository;
 import com.ecommerce.repository.BranchProductStockRepository;
+import com.ecommerce.repository.BranchProductVariantStockRepository;
 import com.ecommerce.repository.BranchRepository;
 import com.ecommerce.repository.ProductRepository;
 import com.ecommerce.repository.UserRepository;
@@ -46,6 +48,7 @@ public class AdminBranchController {
     private final BranchRepository branchRepository;
     private final BranchManagerRepository branchManagerRepository;
     private final BranchProductStockRepository stockRepository;
+    private final BranchProductVariantStockRepository variantStockRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
@@ -53,12 +56,14 @@ public class AdminBranchController {
         BranchRepository branchRepository,
         BranchManagerRepository branchManagerRepository,
         BranchProductStockRepository stockRepository,
+        BranchProductVariantStockRepository variantStockRepository,
         ProductRepository productRepository,
         UserRepository userRepository
     ) {
         this.branchRepository = branchRepository;
         this.branchManagerRepository = branchManagerRepository;
         this.stockRepository = stockRepository;
+        this.variantStockRepository = variantStockRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
     }
@@ -71,14 +76,7 @@ public class AdminBranchController {
         Map<Long, List<Long>> managerIdsByBranchId = loadManagerIdsByBranchId(branchIds);
         Map<Long, String> userLabelById = loadUserLabelsForManagers(managerIdsByBranchId);
 
-        Map<Long, long[]> statsByBranchId = new HashMap<>();
-        List<BranchProductStock> allStocks = stockRepository.findAll();
-        for (BranchProductStock s : allStocks) {
-            if (s == null || s.getBranchId() == null) continue;
-            long[] st = statsByBranchId.computeIfAbsent(s.getBranchId(), k -> new long[] {0L, 0L});
-            st[0] += 1L;
-            st[1] += (long) (s.getStock() != null ? s.getStock() : 0);
-        }
+        Map<Long, long[]> statsByBranchId = buildStatsByBranchId();
 
         List<AdminBranchResponse> result = new ArrayList<>();
         for (Branch b : branches) {
@@ -267,11 +265,37 @@ public class AdminBranchController {
         if (!branchRepository.existsById(id)) {
             return ResponseEntity.badRequest().body(ApiResponse.fail("Không tìm thấy chi nhánh"));
         }
-        List<BranchProductStock> stocks = stockRepository.findByBranchId(id);
-        long productCount = stocks.size();
-        long totalStock = stocks.stream().mapToLong(s -> (long) (s.getStock() != null ? s.getStock() : 0)).sum();
+        long[] stats = buildStatsByBranchId().getOrDefault(id, new long[] {0L, 0L});
+        long productCount = stats[0];
+        long totalStock = stats[1];
         AdminBranchStatsResponse out = new AdminBranchStatsResponse(productCount, totalStock, 0L);
         return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    private Map<Long, long[]> buildStatsByBranchId() {
+        Map<Long, Map<Long, Long>> stockByBranchAndProduct = new HashMap<>();
+
+        for (BranchProductVariantStock row : variantStockRepository.findAll()) {
+            if (row == null || row.getBranchId() == null || row.getProductId() == null) continue;
+            Map<Long, Long> productMap = stockByBranchAndProduct.computeIfAbsent(row.getBranchId(), k -> new HashMap<>());
+            long stock = Math.max(0, row.getStock() != null ? row.getStock() : 0);
+            productMap.put(row.getProductId(), productMap.getOrDefault(row.getProductId(), 0L) + stock);
+        }
+
+        for (BranchProductStock row : stockRepository.findAll()) {
+            if (row == null || row.getBranchId() == null || row.getProductId() == null) continue;
+            Map<Long, Long> productMap = stockByBranchAndProduct.computeIfAbsent(row.getBranchId(), k -> new HashMap<>());
+            if (productMap.containsKey(row.getProductId())) continue;
+            productMap.put(row.getProductId(), (long) Math.max(0, row.getStock() != null ? row.getStock() : 0));
+        }
+
+        Map<Long, long[]> out = new HashMap<>();
+        for (Map.Entry<Long, Map<Long, Long>> entry : stockByBranchAndProduct.entrySet()) {
+            long productCount = entry.getValue().size();
+            long totalStock = entry.getValue().values().stream().mapToLong(Long::longValue).sum();
+            out.put(entry.getKey(), new long[] {productCount, totalStock});
+        }
+        return out;
     }
 
     private static String normalize(String s) {

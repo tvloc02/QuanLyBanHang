@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 interface ApiResponse<T> {
@@ -59,7 +60,32 @@ interface ProductResponse {
   images?: string[];
   sizes?: string[];
   colors?: string[];
+  variants?: Array<{
+    stocks?: Array<{
+      size?: string;
+      stock?: number;
+    }>;
+  }>;
   active?: boolean;
+}
+
+interface AdminProductBranchStockResponse {
+  branchId: number;
+  productId: number;
+  stock: number;
+}
+
+interface AdminProductVariantBranchStockResponse {
+  branchId: number;
+  productId: number;
+  color: string;
+  size: string;
+  stock: number;
+}
+
+interface AdminProductStockSummaryResponse {
+  productId: number;
+  totalStock: number;
 }
 
 @Component({
@@ -103,6 +129,7 @@ export class AdminProductsListComponent {
   importSelectedCategoryIds = new Set<number>();
   importSelectedCategoryLeafs: CategoryNode[] = [];
   private importCategoriesLoaded = false;
+  private aggregatedStockByProductId = new Map<number, number>();
 
   get filteredImportCategoryTree(): CategoryNode[] {
     const q = (this.importCategoryFilter || '').trim().toLowerCase();
@@ -142,7 +169,7 @@ export class AdminProductsListComponent {
   }
 
   get totalQuantity(): number {
-    return (this.products || []).reduce((sum, p) => sum + Math.max(0, Number((p as any)?.stock || 0)), 0);
+    return (this.products || []).reduce((sum, p) => sum + this.totalStock(p), 0);
   }
 
   get totalSoldQuantity(): number {
@@ -176,6 +203,7 @@ export class AdminProductsListComponent {
           return;
         }
         this.products = Array.isArray(res.data) ? res.data : [];
+        this.loadAdminStockSnapshots();
       },
       error: (err) => {
         this.loading = false;
@@ -279,7 +307,7 @@ export class AdminProductsListComponent {
           p.category,
           (p.colors || []).join(', '),
           (p.sizes || []).join(', '),
-          p.stock ?? 0,
+          this.totalStock(p),
           sold,
           remain
         ]
@@ -515,6 +543,31 @@ export class AdminProductsListComponent {
     return '-';
   }
 
+  descriptionPreview(raw?: string | null): string {
+    const text = String(raw || '').trim();
+    if (!text) return '-';
+
+    try {
+      const parsed = JSON.parse(text);
+      const blocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
+      if (parsed?.kind === 'blocks' && blocks.length > 0) {
+        const preview = blocks
+          .map((block: any) => {
+            const type = String(block?.type || '').trim();
+            if (type === 'image') return '[Ảnh]';
+            if (type === 'divider') return '•';
+            return String(block?.text || '').trim();
+          })
+          .filter(Boolean)
+          .join(' ');
+        return preview || '-';
+      }
+    } catch {
+    }
+
+    return text;
+  }
+
   soldCount(p: ProductResponse): number {
     const anyP = p as any;
     const candidates = [anyP?.soldCount, anyP?.sold, anyP?.soldQuantity, anyP?.soldQty];
@@ -525,11 +578,52 @@ export class AdminProductsListComponent {
     return 0;
   }
 
+  totalStock(p: ProductResponse): number {
+    const productId = Number((p as any)?.id);
+    if (Number.isFinite(productId) && productId > 0) {
+      const aggregated = this.aggregatedStockByProductId.get(productId);
+      if (aggregated != null) return aggregated;
+    }
+
+    const variants = Array.isArray((p as any)?.variants) ? ((p as any).variants as any[]) : [];
+    if (variants.length > 0) {
+      let total = 0;
+      for (const variant of variants) {
+        const stocks = Array.isArray(variant?.stocks) ? variant.stocks : [];
+        for (const stockRow of stocks) {
+          const value = Number(stockRow?.stock || 0);
+          total += Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+        }
+      }
+      return total;
+    }
+
+    const fallback = Number((p as any)?.stock);
+    return Number.isFinite(fallback) ? Math.max(0, Math.floor(fallback)) : 0;
+  }
+
+  private async loadAdminStockSnapshots(): Promise<void> {
+    this.aggregatedStockByProductId.clear();
+    try {
+      const url = `${environment.apiBaseUrl}/api/admin/products/stock-summary`;
+      const res = await firstValueFrom(
+        this.http.get<ApiResponse<AdminProductStockSummaryResponse[]>>(url)
+      );
+      const rows = Array.isArray(res?.data) ? res.data : [];
+      for (const row of rows) {
+        const productId = Number(row?.productId);
+        const totalStock = Math.max(0, Number(row?.totalStock || 0));
+        if (!Number.isFinite(productId) || productId <= 0) continue;
+        this.aggregatedStockByProductId.set(productId, totalStock);
+      }
+    } catch {
+    }
+  }
+
   remainingCount(p: ProductResponse): number {
-    const stock = Number((p as any)?.stock);
+    const stock = this.totalStock(p);
     const sold = this.soldCount(p);
-    const total = Number.isFinite(stock) ? Math.floor(stock) : 0;
-    return Math.max(0, total - sold);
+    return Math.max(0, stock - sold);
   }
 
   formatMoney(input: any): string {

@@ -10,6 +10,10 @@ public interface BranchManagerRepository extends JpaRepository<BranchManager, Lo
 
     List<BranchManager> findByBranchIdIn(List<Long> branchIds);
 
+    List<BranchManager> findByUserId(Long userId);
+
+    List<BranchManager> findByUserIdIn(List<Long> userIds);
+
     Optional<BranchManager> findByBranchIdAndUserId(Long branchId, Long userId);
 
     long deleteByBranchId(Long branchId);

@@ -11,12 +11,48 @@ interface ApiResponse<T> {
 
 export interface AdminOrderSummaryResponse {
   id: number;
+  orderCode?: string | null;
   userId: number;
   status: string;
   total: number;
   itemCount: number;
   couponCode?: string | null;
+  branchId?: number | null;
+  branchCode?: string | null;
+  branchName?: string | null;
   createdAt?: string | null;
+}
+
+export interface AdminOrderDetailItemResponse {
+  productId?: number | null;
+  productName?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  totalPrice?: number | null;
+}
+
+export interface AdminOrderDetailResponse {
+  id: number;
+  orderCode?: string | null;
+  userId?: number | null;
+  status?: string | null;
+  subtotal?: number | null;
+  discount?: number | null;
+  shippingFee?: number | null;
+  total?: number | null;
+  couponCode?: string | null;
+  branchId?: number | null;
+  branchCode?: string | null;
+  branchName?: string | null;
+  buyerName?: string | null;
+  buyerPhone?: string | null;
+  buyerAddress?: string | null;
+  buyerEmail?: string | null;
+  sellerName?: string | null;
+  sellerPhone?: string | null;
+  sellerAddress?: string | null;
+  createdAt?: string | null;
+  items?: AdminOrderDetailItemResponse[] | null;
 }
 
 export interface AdminCategoryResponse {
@@ -204,6 +240,17 @@ export class AdminDataService {
 
   getOrders() {
     return this.http.get<ApiResponse<AdminOrderSummaryResponse[]>>(`${environment.apiBaseUrl}/api/admin/orders`);
+  }
+
+  getOrderDetail(orderId: number) {
+    return this.http.get<ApiResponse<AdminOrderDetailResponse>>(`${environment.apiBaseUrl}/api/admin/orders/${orderId}`);
+  }
+
+  updateOrderAction(orderId: number, action: 'APPROVE' | 'PACK' | 'HANDOVER' | 'MARK_DELIVERED' | 'CANCEL' | 'CONFIRM_RECEIVED') {
+    return this.http.post<ApiResponse<any>>(
+      `${environment.apiBaseUrl}/api/orders/${orderId}/action`,
+      { action }
+    );
   }
 
   getCategories() {

@@ -25,6 +25,8 @@ interface ProductDetailResponse {
   stock?: number;
   category?: string;
   brand?: string;
+  productTypeId?: number | null;
+  gender?: string | null;
   imageUrl?: string;
   images?: string[];
   badge?: string;
@@ -70,6 +72,62 @@ interface BranchOption {
   stock?: number | null;
 }
 
+interface ReviewResponse {
+  id?: number | null;
+  productId?: number | null;
+  userId?: number | null;
+  rating?: number | null;
+  comment?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+interface CouponListItem {
+  id?: number | null;
+  code: string;
+  description?: string | null;
+  discountAmount?: number | null;
+  discountPercent?: number | null;
+  minOrderAmount?: number | null;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  usedCount?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  active?: boolean | null;
+}
+
+interface ProductTypeResponse {
+  id: number;
+  code: string;
+  name: string;
+  active?: boolean | null;
+  fieldsJson?: string | null;
+}
+
+type SizeGuideGroup = {
+  key: string;
+  label: string;
+};
+
+type SizeGuideRow = {
+  size: string;
+  heightMin?: number | null;
+  heightMax?: number | null;
+  weightMin?: number | null;
+  weightMax?: number | null;
+};
+
+type ProductDescriptionBlockType = 'heading-lg' | 'heading-sm' | 'divider' | 'paragraph' | 'image';
+
+interface ProductDescriptionBlock {
+  id: string;
+  type: ProductDescriptionBlockType;
+  text?: string;
+  imageUrl?: string;
+  alt?: string;
+}
+
 @Component({
   selector: 'app-product-detail',
   standalone: true,
@@ -79,6 +137,7 @@ interface BranchOption {
 })
 export class ProductDetailComponent implements OnInit {
   readonly cfg = HOME_CONFIG;
+  readonly stars = [1, 2, 3, 4, 5];
   loading = true;
   error = '';
 
@@ -97,12 +156,27 @@ export class ProductDetailComponent implements OnInit {
   activeTab: 'desc' | 'reviews' = 'desc';
 
   related: RelatedProduct[] = [];
+  reviews: ReviewResponse[] = [];
+  reviewsLoading = false;
+  reviewFilter: 0 | 1 | 2 | 3 | 4 | 5 = 0;
+  vouchers: CouponListItem[] = [];
+  voucherCopiedCode = '';
 
   buySheetOpen = false;
   branchOptions: BranchOption[] = [];
   branchLoading = false;
   branchError = '';
   selectedBranchId: number | null = null;
+  productDescriptionBlocks: ProductDescriptionBlock[] = [];
+  productDescriptionFallback = '';
+  sizeGuideOpen = false;
+  sizeGuideLoading = false;
+  sizeGuideError = '';
+  sizeGuideProductType: ProductTypeResponse | null = null;
+  sizeGuideGroups: SizeGuideGroup[] = [];
+  sizeGuideRowsByGroup: Record<string, SizeGuideRow[]> = {};
+  activeSizeGuideGroupKey = '';
+  private sizeGuideCacheId: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -123,6 +197,16 @@ export class ProductDetailComponent implements OnInit {
     this.error = '';
     this.product = null;
     this.related = [];
+    this.productDescriptionBlocks = [];
+    this.productDescriptionFallback = '';
+    this.sizeGuideOpen = false;
+    this.sizeGuideLoading = false;
+    this.sizeGuideError = '';
+    this.sizeGuideProductType = null;
+    this.sizeGuideGroups = [];
+    this.sizeGuideRowsByGroup = {};
+    this.activeSizeGuideGroupKey = '';
+    this.sizeGuideCacheId = null;
 
     const url = `${environment.apiBaseUrl}/api/products/slug/${encodeURIComponent(this.productSlug)}`;
     this.http.get<ApiResponse<ProductDetailResponse>>(url).subscribe({
@@ -138,6 +222,8 @@ export class ProductDetailComponent implements OnInit {
         const p = res.data;
         this.product = {
           ...p,
+          productTypeId: p.productTypeId != null ? Number(p.productTypeId) : null,
+          gender: p.gender != null ? String(p.gender) : null,
           price: Number(p.price || 0),
           oldPrice: p.oldPrice !== undefined ? Number(p.oldPrice) : undefined,
           rating: p.rating !== undefined ? Number(p.rating) : undefined,
@@ -146,6 +232,7 @@ export class ProductDetailComponent implements OnInit {
           imageUrl: p.imageUrl ? this.normalizeImageUrl(String(p.imageUrl)) : undefined,
           images: Array.isArray(p.images) ? p.images.map((x) => this.normalizeImageUrl(String(x))) : undefined
         };
+        this.hydrateDescriptionBlocks(p.description);
 
         const imgs = (this.product.images && this.product.images.length
           ? this.product.images
@@ -163,8 +250,9 @@ export class ProductDetailComponent implements OnInit {
         this.quantity = 1;
 
         this.loading = false;
-
+        this.loadCoupons();
         this.loadBranchOptions();
+        this.fetchReviews();
 
         if (p.category) {
           this.fetchRelated(p.category);
@@ -206,6 +294,76 @@ export class ProductDetailComponent implements OnInit {
       },
       error: () => {
         this.related = [];
+      }
+    });
+  }
+
+  private loadCoupons(): void {
+    const url = `${environment.apiBaseUrl}/api/coupons`;
+    this.http.get<ApiResponse<CouponListItem[]>>(url).subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        const now = Date.now();
+        this.vouchers = rows
+          .map((item) => ({
+            ...item,
+            code: String(item?.code || '').trim(),
+            description: String(item?.description || '').trim(),
+            discountAmount: item?.discountAmount != null ? Number(item.discountAmount) : null,
+            discountPercent: item?.discountPercent != null ? Number(item.discountPercent) : null,
+            minOrderAmount: item?.minOrderAmount != null ? Number(item.minOrderAmount) : null,
+            maxDiscountAmount: item?.maxDiscountAmount != null ? Number(item.maxDiscountAmount) : null,
+            active: item?.active !== false
+          }))
+          .filter((item) => {
+            if (!item.code || item.active === false) return false;
+            const startsAt = item.startsAt ? new Date(item.startsAt).getTime() : null;
+            const endsAt = item.endsAt ? new Date(item.endsAt).getTime() : null;
+            if (startsAt && Number.isFinite(startsAt) && startsAt > now) return false;
+            if (endsAt && Number.isFinite(endsAt) && endsAt < now) return false;
+            return true;
+          })
+          .sort((a, b) => this.voucherPriority(b) - this.voucherPriority(a))
+          .slice(0, 4);
+      },
+      error: () => {
+        this.vouchers = [];
+      }
+    });
+  }
+
+  private fetchReviews(): void {
+    const productId = Number(this.product?.id || 0);
+    if (!Number.isFinite(productId) || productId <= 0) {
+      this.reviews = [];
+      return;
+    }
+
+    this.reviewsLoading = true;
+    const url = `${environment.apiBaseUrl}/api/reviews/product/${productId}`;
+    this.http.get<ApiResponse<ReviewResponse[]>>(url).subscribe({
+      next: (res) => {
+        this.reviewsLoading = false;
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        this.reviews = rows
+          .map((row) => ({
+            id: row.id ?? null,
+            productId: row.productId ?? null,
+            userId: row.userId ?? null,
+            rating: row.rating != null ? Number(row.rating) : null,
+            comment: row.comment || '',
+            createdAt: row.createdAt || null,
+            updatedAt: row.updatedAt || null
+          }))
+          .sort((a, b) => {
+            const at = new Date(a.createdAt || 0).getTime();
+            const bt = new Date(b.createdAt || 0).getTime();
+            return bt - at;
+          });
+      },
+      error: () => {
+        this.reviewsLoading = false;
+        this.reviews = [];
       }
     });
   }
@@ -263,6 +421,15 @@ export class ProductDetailComponent implements OnInit {
 
   setTab(tab: 'desc' | 'reviews'): void {
     this.activeTab = tab;
+  }
+
+  openSizeGuide(): void {
+    this.sizeGuideOpen = true;
+    this.loadSizeGuide();
+  }
+
+  closeSizeGuide(): void {
+    this.sizeGuideOpen = false;
   }
 
   addToCart(): void {
@@ -409,6 +576,120 @@ export class ProductDetailComponent implements OnInit {
     return new Intl.NumberFormat('vi-VN').format(Math.round(v));
   }
 
+  get savingsAmount(): number {
+    const oldPrice = Number(this.product?.oldPrice || 0);
+    const price = Number(this.product?.price || 0);
+    if (!Number.isFinite(oldPrice) || !Number.isFinite(price) || oldPrice <= price) return 0;
+    return Math.max(0, Math.round(oldPrice - price));
+  }
+
+  get selectedColorLabel(): string {
+    return String(this.selectedColor || '').trim();
+  }
+
+  get activeSizeGuideGroupLabel(): string {
+    const key = String(this.activeSizeGuideGroupKey || '').trim();
+    if (!key) return '';
+    return this.sizeGuideGroups.find((group) => String(group?.key || '') === key)?.label || key;
+  }
+
+  get activeSizeGuideRows(): SizeGuideRow[] {
+    const key = String(this.activeSizeGuideGroupKey || '').trim();
+    if (!key) return [];
+    return this.sizeGuideRowsByGroup[key] || [];
+  }
+
+  get sizeGuideHasData(): boolean {
+    return this.sizeGuideGroups.some((group) => (this.sizeGuideRowsByGroup[group.key] || []).length > 0);
+  }
+
+  selectSizeGuideGroup(groupKey: string): void {
+    const key = String(groupKey || '').trim();
+    if (!key) return;
+    this.activeSizeGuideGroupKey = key;
+  }
+
+  voucherHeadline(item: CouponListItem): string {
+    const amount = Number(item?.discountAmount || 0);
+    const percent = Number(item?.discountPercent || 0);
+    const maxDiscount = Number(item?.maxDiscountAmount || 0);
+    if (amount > 0) return `Giảm ngay ${this.formatMoney(amount)}đ`;
+    if (percent > 0 && maxDiscount > 0) return `Giảm đến ${this.formatMoney(maxDiscount)}đ`;
+    if (percent > 0) return `Giảm ${percent}%`;
+    return item?.description?.trim() || `Nhập mã ${item.code}`;
+  }
+
+  voucherCondition(item: CouponListItem): string {
+    const minOrder = Number(item?.minOrderAmount || 0);
+    if (minOrder > 0) return `cho đơn hàng từ ${this.formatMoney(minOrder)}đ`;
+    return item?.description?.trim() || 'áp dụng toàn hệ thống';
+  }
+
+  async copyVoucher(code: string): Promise<void> {
+    const value = String(code || '').trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      this.voucherCopiedCode = value;
+      setTimeout(() => {
+        if (this.voucherCopiedCode === value) this.voucherCopiedCode = '';
+      }, 1800);
+    } catch {
+    }
+  }
+
+  isVoucherCopied(code: string): boolean {
+    return this.voucherCopiedCode === String(code || '').trim();
+  }
+
+  get averageReviewRating(): number {
+    if (this.reviews.length > 0) {
+      const total = this.reviews.reduce((sum, review) => sum + Math.max(0, Number(review.rating || 0)), 0);
+      return Number((total / this.reviews.length).toFixed(1));
+    }
+    return Number(this.product?.rating || 0);
+  }
+
+  get reviewCount(): number {
+    return this.reviews.length;
+  }
+
+  get filteredReviews(): ReviewResponse[] {
+    if (this.reviewFilter === 0) return this.reviews;
+    return this.reviews.filter((review) => Number(review.rating || 0) === this.reviewFilter);
+  }
+
+  ratingCount(star: number): number {
+    const target = Number(star || 0);
+    if (!Number.isFinite(target) || target < 1 || target > 5) return 0;
+    return this.reviews.filter((review) => Number(review.rating || 0) === target).length;
+  }
+
+  ratingPercent(star: number): number {
+    const total = this.reviewCount;
+    if (total <= 0) return 0;
+    return Math.round((this.ratingCount(star) / total) * 100);
+  }
+
+  setReviewFilter(star: number): void {
+    const normalized = Number(star);
+    if (!Number.isFinite(normalized) || normalized < 0 || normalized > 5) {
+      this.reviewFilter = 0;
+      return;
+    }
+    this.reviewFilter = normalized as 0 | 1 | 2 | 3 | 4 | 5;
+  }
+
+  reviewAuthorLabel(review: ReviewResponse): string {
+    const userId = Number(review?.userId || 0);
+    return userId > 0 ? `Khách hàng #${userId}` : 'Khách hàng';
+  }
+
+  reviewAuthorInitial(review: ReviewResponse): string {
+    const label = this.reviewAuthorLabel(review).trim();
+    return label ? label[0].toUpperCase() : 'K';
+  }
+
   get discountLabel(): string {
     const p = this.product;
     if (!p) return '';
@@ -451,6 +732,181 @@ export class ProductDetailComponent implements OnInit {
     } catch {
       return [];
     }
+  }
+
+  private hydrateDescriptionBlocks(raw?: string | null): void {
+    const source = String(raw || '').trim();
+    this.productDescriptionBlocks = [];
+    this.productDescriptionFallback = '';
+
+    if (!source) return;
+
+    try {
+      const parsed = JSON.parse(source);
+      const blocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
+      if (parsed?.kind === 'blocks' && blocks.length > 0) {
+        this.productDescriptionBlocks = blocks
+          .map((block: any, index: number) => ({
+            id: String(block?.id || `product-desc-${index}`),
+            type: (block?.type || 'paragraph') as ProductDescriptionBlockType,
+            text: typeof block?.text === 'string' ? block.text.trim() : '',
+            imageUrl: typeof block?.imageUrl === 'string' ? this.normalizeImageUrl(block.imageUrl) : '',
+            alt: typeof block?.alt === 'string' ? block.alt.trim() : ''
+          }))
+          .filter((block: ProductDescriptionBlock) => {
+            if (block.type === 'divider') return true;
+            if (block.type === 'image') return !!block.imageUrl;
+            return !!block.text;
+          });
+        return;
+      }
+    } catch {
+    }
+
+    this.productDescriptionFallback = source;
+  }
+
+  private voucherPriority(item: CouponListItem): number {
+    const amount = Number(item?.discountAmount || 0);
+    const percent = Number(item?.discountPercent || 0);
+    const maxDiscount = Number(item?.maxDiscountAmount || 0);
+    return Math.max(amount, maxDiscount, percent * 1000);
+  }
+
+  private loadSizeGuide(): void {
+    const productTypeId = Number(this.product?.productTypeId || 0);
+    if (!Number.isFinite(productTypeId) || productTypeId <= 0) {
+      this.sizeGuideLoading = false;
+      this.sizeGuideError = 'Sản phẩm này chưa có loại sản phẩm để hiển thị bảng size.';
+      this.sizeGuideProductType = null;
+      this.sizeGuideGroups = [];
+      this.sizeGuideRowsByGroup = {};
+      this.activeSizeGuideGroupKey = '';
+      return;
+    }
+
+    if (this.sizeGuideCacheId === productTypeId && this.sizeGuideGroups.length > 0) {
+      this.sizeGuideError = '';
+      this.activeSizeGuideGroupKey = this.pickInitialSizeGuideGroupKey(this.sizeGuideGroups, this.sizeGuideRowsByGroup);
+      return;
+    }
+
+    this.sizeGuideLoading = true;
+    this.sizeGuideError = '';
+
+    const url = `${environment.apiBaseUrl}/api/admin/product-types/${productTypeId}`;
+    this.http.get<ApiResponse<ProductTypeResponse>>(url).subscribe({
+      next: (res) => {
+        this.sizeGuideLoading = false;
+        if (!res?.success || !res.data) {
+          this.sizeGuideError = res?.message || 'Không tải được bảng hướng dẫn kích thước.';
+          this.sizeGuideProductType = null;
+          this.sizeGuideGroups = [];
+          this.sizeGuideRowsByGroup = {};
+          this.activeSizeGuideGroupKey = '';
+          this.sizeGuideCacheId = null;
+          return;
+        }
+
+        this.sizeGuideProductType = res.data;
+        const parsed = this.parseProductTypeSizeMatrix(res.data.fieldsJson);
+        this.sizeGuideGroups = parsed.groups;
+        this.sizeGuideRowsByGroup = parsed.rowsByGroup;
+        this.activeSizeGuideGroupKey = this.pickInitialSizeGuideGroupKey(parsed.groups, parsed.rowsByGroup);
+        this.sizeGuideCacheId = productTypeId;
+
+        if (!this.sizeGuideHasData) {
+          this.sizeGuideError = 'Loại sản phẩm này chưa cấu hình ma trận size.';
+        }
+      },
+      error: () => {
+        this.sizeGuideLoading = false;
+        this.sizeGuideError = 'Không tải được bảng hướng dẫn kích thước.';
+        this.sizeGuideProductType = null;
+        this.sizeGuideGroups = [];
+        this.sizeGuideRowsByGroup = {};
+        this.activeSizeGuideGroupKey = '';
+        this.sizeGuideCacheId = null;
+      }
+    });
+  }
+
+  private parseProductTypeSizeMatrix(fieldsJson: string | null | undefined): {
+    groups: SizeGuideGroup[];
+    rowsByGroup: Record<string, SizeGuideRow[]>;
+  } {
+    try {
+      const raw = String(fieldsJson || '').trim();
+      if (!raw) return { groups: [], rowsByGroup: {} };
+
+      const parsed = JSON.parse(raw);
+      const sizeMatrix = parsed?.sizeMatrix;
+      if (!sizeMatrix || typeof sizeMatrix !== 'object') return { groups: [], rowsByGroup: {} };
+
+      const groups: SizeGuideGroup[] = Array.isArray(sizeMatrix.groups)
+        ? sizeMatrix.groups
+            .filter((group: any) => group && typeof group === 'object')
+            .map((group: any) => ({
+              key: String(group.key || '').trim(),
+              label: String(group.label || '').trim()
+            }))
+            .filter((group: SizeGuideGroup) => !!group.key && !!group.label)
+        : [];
+
+      const rowsByGroup: Record<string, SizeGuideRow[]> = {};
+      const sourceRowsByGroup = sizeMatrix.rowsByGroup;
+      if (sourceRowsByGroup && typeof sourceRowsByGroup === 'object') {
+        for (const key of Object.keys(sourceRowsByGroup)) {
+          const rows = sourceRowsByGroup[key];
+          if (!Array.isArray(rows)) continue;
+          rowsByGroup[String(key)] = rows
+            .filter((row: any) => row && typeof row === 'object')
+            .map((row: any) => ({
+              size: String(row.size || '').trim(),
+              heightMin: row.heightMin != null ? Number(row.heightMin) : null,
+              heightMax: row.heightMax != null ? Number(row.heightMax) : null,
+              weightMin: row.weightMin != null ? Number(row.weightMin) : null,
+              weightMax: row.weightMax != null ? Number(row.weightMax) : null
+            }))
+            .filter((row: SizeGuideRow) => !!row.size);
+        }
+      }
+
+      return { groups, rowsByGroup };
+    } catch {
+      return { groups: [], rowsByGroup: {} };
+    }
+  }
+
+  private pickInitialSizeGuideGroupKey(
+    groups: SizeGuideGroup[],
+    rowsByGroup: Record<string, SizeGuideRow[]>
+  ): string {
+    const productGenderTokens = String(this.product?.gender || '')
+      .split(',')
+      .map((token) => token.trim().toUpperCase())
+      .filter((token) => token);
+
+    for (const token of productGenderTokens) {
+      const found = groups.find((group) => String(group?.key || '').trim().toUpperCase() === token);
+      if (found && (rowsByGroup[found.key] || []).length > 0) return found.key;
+    }
+
+    const currentSize = String(this.selectedSize || '').trim().toUpperCase();
+    if (currentSize) {
+      for (const group of groups) {
+        const rows = rowsByGroup[group.key] || [];
+        if (rows.some((row) => String(row.size || '').trim().toUpperCase() === currentSize)) {
+          return group.key;
+        }
+      }
+    }
+
+    for (const group of groups) {
+      if ((rowsByGroup[group.key] || []).length > 0) return group.key;
+    }
+
+    return groups[0]?.key ? String(groups[0].key) : '';
   }
 
   private normalizeImageUrl(raw: string): string {

@@ -10,6 +10,8 @@ public class OrderStatusLookupResponse {
 
     private Long orderId;
 
+    private String orderCode;
+
     private OrderStatus status;
 
     private BigDecimal total;
@@ -28,6 +30,14 @@ public class OrderStatusLookupResponse {
 
     public void setOrderId(Long orderId) {
         this.orderId = orderId;
+    }
+
+    public String getOrderCode() {
+        return orderCode;
+    }
+
+    public void setOrderCode(String orderCode) {
+        this.orderCode = orderCode;
     }
 
     public OrderStatus getStatus() {

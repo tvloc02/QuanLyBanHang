@@ -346,6 +346,11 @@ export class HeaderComponent implements OnInit {
     this.refreshCartCount();
   }
 
+  @HostListener('window:cart-updated')
+  onCartUpdated(): void {
+    this.refreshCartCount();
+  }
+
   @HostListener('document:click')
   onDocumentClick(): void {
     this.showSuggest = false;

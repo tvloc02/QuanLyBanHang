@@ -8,9 +8,11 @@ import com.ecommerce.dto.response.OrderQuoteResponse;
 import com.ecommerce.exception.BadRequestException;
 import com.ecommerce.model.entity.Branch;
 import com.ecommerce.model.entity.BranchProductStock;
+import com.ecommerce.model.entity.BranchProductVariantStock;
 import com.ecommerce.model.entity.Order;
 import com.ecommerce.model.entity.OrderItem;
 import com.ecommerce.repository.BranchProductStockRepository;
+import com.ecommerce.repository.BranchProductVariantStockRepository;
 import com.ecommerce.repository.BranchRepository;
 import com.ecommerce.repository.OrderRepository;
 import com.ecommerce.service.payment.CouponService;
@@ -33,17 +35,20 @@ public class OrderService {
     private final CouponService couponService;
     private final BranchRepository branchRepository;
     private final BranchProductStockRepository branchProductStockRepository;
+    private final BranchProductVariantStockRepository branchProductVariantStockRepository;
 
     public OrderService(
         OrderRepository orderRepository,
         CouponService couponService,
         BranchRepository branchRepository,
-        BranchProductStockRepository branchProductStockRepository
+        BranchProductStockRepository branchProductStockRepository,
+        BranchProductVariantStockRepository branchProductVariantStockRepository
     ) {
         this.orderRepository = orderRepository;
         this.couponService = couponService;
         this.branchRepository = branchRepository;
         this.branchProductStockRepository = branchProductStockRepository;
+        this.branchProductVariantStockRepository = branchProductVariantStockRepository;
     }
 
     public OrderQuoteResponse quote(OrderQuoteRequest req) {
@@ -89,6 +94,7 @@ public class OrderService {
 
         Order order = new Order();
         order.setUserId(req.getUserId());
+        order.setOrderCode(req.getOrderCode());
         order.setItems(items);
         order.setSubtotal(subtotal);
         order.setShippingFee(shippingFee);
@@ -144,7 +150,7 @@ public class OrderService {
             if (b == null) {
                 throw new BadRequestException("Chi nhánh không tồn tại hoặc không hoạt động");
             }
-            if (!canFulfill(stockByBranch.get(b.getId()), items)) {
+            if (!canFulfillBranch(b.getId(), stockByBranch.get(b.getId()), items)) {
                 throw new BadRequestException("Chi nhánh không đủ tồn kho");
             }
 
@@ -157,7 +163,7 @@ public class OrderService {
         for (Branch b : active) {
             Long bid = b.getId();
             if (bid == null) continue;
-            if (!canFulfill(stockByBranch.get(bid), items)) continue;
+            if (!canFulfillBranch(bid, stockByBranch.get(bid), items)) continue;
             Double distanceKm = computeDistanceKm(b, shipLat, shipLng);
             candidates.add(new BranchCandidate(bid, distanceKm));
         }
@@ -205,12 +211,24 @@ public class OrderService {
         return out;
     }
 
-    private boolean canFulfill(Map<Long, Integer> stockByProduct, List<OrderItemRequest> items) {
+    private boolean canFulfillBranch(Long branchId, Map<Long, Integer> stockByProduct, List<OrderItemRequest> items) {
         Map<Long, Integer> s = stockByProduct != null ? stockByProduct : Map.of();
         for (OrderItemRequest it : items) {
             if (it == null || it.getProductId() == null) return false;
             int qty = it.getQuantity() == null ? 0 : it.getQuantity();
             if (qty <= 0) return false;
+
+            String color = normalizeVariantValue(it.getColor());
+            String size = normalizeVariantValue(it.getSize());
+            if (branchId != null && color != null && size != null) {
+                BranchProductVariantStock variantRow = branchProductVariantStockRepository
+                    .findByBranchIdAndProductIdAndColorAndSize(branchId, it.getProductId(), color, size)
+                    .orElse(null);
+                int haveVariant = variantRow != null && variantRow.getStock() != null ? variantRow.getStock() : 0;
+                if (haveVariant < qty) return false;
+                continue;
+            }
+
             int have = s.getOrDefault(it.getProductId(), 0);
             if (have < qty) return false;
         }
@@ -252,21 +270,48 @@ public class OrderService {
                 throw new BadRequestException("Invalid quantity");
             }
 
+            String color = normalizeVariantValue(it.getColor());
+            String size = normalizeVariantValue(it.getSize());
+            boolean usedVariantStock = false;
+            if (color != null && size != null) {
+                BranchProductVariantStock variantRow = branchProductVariantStockRepository
+                    .findByBranchIdAndProductIdAndColorAndSize(branchId, it.getProductId(), color, size)
+                    .orElse(null);
+                int currentVariant = variantRow != null && variantRow.getStock() != null ? variantRow.getStock() : 0;
+                if (currentVariant < qty) {
+                    throw new BadRequestException("KhĂ´ng Ä‘á»§ tá»“n kho cho biáº¿n thá»ƒ: " + it.getProductId());
+                }
+                if (variantRow != null) {
+                    variantRow.setStock(currentVariant - qty);
+                    branchProductVariantStockRepository.save(variantRow);
+                    usedVariantStock = true;
+                }
+            }
+
             BranchProductStock row = branchProductStockRepository
                 .findByBranchIdAndProductId(branchId, it.getProductId())
                 .orElse(null);
             int current = row != null && row.getStock() != null ? row.getStock() : 0;
-            if (current < qty) {
+            if (!usedVariantStock && current < qty) {
                 throw new BadRequestException("Không đủ tồn kho cho sản phẩm: " + it.getProductId());
             }
             if (row == null) {
+                if (usedVariantStock) {
+                    continue;
+                }
                 row = new BranchProductStock();
                 row.setBranchId(branchId);
                 row.setProductId(it.getProductId());
             }
-            row.setStock(current - qty);
+            row.setStock(Math.max(0, current - qty));
             branchProductStockRepository.save(row);
         }
+    }
+
+    private String normalizeVariantValue(String input) {
+        if (input == null) return null;
+        String value = input.trim();
+        return value.isEmpty() ? null : value;
     }
 
     private static double haversineKm(double lat1, double lon1, double lat2, double lon2) {
@@ -290,6 +335,7 @@ public class OrderService {
     private static OrderResponse toResponse(Order o) {
         OrderResponse res = new OrderResponse();
         res.setId(o.getId());
+        res.setOrderCode(o.getOrderCode());
         res.setUserId(o.getUserId());
         res.setStatus(o.getStatus());
         res.setSubtotal(o.getSubtotal());
@@ -299,7 +345,13 @@ public class OrderService {
         res.setCouponCode(o.getCouponCode());
         res.setBranchId(o.getBranchId());
         res.setShippingDistanceKm(o.getShippingDistanceKm());
+        res.setShippingPhone(o.getShippingPhone());
         res.setCreatedAt(o.getCreatedAt());
+        List<OrderResponse.Item> items = (o.getItems() == null ? List.<OrderItem>of() : o.getItems())
+            .stream()
+            .map(OrderResponse.Item::from)
+            .toList();
+        res.setItems(items);
         return res;
     }
 }

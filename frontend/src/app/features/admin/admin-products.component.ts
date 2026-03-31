@@ -534,6 +534,24 @@ export class AdminProductsComponent {
     });
   }
 
+  getDisplayStock(p: ProductResponse): number {
+    const variants = Array.isArray(p?.variants) ? p.variants : [];
+    if (variants.length > 0) {
+      let total = 0;
+      for (const variant of variants) {
+        const stocks = Array.isArray(variant?.stocks) ? variant.stocks : [];
+        for (const row of stocks) {
+          const value = Number(row?.stock || 0);
+          total += Number.isFinite(value) ? Math.max(0, value) : 0;
+        }
+      }
+      return total;
+    }
+
+    const fallback = Number(p?.stock || 0);
+    return Number.isFinite(fallback) ? Math.max(0, fallback) : 0;
+  }
+
   autoSlug(): void {
     const name = (this.form.value.name || '').toString();
     const slug = this.slugify(name);

@@ -247,7 +247,7 @@
 
 .description-builder {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .description-toolbar {
@@ -271,12 +271,12 @@
 
 .description-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .description-block {
   border: 1px solid #dfe6f5;
-  border-radius: 20px;
+  border-radius: 16px;
   background: #fbfdff;
   overflow: hidden;
   width: 100%;
@@ -287,7 +287,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
+  padding: 10px 14px;
   border-bottom: 1px solid #e7edf8;
   background: #f5f8ff;
 }
@@ -307,15 +307,15 @@
 }
 
 .description-block__actions .btn {
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 12px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
 }
 
 .description-block__body {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 10px;
+  padding: 14px;
   width: 100%;
 }
 
@@ -325,15 +325,15 @@
 }
 
 .description-input--lg {
-  min-height: 58px;
-  font-size: 28px;
+  min-height: 48px;
+  font-size: 22px;
   font-weight: 900;
   width: 100%;
 }
 
 .description-input--sm {
-  min-height: 52px;
-  font-size: 20px;
+  min-height: 44px;
+  font-size: 17px;
   font-weight: 800;
   width: 100%;
 }
@@ -342,8 +342,8 @@
   display: block;
   width: 100%;
   max-width: 100%;
-  min-height: 180px;
-  line-height: 1.75;
+  min-height: 112px;
+  line-height: 1.6;
   resize: vertical;
 }
 
@@ -368,9 +368,9 @@
 .description-image-preview,
 .description-image-empty {
   border: 1px dashed #ced9ef;
-  border-radius: 18px;
+  border-radius: 14px;
   background: #f8fbff;
-  min-height: 220px;
+  min-height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -379,7 +379,7 @@
 
 .description-image-preview img {
   width: 100%;
-  max-height: 420px;
+  max-height: 240px;
   object-fit: contain;
   display: block;
 }
@@ -399,7 +399,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 14px 18px 18px;
+  padding: 10px 14px 14px;
   border-top: 1px dashed #dfe6f5;
   background: #f7faff;
 }

@@ -5,6 +5,7 @@ import com.ecommerce.dto.request.AdminCouponUpsertRequest;
 import com.ecommerce.dto.request.AdminUserCreateRequest;
 import com.ecommerce.dto.response.AdminCategoryResponse;
 import com.ecommerce.dto.response.AdminCouponResponse;
+import com.ecommerce.dto.response.AdminOrderDetailResponse;
 import com.ecommerce.dto.response.AdminOrderSummaryResponse;
 import com.ecommerce.dto.response.AdminReviewResponse;
 import com.ecommerce.dto.response.AdminUserResponse;
@@ -13,6 +14,9 @@ import com.ecommerce.exception.BadRequestException;
 import com.ecommerce.model.entity.Category;
 import com.ecommerce.model.entity.Coupon;
 import com.ecommerce.model.entity.Order;
+import com.ecommerce.model.entity.Branch;
+import com.ecommerce.model.entity.BranchManager;
+import com.ecommerce.model.entity.OrderItem;
 import com.ecommerce.model.entity.Review;
 import com.ecommerce.model.entity.User;
 import com.ecommerce.model.enums.UserRole;
@@ -22,7 +26,9 @@ import com.ecommerce.repository.CouponRepository;
 import com.ecommerce.repository.OrderRepository;
 import com.ecommerce.repository.ReviewRepository;
 import com.ecommerce.repository.BranchRepository;
+import com.ecommerce.repository.BranchManagerRepository;
 import com.ecommerce.repository.UserRepository;
+import com.ecommerce.security.SecurityUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZoneOffset;
@@ -63,7 +69,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Locale;
-import java.math.BigDecimal;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,6 +85,7 @@ public class AdminDataController {
     private final CouponRepository couponRepository;
 
     private final BranchRepository branchRepository;
+    private final BranchManagerRepository branchManagerRepository;
 
     private final UserRepository userRepository;
 
@@ -91,6 +97,7 @@ public class AdminDataController {
         CategoryRepository categoryRepository,
         CouponRepository couponRepository,
         BranchRepository branchRepository,
+        BranchManagerRepository branchManagerRepository,
         UserRepository userRepository,
         ReviewRepository reviewRepository,
         PasswordEncoder passwordEncoder
@@ -99,6 +106,7 @@ public class AdminDataController {
         this.categoryRepository = categoryRepository;
         this.couponRepository = couponRepository;
         this.branchRepository = branchRepository;
+        this.branchManagerRepository = branchManagerRepository;
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
         this.passwordEncoder = passwordEncoder;
@@ -378,20 +386,155 @@ public class AdminDataController {
 
     @GetMapping("/orders")
     public ResponseEntity<ApiResponse<List<AdminOrderSummaryResponse>>> orders() {
+        Long currentUserId = SecurityUtils.currentUserId();
+        User currentUser = currentUserId != null ? userRepository.findById(currentUserId).orElse(null) : null;
+        boolean isAdmin = currentUser != null && currentUser.getRoles() != null && currentUser.getRoles().contains(UserRole.ADMIN);
+        Set<Long> accessibleBranchIds = resolveAccessibleBranchIds(currentUser);
+
         List<Order> orders = orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        if (!isAdmin) {
+            orders = orders.stream()
+                .filter(o -> o != null && o.getBranchId() != null && accessibleBranchIds.contains(o.getBranchId()))
+                .collect(Collectors.toList());
+        }
+        Map<Long, Branch> branchById = branchRepository.findAll().stream()
+            .filter(b -> b != null && b.getId() != null)
+            .collect(Collectors.toMap(Branch::getId, b -> b, (left, right) -> left));
         List<AdminOrderSummaryResponse> result = orders
             .stream()
-            .map(o -> new AdminOrderSummaryResponse(
-                o.getId(),
-                o.getUserId(),
-                o.getStatus() != null ? o.getStatus().name() : null,
-                o.getTotal(),
-                o.getItems() != null ? o.getItems().size() : 0,
-                o.getCouponCode(),
-                o.getCreatedAt()
-            ))
+            .map(o -> {
+                Branch branch = o != null && o.getBranchId() != null ? branchById.get(o.getBranchId()) : null;
+                return new AdminOrderSummaryResponse(
+                    o.getId(),
+                    o.getOrderCode(),
+                    o.getUserId(),
+                    o.getStatus() != null ? o.getStatus().name() : null,
+                    o.getTotal(),
+                    o.getItems() != null ? o.getItems().size() : 0,
+                    o.getCouponCode(),
+                    o.getBranchId(),
+                    branch != null ? branch.getCode() : null,
+                    branch != null ? branch.getName() : null,
+                    o.getCreatedAt()
+                );
+            })
             .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    @GetMapping("/orders/{id}")
+    public ResponseEntity<ApiResponse<AdminOrderDetailResponse>> orderDetail(@PathVariable("id") Long id) {
+        if (id == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Thiếu id đơn hàng"));
+        }
+
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail("Không tìm thấy đơn hàng"));
+        }
+
+        Long currentUserId = SecurityUtils.currentUserId();
+        User currentUser = currentUserId != null ? userRepository.findById(currentUserId).orElse(null) : null;
+        boolean isAdmin = currentUser != null && currentUser.getRoles() != null && currentUser.getRoles().contains(UserRole.ADMIN);
+        if (!isAdmin) {
+            Set<Long> accessibleBranchIds = resolveAccessibleBranchIds(currentUser);
+            if (order.getBranchId() == null || !accessibleBranchIds.contains(order.getBranchId())) {
+                return ResponseEntity.status(403).body(ApiResponse.fail("Bạn không có quyền xem đơn hàng này"));
+            }
+        }
+
+        Branch branch = order.getBranchId() != null ? branchRepository.findById(order.getBranchId()).orElse(null) : null;
+        User buyer = order.getUserId() != null ? userRepository.findById(order.getUserId()).orElse(null) : null;
+
+        AdminOrderDetailResponse out = new AdminOrderDetailResponse();
+        out.setId(order.getId());
+        out.setOrderCode(order.getOrderCode());
+        out.setUserId(order.getUserId());
+        out.setStatus(order.getStatus() != null ? order.getStatus().name() : null);
+        out.setSubtotal(order.getSubtotal());
+        out.setDiscount(order.getDiscount());
+        out.setShippingFee(order.getShippingFee());
+        out.setTotal(order.getTotal());
+        out.setCouponCode(order.getCouponCode());
+        out.setBranchId(order.getBranchId());
+        out.setBranchCode(branch != null ? branch.getCode() : null);
+        out.setBranchName(branch != null ? branch.getName() : null);
+        out.setBuyerName(firstNonBlank(order.getShippingFullName(), buyer != null ? buyer.getFullName() : null, buyer != null ? buyer.getUsername() : null));
+        out.setBuyerPhone(firstNonBlank(order.getShippingPhone(), buyer != null ? buyer.getPhone() : null));
+        out.setBuyerEmail(buyer != null ? buyer.getEmail() : null);
+        out.setBuyerAddress(buildBuyerAddress(order));
+        out.setSellerName(firstNonBlank(branch != null ? branch.getName() : null, "L.Event"));
+        out.setSellerPhone("");
+        out.setSellerAddress(buildSellerAddress(branch));
+        out.setCreatedAt(order.getCreatedAt());
+
+        List<AdminOrderDetailResponse.Item> items = new ArrayList<>();
+        for (OrderItem src : order.getItems() != null ? order.getItems() : List.<OrderItem>of()) {
+            if (src == null) continue;
+            AdminOrderDetailResponse.Item item = new AdminOrderDetailResponse.Item();
+            item.setProductId(src.getProductId());
+            item.setProductName(src.getProductName());
+            item.setQuantity(src.getQuantity());
+            item.setUnitPrice(src.getUnitPrice());
+            item.setTotalPrice(src.getTotalPrice());
+            items.add(item);
+        }
+        out.setItems(items);
+
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    private Set<Long> resolveAccessibleBranchIds(User currentUser) {
+        Set<Long> branchIds = new HashSet<>();
+        if (currentUser == null || currentUser.getId() == null) {
+            return branchIds;
+        }
+
+        if (currentUser.getRoles() != null && currentUser.getRoles().contains(UserRole.MANAGER)) {
+            for (BranchManager assignment : branchManagerRepository.findByUserId(currentUser.getId())) {
+                if (assignment != null && assignment.getBranchId() != null) {
+                    branchIds.add(assignment.getBranchId());
+                }
+            }
+            for (Branch branch : branchRepository.findByManagerUserId(currentUser.getId())) {
+                if (branch != null && branch.getId() != null) {
+                    branchIds.add(branch.getId());
+                }
+            }
+        }
+
+        if (currentUser.getBranchId() != null) {
+            branchIds.add(currentUser.getBranchId());
+        }
+
+        return branchIds;
+    }
+
+    private static String buildBuyerAddress(Order order) {
+        if (order == null) return null;
+        List<String> parts = new ArrayList<>();
+        if (order.getShippingAddressDetail() != null && !order.getShippingAddressDetail().isBlank()) parts.add(order.getShippingAddressDetail().trim());
+        if (order.getShippingWard() != null && !order.getShippingWard().isBlank()) parts.add(order.getShippingWard().trim());
+        if (order.getShippingProvince() != null && !order.getShippingProvince().isBlank()) parts.add(order.getShippingProvince().trim());
+        return parts.isEmpty() ? null : String.join(", ", parts);
+    }
+
+    private static String buildSellerAddress(Branch branch) {
+        if (branch == null) return null;
+        List<String> parts = new ArrayList<>();
+        if (branch.getAddress() != null && !branch.getAddress().isBlank()) parts.add(branch.getAddress().trim());
+        if (branch.getWard() != null && !branch.getWard().isBlank()) parts.add(branch.getWard().trim());
+        if (branch.getDistrict() != null && !branch.getDistrict().isBlank()) parts.add(branch.getDistrict().trim());
+        if (branch.getProvince() != null && !branch.getProvince().isBlank()) parts.add(branch.getProvince().trim());
+        return parts.isEmpty() ? null : String.join(", ", parts);
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value.trim();
+        }
+        return null;
     }
 
     @PostMapping("/coupons")
