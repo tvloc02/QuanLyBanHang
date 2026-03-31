@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, HostListener, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -7,7 +7,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
-import { UserDataService, UserMeResponse } from '../../core/services/user-data.service';
+import { UserDataService } from '../../core/services/user-data.service';
+import { AdminBranchResponse, AdminDataService } from '../../core/services/admin-data.service';
+import {
+  DeliveryDistanceTier,
+  DeliveryMethod,
+  DeliveryPricingConfig,
+  ShippingConfigService
+} from '../admin/shipping-settings/shipping-config.service';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -28,6 +35,8 @@ interface CartItem {
   selected?: boolean;
   originalPrice?: number;
   branch?: string;
+  branchId?: number;
+  branchName?: string;
 }
 
 interface Address {
@@ -38,6 +47,9 @@ interface Address {
   type?: string;
   province?: string;
   district?: string;
+  ward?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PaymentMethod {
@@ -46,21 +58,18 @@ interface PaymentMethod {
   description: string;
 }
 
-interface DiscountCode {
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  minAmount?: number;
-}
-
 interface CouponDto {
   id: number;
   code: string;
   description?: string | null;
+  type?: string | null;
   discountAmount?: number | null;
   discountPercent?: number | null;
   minOrderAmount?: number | null;
   maxDiscountAmount?: number | null;
+  shippingDiscountAmount?: number | null;
+  allowedSegments?: string | null;
+  targetAudience?: string | null;
   usageLimit?: number | null;
   usedCount?: number | null;
   startsAt?: string | null;
@@ -76,6 +85,33 @@ interface UserCouponDto {
   usedAt?: string | null;
   usedOrderId?: number | null;
   coupon?: CouponDto | null;
+}
+
+interface ShipmentOption {
+  method: DeliveryMethod;
+  label: string;
+  distanceKm: number;
+  fee: number;
+  minDays: number;
+  maxDays: number;
+}
+
+interface ShipmentGroup {
+  key: string;
+  branchId: number | null;
+  branchCode: string;
+  branchName: string;
+  branchAddress: string;
+  branchProvince: string;
+  customerProvince: string;
+  sameProvince: boolean;
+  items: CartItem[];
+  itemCount: number;
+  quantity: number;
+  subtotal: number;
+  distanceSource: 'map' | 'config';
+  options: ShipmentOption[];
+  selectedOption: ShipmentOption;
 }
 
 @Component({
@@ -99,8 +135,9 @@ export class CartComponent implements OnInit {
   activeSuggestIndex = -1;
 
   items: CartItem[] = [];
-  
-  // New properties for enhanced cart functionality
+  branches: AdminBranchResponse[] = [];
+  shippingPricing: DeliveryPricingConfig;
+
   discountCode = '';
   discountMessage = '';
   discountAmount = 0;
@@ -111,6 +148,8 @@ export class CartComponent implements OnInit {
   discountOptions: CouponDto[] = [];
   filteredDiscounts: CouponDto[] = [];
   discountSearchQuery = '';
+  claimedCouponCodes = new Set<string>();
+  selectedShipmentMethods: Record<string, DeliveryMethod> = {};
   addresses: Address[] = [];
   selectedAddressIndex = -1;
   showAddAddress = false;
@@ -140,8 +179,12 @@ export class CartComponent implements OnInit {
     private router: Router,
     private destroyRef: DestroyRef,
     private http: HttpClient,
-    private userData: UserDataService
-  ) {}
+    private userData: UserDataService,
+    private adminData: AdminDataService,
+    private shippingConfigService: ShippingConfigService
+  ) {
+    this.shippingPricing = this.shippingConfigService.getDeliveryPricingSnapshot();
+  }
 
   private getCurrentUserId(): number | null {
     try {
@@ -157,8 +200,14 @@ export class CartComponent implements OnInit {
     this.hydrateBadges();
     this.loadCart();
     this.loadAddresses();
+    this.loadBranches();
 
-    // Close account dropdown when route changes
+    this.shippingConfigService.getDeliveryPricing()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((cfg) => {
+        this.shippingPricing = cfg;
+      });
+
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.accountOpen = false;
     });
@@ -191,13 +240,16 @@ export class CartComponent implements OnInit {
             name: x.name || 'Sản phẩm',
             slug: x.slug || '',
             imageUrl: x.imageUrl,
+            image: x.image,
             price: x.price!,
             quantity: typeof x.quantity === 'number' && x.quantity > 0 ? x.quantity : 1,
             size: x.size,
             color: x.color,
-            selected: x.selected !== false, // Default to true
-            originalPrice: x.originalPrice || x.price! * 1.2, // Mock original price
-            branch: x.branch || ['Hà Nội', 'TP.HCM', 'Đà Nẵng'][Math.floor(Math.random() * 3)]
+            selected: x.selected !== false,
+            originalPrice: x.originalPrice || x.price! * 1.2,
+            branchId: typeof x.branchId === 'number' ? x.branchId : undefined,
+            branchName: x.branchName || x.branch || undefined,
+            branch: x.branchName || x.branch || undefined
           }));
       } else {
         this.items = [];
@@ -207,7 +259,19 @@ export class CartComponent implements OnInit {
     }
 
     this.cartCount = this.items.length;
-    console.log('🛒 Loaded cart items:', this.items.length);
+  }
+
+  private loadBranches(): void {
+    this.adminData.getBranches()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.branches = res?.success && Array.isArray(res.data) ? res.data : [];
+        },
+        error: () => {
+          this.branches = [];
+        }
+      });
   }
 
   private loadAddresses(): void {
@@ -220,9 +284,12 @@ export class CartComponent implements OnInit {
     }
 
     if (Array.isArray(fromStorage) && fromStorage.length > 0) {
-      this.addresses = fromStorage as Address[];
+      this.addresses = (fromStorage as any[]).map((address) => ({
+        ...address,
+        latitude: typeof address?.latitude === 'number' ? address.latitude : undefined,
+        longitude: typeof address?.longitude === 'number' ? address.longitude : undefined
+      }));
       if (this.selectedAddressIndex < 0) this.selectedAddressIndex = 0;
-      console.log('🛒 Loaded addresses from storage:', this.addresses);
       return;
     }
 
@@ -230,31 +297,18 @@ export class CartComponent implements OnInit {
     this.selectedAddressIndex = -1;
 
     const userId = this.getCurrentUserId();
-    if (!userId) {
-      console.log('🛒 User not logged in');
-      return;
-    }
+    if (!userId) return;
 
-    console.log('🛒 Loading addresses from UserDataService for user:', userId);
     this.userData.getMe().subscribe({
       next: (res) => {
-        console.log('🛒 UserDataService response:', res);
-        const me = res?.data;
-        if (!me) {
-          console.log('🛒 No user data in UserDataService response');
-          return;
-        }
+        const me = res?.data as any;
+        if (!me) return;
 
         const parts = [me.addressDetail, me.ward, me.district, me.province]
-          .map((x) => String(x || '').trim())
-          .filter((x) => !!x);
+          .map((x: any) => String(x || '').trim())
+          .filter((x: string) => !!x);
 
-        console.log('🛒 Address parts from UserDataService:', parts);
-
-        if (parts.length === 0) {
-          console.log('🛒 No address parts found for user in UserDataService');
-          return;
-        }
+        if (parts.length === 0) return;
 
         const addr: Address = {
           id: 1,
@@ -263,15 +317,16 @@ export class CartComponent implements OnInit {
           address: parts.join(', '),
           type: 'Hồ sơ',
           province: me.province || undefined,
-          district: me.district || undefined
+          district: me.district || undefined,
+          ward: me.ward || undefined,
+          latitude: typeof me.latitude === 'number' ? me.latitude : undefined,
+          longitude: typeof me.longitude === 'number' ? me.longitude : undefined
         };
 
         this.addresses = [addr];
         this.selectedAddressIndex = 0;
-        console.log('🛒 Loaded address from UserDataService:', this.addresses);
       },
-      error: (err) => {
-        console.error('🛒 Error loading user address from UserDataService:', err);
+      error: () => {
         this.addresses = [];
         this.selectedAddressIndex = -1;
       }
@@ -309,9 +364,8 @@ export class CartComponent implements OnInit {
     this.searchSuggest = items
       .filter((x) => x.label.toLowerCase().includes(q))
       .filter((x) => {
-        const k = x.route;
-        if (seen.has(k)) return false;
-        seen.add(k);
+        if (seen.has(x.route)) return false;
+        seen.add(x.route);
         return true;
       })
       .slice(0, 8);
@@ -319,9 +373,7 @@ export class CartComponent implements OnInit {
 
   onSearchFocus(): void {
     this.showSearchSuggest = true;
-    if (this.searchQuery) {
-      this.onSearchInput(this.searchQuery);
-    }
+    if (this.searchQuery) this.onSearchInput(this.searchQuery);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -353,11 +405,9 @@ export class CartComponent implements OnInit {
       }
       return;
     }
-    if (event.key === 'Tab') {
-      if (this.activeSuggestIndex >= 0) {
-        event.preventDefault();
-        this.selectSuggestion(this.searchSuggest[this.activeSuggestIndex].route);
-      }
+    if (event.key === 'Tab' && this.activeSuggestIndex >= 0) {
+      event.preventDefault();
+      this.selectSuggestion(this.searchSuggest[this.activeSuggestIndex].route);
     }
   }
 
@@ -391,9 +441,7 @@ export class CartComponent implements OnInit {
       this.router.navigateByUrl(item.route);
       return;
     }
-
     if (!item.sectionId) return;
-
     this.router.navigateByUrl('/sale').then(() => {
       window.setTimeout(() => {
         const el = document.getElementById(item.sectionId as string);
@@ -415,37 +463,35 @@ export class CartComponent implements OnInit {
   }
 
   get selectedItems(): CartItem[] {
-    return this.items.filter(item => item.selected);
+    return this.items.filter((item) => item.selected);
   }
 
   get selectedItemsCount(): number {
     return this.selectedItems.reduce((count, item) => count + item.quantity, 0);
   }
 
+  get selectedAddress(): Address | null {
+    return this.selectedAddressIndex >= 0 ? this.addresses[this.selectedAddressIndex] : null;
+  }
+
+  get shipmentGroups(): ShipmentGroup[] {
+    if (!this.selectedItems.length) return [];
+    const grouped = new Map<string, CartItem[]>();
+
+    for (const item of this.selectedItems) {
+      const key = item.branchId != null
+        ? `branch:${item.branchId}`
+        : `branch-name:${String(item.branchName || item.branch || 'unknown').trim().toLowerCase()}`;
+      const bucket = grouped.get(key) || [];
+      bucket.push(item);
+      grouped.set(key, bucket);
+    }
+
+    return Array.from(grouped.entries()).map(([key, items]) => this.buildShipmentGroup(key, items));
+  }
+
   get shippingFee(): number {
-    if (this.selectedItems.length === 0) return 0;
-    
-    // Calculate shipping based on branches
-    const branches = new Set(this.selectedItems.map(item => item.branch));
-    let fee = 0;
-    
-    branches.forEach(branch => {
-      switch (branch) {
-        case 'Hà Nội':
-          fee += 30000;
-          break;
-        case 'TP.HCM':
-          fee += 25000;
-          break;
-        case 'Đà Nẵng':
-          fee += 35000;
-          break;
-        default:
-          fee += 30000;
-      }
-    });
-    
-    return fee;
+    return this.shipmentGroups.reduce((sum, shipment) => sum + shipment.selectedOption.fee, 0);
   }
 
   get totalAmount(): number {
@@ -456,16 +502,21 @@ export class CartComponent implements OnInit {
     return this.totalAmount;
   }
 
-  get selectedAddress(): Address | null {
-    return this.selectedAddressIndex >= 0 ? this.addresses[this.selectedAddressIndex] : null;
-  }
-
   formatMoney(v: number): string {
     return new Intl.NumberFormat('vi-VN').format(Math.round(v));
   }
 
   formatPrice(v: number): string {
     return this.formatMoney(v);
+  }
+
+  formatShippingDays(minDays: number, maxDays: number): string {
+    if (minDays === maxDays) return `${minDays} ngày`;
+    return `${minDays}-${maxDays} ngày`;
+  }
+
+  formatDistanceKm(distanceKm: number): string {
+    return `${distanceKm.toFixed(distanceKm >= 100 ? 0 : 1)} km`;
   }
 
   inc(item: CartItem): void {
@@ -482,7 +533,6 @@ export class CartComponent implements OnInit {
     if (index >= 0 && index < this.items.length) {
       this.items[index].quantity += 1;
       this.persistCart();
-      console.log('🛒 Increased quantity for item at index:', index);
     }
   }
 
@@ -490,7 +540,6 @@ export class CartComponent implements OnInit {
     if (index >= 0 && index < this.items.length) {
       this.items[index].quantity = Math.max(1, this.items[index].quantity - 1);
       this.persistCart();
-      console.log('🛒 Decreased quantity for item at index:', index);
     }
   }
 
@@ -501,10 +550,8 @@ export class CartComponent implements OnInit {
 
   removeItem(index: number): void {
     if (index >= 0 && index < this.items.length) {
-      const removedItem = this.items[index];
       this.items.splice(index, 1);
       this.persistCart();
-      console.log('🛒 Removed item:', removedItem);
     }
   }
 
@@ -512,6 +559,11 @@ export class CartComponent implements OnInit {
     if (index < 0 || index >= this.items.length) return;
     this.items[index].selected = checked;
     this.persistCart();
+  }
+
+  setShipmentMethod(shipment: ShipmentGroup, method: DeliveryMethod): void {
+    this.selectedShipmentMethods[shipment.key] = method;
+    localStorage.setItem(this.getShipmentMethodStorageKey(shipment.key), method);
   }
 
   checkout(): void {
@@ -523,10 +575,10 @@ export class CartComponent implements OnInit {
       alert('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
-    
-    // Prepare checkout data
+
     const checkoutData = {
       items: this.selectedItems,
+      shipments: this.shipmentGroups,
       address: this.selectedAddress,
       paymentMethod: this.paymentMethods[this.selectedPaymentMethod],
       subtotal: this.subtotal,
@@ -534,20 +586,19 @@ export class CartComponent implements OnInit {
       discountAmount: this.discountAmount,
       totalAmount: this.totalAmount
     };
-    
+
     localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
     this.router.navigateByUrl('/checkout');
   }
 
-  // Checkbox functionality
   toggleSelectAll(): void {
     const allSelected = this.isAllSelected();
-    this.items.forEach(item => item.selected = !allSelected);
+    this.items.forEach((item) => item.selected = !allSelected);
     this.persistCart();
   }
 
   isAllSelected(): boolean {
-    return this.items.length > 0 && this.items.every(item => item.selected);
+    return this.items.length > 0 && this.items.every((item) => item.selected);
   }
 
   updateSelection(): void {
@@ -556,23 +607,12 @@ export class CartComponent implements OnInit {
 
   openDiscountModal(): void {
     const userId = this.getCurrentUserId();
-    console.log('🛒 Opening discount modal, userId:', userId);
     this.discountModalOpen = true;
     this.discountSearchQuery = '';
 
-    if (!userId) {
-      console.log('🛒 User not logged in');
-      this.discountLoadError = 'Vui lòng đăng nhập để xem voucher.';
-      this.discountOptions = [];
-      this.filteredDiscounts = [];
-      return;
-    }
-
     if (this.discountOptions.length === 0) {
-      console.log('🛒 Loading discount options...');
       this.loadDiscountOptions(userId);
     } else {
-      console.log('🛒 Using cached discount options:', this.discountOptions.length);
       this.filterDiscounts();
     }
   }
@@ -589,207 +629,156 @@ export class CartComponent implements OnInit {
     this.addressModalOpen = false;
   }
 
-  private loadDiscountOptions(userId: number): void {
+  private loadDiscountOptions(userId: number | null): void {
     if (this.discountLoading) return;
     this.discountLoading = true;
     this.discountLoadError = '';
-    
-    const apiUrl = `${environment.apiBaseUrl}/api/coupons/user?userId=${encodeURIComponent(String(userId))}&status=CLAIMED`;
-    console.log('🛒 Loading discount options from:', apiUrl);
-    
-    this.http
-      .get<ApiResponse<UserCouponDto[]>>(apiUrl)
-      .subscribe({
-        next: (res) => {
-          console.log('🛒 Discount API response:', res);
+
+    const allCouponsUrl = `${environment.apiBaseUrl}/api/coupons`;
+    this.http.get<ApiResponse<CouponDto[]>>(allCouponsUrl).subscribe({
+      next: (res) => {
+        const coupons = Array.isArray(res?.data)
+          ? res.data.filter((coupon): coupon is CouponDto => !!coupon && !!coupon.code)
+          : [];
+
+        if (!userId) {
           this.discountLoading = false;
-          const list = Array.isArray(res?.data) ? res.data : [];
-          console.log('🛒 Raw coupon list:', list);
-          
-          this.discountOptions = list
-            .map((x) => x?.coupon || null)
-            .filter((c): c is CouponDto => !!c && !!c.code);
-            
-          console.log('🛒 Processed discount options:', this.discountOptions);
-          
-          // Apply initial filter
+          this.claimedCouponCodes = new Set();
+          this.discountOptions = coupons;
           this.filterDiscounts();
-        },
-        error: (err) => {
-          console.error('🛒 Discount API error:', err);
-          this.discountLoading = false;
-          this.discountLoadError = 'Không tải được danh sách mã giảm giá.';
-          this.discountOptions = [];
-          this.filteredDiscounts = [];
+          return;
         }
-      });
+
+        const claimedCouponsUrl = `${environment.apiBaseUrl}/api/coupons/user?userId=${encodeURIComponent(String(userId))}&status=CLAIMED`;
+        this.http.get<ApiResponse<UserCouponDto[]>>(claimedCouponsUrl).subscribe({
+          next: (claimedRes) => {
+            this.discountLoading = false;
+            const claimed = Array.isArray(claimedRes?.data) ? claimedRes.data : [];
+            this.claimedCouponCodes = new Set(
+              claimed
+                .map((row) => String(row?.coupon?.code || '').trim().toUpperCase())
+                .filter((code) => !!code)
+            );
+            this.discountOptions = coupons;
+            this.filterDiscounts();
+          },
+          error: () => {
+            this.discountLoading = false;
+            this.claimedCouponCodes = new Set();
+            this.discountOptions = coupons;
+            this.filterDiscounts();
+          }
+        });
+      },
+      error: () => {
+        this.discountLoading = false;
+        this.discountLoadError = 'Không tải được danh sách mã giảm giá.';
+        this.discountOptions = [];
+        this.filteredDiscounts = [];
+      }
+    });
   }
 
   filterDiscounts(): void {
-    console.log('🛒 Filtering discounts with query:', this.discountSearchQuery);
-    
-    if (!this.discountSearchQuery.trim()) {
-      this.filteredDiscounts = [...this.discountOptions];
-      console.log('🛒 No search query, showing all discounts:', this.filteredDiscounts.length);
-      return;
-    }
-    
     const query = this.discountSearchQuery.toLowerCase().trim();
-    this.filteredDiscounts = this.discountOptions.filter(coupon => 
-      coupon.code.toLowerCase().includes(query) ||
-      (coupon.description && coupon.description.toLowerCase().includes(query))
-    );
-    
-    console.log('🛒 Filtered discounts:', this.filteredDiscounts.length);
+    const filtered = !query
+      ? [...this.discountOptions]
+      : this.discountOptions.filter((coupon) =>
+          coupon.code.toLowerCase().includes(query) ||
+          !!coupon.description?.toLowerCase().includes(query)
+        );
+
+    this.filteredDiscounts = filtered.sort((a, b) => {
+      const aEligible = this.isDiscountEligible(a) ? 1 : 0;
+      const bEligible = this.isDiscountEligible(b) ? 1 : 0;
+      if (aEligible !== bEligible) return bEligible - aEligible;
+      return String(a.code || '').localeCompare(String(b.code || ''), 'vi');
+    });
   }
 
   isDiscountEligible(coupon: CouponDto): boolean {
-    // Check if coupon is active
-    if (coupon.active === false) {
-      return false;
-    }
-    
-    // Check minimum order amount
+    const code = String(coupon.code || '').trim().toUpperCase();
+    if (!code || !this.claimedCouponCodes.has(code)) return false;
+    if (coupon.active === false) return false;
     const min = Number(coupon?.minOrderAmount);
-    if (Number.isFinite(min) && min > 0) {
-      if (this.subtotal < min) {
-        return false;
-      }
-    }
-    
-    // Check if coupon has expired
-    if (coupon.endsAt) {
-      const endDate = new Date(coupon.endsAt);
-      if (endDate < new Date()) {
-        return false;
-      }
-    }
-    
-    // Check if coupon has started
-    if (coupon.startsAt) {
-      const startDate = new Date(coupon.startsAt);
-      if (startDate > new Date()) {
-        return false;
-      }
-    }
-    
-    // Check usage limit
-    if (coupon.usageLimit && coupon.usedCount) {
-      if (coupon.usedCount >= coupon.usageLimit) {
-        return false;
-      }
-    }
-    
+    if (Number.isFinite(min) && min > 0 && this.subtotal < min) return false;
+    if (coupon.endsAt && new Date(coupon.endsAt) < new Date()) return false;
+    if (coupon.startsAt && new Date(coupon.startsAt) > new Date()) return false;
+    if (coupon.usageLimit && coupon.usedCount && coupon.usedCount >= coupon.usageLimit) return false;
     return true;
   }
 
+  isDiscountSelected(coupon: CouponDto): boolean {
+    return this.discountCode.trim().toUpperCase() === String(coupon.code || '').trim().toUpperCase();
+  }
+
   pickDiscount(coupon: CouponDto): void {
-    console.log('🛒 Picking discount coupon:', coupon);
-    
-    // Only apply if eligible
-    if (!this.isDiscountEligible(coupon)) {
-      console.log('🛒 Coupon not eligible, cannot apply');
-      return;
-    }
-    
+    if (!this.isDiscountEligible(coupon)) return;
     this.discountCode = coupon.code;
     this.discountModalOpen = false;
     this.applyDiscount();
   }
 
-  // Discount functionality
   applyDiscount(): void {
     const userId = this.getCurrentUserId();
-    console.log('🛒 Applying discount, userId:', userId, 'code:', this.discountCode, 'subtotal:', this.subtotal);
-    
     if (!userId) {
-      console.log('🛒 User not logged in for discount');
       this.discountMessage = 'Vui lòng đăng nhập để sử dụng mã giảm giá.';
       this.discountAmount = 0;
       return;
     }
 
     if (!this.discountCode.trim()) {
-      console.log('🛒 No discount code provided');
       this.discountMessage = 'Vui lòng nhập mã giảm giá';
       return;
     }
 
     const code = this.discountCode.toUpperCase().trim();
-    
-    // First try to apply from mock data
-    const mockCoupon = this.discountOptions.find(c => c.code === code);
+    const mockCoupon = this.discountOptions.find((c) => c.code === code);
     if (mockCoupon) {
-      console.log('🛒 Found mock coupon:', mockCoupon);
-      
-      // Check eligibility
       if (!this.isDiscountEligible(mockCoupon)) {
         this.discountAmount = 0;
         this.discountMessage = `Đơn hàng tối thiểu ${this.formatMoney(mockCoupon.minOrderAmount || 0)}đ để áp dụng mã này.`;
         return;
       }
-      
-      // Calculate discount
+
       let discount = 0;
       if (mockCoupon.discountPercent) {
         discount = this.subtotal * (mockCoupon.discountPercent / 100);
-        if (mockCoupon.maxDiscountAmount) {
-          discount = Math.min(discount, mockCoupon.maxDiscountAmount);
-        }
+        if (mockCoupon.maxDiscountAmount) discount = Math.min(discount, mockCoupon.maxDiscountAmount);
       } else if (mockCoupon.discountAmount) {
         discount = mockCoupon.discountAmount;
       }
-      
+
       this.discountAmount = Math.min(Math.round(discount), this.subtotal);
       this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
-      console.log('🛒 Mock discount applied successfully:', this.discountAmount);
       return;
     }
-    
-    // If not found in mock data, try API
+
     const apiUrl = `${environment.apiBaseUrl}/api/coupons/preview`;
-    const requestBody = {
+    this.http.post<ApiResponse<{ discount: number }>>(apiUrl, {
       userId,
       couponCode: code,
       subtotal: this.subtotal
-    };
-    
-    console.log('🛒 Discount preview API call:', apiUrl, requestBody);
-    
-    this.http
-      .post<ApiResponse<{ couponCode: string; subtotal: number; discount: number; totalAfterDiscount: number }>>(
-        apiUrl,
-        requestBody
-      )
-      .subscribe({
-        next: (res) => {
-          console.log('🛒 Discount preview response:', res);
-          const d = res?.data;
-          const discount = Number((d as any)?.discount);
-          
-          if (!Number.isFinite(discount) || discount <= 0) {
-            console.log('🛒 Invalid discount amount:', discount);
-            this.discountAmount = 0;
-            this.discountMessage = 'Mã giảm giá không hợp lệ hoặc không áp dụng được.';
-            return;
-          }
-          
-          this.discountAmount = Math.min(Math.round(discount), this.subtotal);
-          this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
-          console.log('🛒 Discount applied successfully:', this.discountAmount);
-        },
-        error: (err) => {
-          console.error('🛒 Discount preview error:', err);
+    }).subscribe({
+      next: (res) => {
+        const discount = Number(res?.data?.discount);
+        if (!Number.isFinite(discount) || discount <= 0) {
           this.discountAmount = 0;
           this.discountMessage = 'Mã giảm giá không hợp lệ hoặc không áp dụng được.';
+          return;
         }
-      });
+        this.discountAmount = Math.min(Math.round(discount), this.subtotal);
+        this.discountMessage = `Đã áp dụng mã giảm giá: -${this.formatMoney(this.discountAmount)}đ`;
+      },
+      error: () => {
+        this.discountAmount = 0;
+        this.discountMessage = 'Mã giảm giá không hợp lệ hoặc không áp dụng được.';
+      }
+    });
   }
 
-  // Address functionality
   selectAddress(index: number): void {
     this.selectedAddressIndex = index;
-    console.log('🛒 Selected address:', this.addresses[index]);
   }
 
   selectAddressFromModal(index: number): void {
@@ -797,17 +786,12 @@ export class CartComponent implements OnInit {
     this.closeAddressModal();
   }
 
-  // Address management methods
   isNewAddressValid(): boolean {
-    return !!(this.newAddress.name?.trim() && 
-              this.newAddress.phone?.trim() && 
-              this.newAddress.address?.trim());
+    return !!(this.newAddress.name?.trim() && this.newAddress.phone?.trim() && this.newAddress.address?.trim());
   }
 
   isQuickAddressValid(): boolean {
-    return !!(this.quickAddress.name?.trim() && 
-              this.quickAddress.phone?.trim() && 
-              this.quickAddress.address?.trim());
+    return !!(this.quickAddress.name?.trim() && this.quickAddress.phone?.trim() && this.quickAddress.address?.trim());
   }
 
   cancelAddAddress(): void {
@@ -821,58 +805,31 @@ export class CartComponent implements OnInit {
   }
 
   resetNewAddress(): void {
-    this.newAddress = {
-      name: '',
-      phone: '',
-      address: '',
-      type: ''
-    };
+    this.newAddress = { name: '', phone: '', address: '', type: '' };
   }
 
   resetQuickAddress(): void {
-    this.quickAddress = {
-      name: '',
-      phone: '',
-      address: '',
-      province: '',
-      district: ''
-    };
+    this.quickAddress = { name: '', phone: '', address: '', province: '', district: '' };
   }
 
   saveNewAddress(): void {
-    if (!this.isNewAddressValid()) {
-      console.log('🛒 New address is not valid');
-      return;
-    }
-
+    if (!this.isNewAddressValid()) return;
     const address: Address = {
-      id: Date.now(), // Temporary ID
+      id: Date.now(),
       name: this.newAddress.name!.trim(),
       phone: this.newAddress.phone!.trim(),
       address: this.newAddress.address!.trim(),
       type: this.newAddress.type || undefined
     };
-
     this.addresses.push(address);
     this.saveAddressesToStorage();
     this.showAddAddress = false;
     this.resetNewAddress();
-    
-    // Auto-select the new address if it's the first one
-    if (this.addresses.length === 1) {
-      this.selectedAddressIndex = 0;
-    }
-    
-    console.log('🛒 Added new address:', address);
+    if (this.addresses.length === 1) this.selectedAddressIndex = 0;
   }
 
   saveQuickAddress(): void {
-    if (!this.isQuickAddressValid()) {
-      console.log('🛒 Quick address is not valid');
-      return;
-    }
-
-    // Combine address parts
+    if (!this.isQuickAddressValid()) return;
     const fullAddress = [
       this.quickAddress.address?.trim(),
       this.quickAddress.district?.trim(),
@@ -880,36 +837,25 @@ export class CartComponent implements OnInit {
     ].filter(Boolean).join(', ');
 
     const address: Address = {
-      id: Date.now(), // Temporary ID
+      id: Date.now(),
       name: this.quickAddress.name!.trim(),
       phone: this.quickAddress.phone!.trim(),
       address: fullAddress,
-      type: 'Nhà riêng', // Default type for quick add
+      type: 'NhĂ  riĂªng',
       province: this.quickAddress.province?.trim() || undefined,
       district: this.quickAddress.district?.trim() || undefined
     };
-
     this.addresses.push(address);
     this.saveAddressesToStorage();
     this.showAddAddressForm = false;
     this.resetQuickAddress();
-    
-    // Auto-select the new address if it's the first one
-    if (this.addresses.length === 1) {
-      this.selectedAddressIndex = 0;
-    }
-    
-    console.log('🛒 Added quick address:', address);
+    if (this.addresses.length === 1) this.selectedAddressIndex = 0;
   }
 
   setPrimaryAddress(index: number): void {
     if (index < 0 || index >= this.addresses.length) return;
-    
-    // Move the selected address to the top
     const primaryAddress = this.addresses.splice(index, 1)[0];
     this.addresses.unshift(primaryAddress);
-    
-    // Update selected index
     if (this.selectedAddressIndex === index) {
       this.selectedAddressIndex = 0;
     } else if (this.selectedAddressIndex > index) {
@@ -917,52 +863,30 @@ export class CartComponent implements OnInit {
     } else if (this.selectedAddressIndex < index) {
       this.selectedAddressIndex++;
     }
-    
     this.saveAddressesToStorage();
-    console.log('🛒 Set primary address:', this.addresses[0]);
   }
 
   deleteAddress(index: number): void {
     if (index < 0 || index >= this.addresses.length) return;
-    
-    const deletedAddress = this.addresses[index];
     this.addresses.splice(index, 1);
-    
-    // Update selected index
     if (this.selectedAddressIndex === index) {
       this.selectedAddressIndex = this.addresses.length > 0 ? 0 : -1;
     } else if (this.selectedAddressIndex > index) {
       this.selectedAddressIndex--;
     }
-    
     this.saveAddressesToStorage();
-    console.log('🛒 Deleted address:', deletedAddress);
   }
 
   private saveAddressesToStorage(): void {
     try {
       localStorage.setItem('addresses', JSON.stringify(this.addresses));
-      console.log('🛒 Saved addresses to storage:', this.addresses.length);
-    } catch (error) {
-      console.error('🛒 Error saving addresses:', error);
+    } catch {
     }
   }
 
   proceedToCheckout(): void {
-    if (this.items.length === 0) {
-      console.log('🛒 Cannot proceed to checkout: cart is empty');
-      return;
-    }
-
-    if (this.selectedAddressIndex === -1) {
-      console.log('🛒 Cannot proceed to checkout: no address selected');
-      return;
-    }
-
+    if (this.items.length === 0 || this.selectedAddressIndex === -1) return;
     const selectedAddress = this.addresses[this.selectedAddressIndex];
-    console.log('🛒 Proceeding to checkout with address:', selectedAddress);
-    
-    // Navigate to checkout page with selected address
     this.router.navigate(['/checkout'], {
       state: {
         items: this.items,
@@ -977,7 +901,6 @@ export class CartComponent implements OnInit {
   }
 
   continueShopping(): void {
-    console.log('🛒 Continuing shopping');
     this.router.navigate(['/sale']);
   }
 
@@ -985,11 +908,9 @@ export class CartComponent implements OnInit {
     if (confirm('Bạn có chắc muốn xóa tất cả sản phẩm trong giỏ hàng?')) {
       this.items = [];
       this.persistCart();
-      console.log('🛒 Cart cleared');
     }
   }
 
-  // Payment method functionality
   selectPaymentMethod(index: number): void {
     this.selectedPaymentMethod = index;
   }
@@ -1008,4 +929,170 @@ export class CartComponent implements OnInit {
   scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  private buildShipmentGroup(key: string, items: CartItem[]): ShipmentGroup {
+    const first = items[0];
+    const branch = this.findBranch(first);
+    const branchName = String(branch?.name || first?.branchName || first?.branch || 'Chi nhánh chưa rõ').trim();
+    const branchAddress = this.formatBranchAddress(branch);
+    const branchProvince = this.resolveBranchProvince(branch, first, branchName, branchAddress);
+    const customerProvince = String(this.selectedAddress?.province || '').trim();
+    const sameProvince = this.shippingConfigService.isSameProvince(branchProvince, customerProvince);
+    const zoneKey = sameProvince ? 'sameProvince' : 'differentProvince';
+    const actualDistance = this.computeDistanceKm(
+      branch?.latitude,
+      branch?.longitude,
+      this.selectedAddress?.latitude,
+      this.selectedAddress?.longitude
+    );
+    const options = (['ECONOMY', 'FAST'] as DeliveryMethod[]).map((method) =>
+      this.buildShipmentOption(method, this.shippingPricing[zoneKey][method], actualDistance)
+    );
+    const storedMethod = this.selectedShipmentMethods[key] || this.readStoredShipmentMethod(key);
+    const selectedOption = options.find((option) => option.method === storedMethod) || options[0];
+
+    return {
+      key,
+      branchId: branch?.id ?? first?.branchId ?? null,
+      branchCode: String(branch?.code || '').trim(),
+      branchName,
+      branchAddress,
+      branchProvince,
+      customerProvince,
+      sameProvince,
+      items,
+      itemCount: items.length,
+      quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+      subtotal: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      distanceSource: actualDistance != null ? 'map' : 'config',
+      options,
+      selectedOption
+    };
+  }
+
+  private buildShipmentOption(method: DeliveryMethod, cfgList: DeliveryDistanceTier[], actualDistanceKm: number | null): ShipmentOption {
+    const cfg = this.pickTierForDistance(cfgList, actualDistanceKm);
+    return {
+      method,
+      label: method === 'FAST' ? 'Giao nhanh' : 'Giao tiết kiệm',
+      distanceKm: actualDistanceKm != null ? actualDistanceKm : Math.max(0, Number(cfg.maxDistanceKm || 0)),
+      fee: Math.max(0, Number(cfg.fee || 0)),
+      minDays: Math.max(0, Number(cfg.minDays || 0)),
+      maxDays: Math.max(0, Number(cfg.maxDays || 0))
+    };
+  }
+
+  private pickTierForDistance(tiers: DeliveryDistanceTier[], distanceKm: number | null): DeliveryDistanceTier {
+    const normalized = (Array.isArray(tiers) ? tiers : [])
+      .slice()
+      .sort((a, b) => a.minDistanceKm - b.minDistanceKm || a.maxDistanceKm - b.maxDistanceKm);
+    if (!normalized.length) {
+      return { minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 };
+    }
+    if (distanceKm == null) return normalized[0];
+    const matched = normalized.find((tier) => distanceKm >= Number(tier.minDistanceKm || 0) && distanceKm <= Number(tier.maxDistanceKm || 0));
+    if (matched) return matched;
+    const above = normalized.find((tier) => distanceKm < Number(tier.minDistanceKm || 0));
+    if (above) return above;
+    return normalized[normalized.length - 1];
+  }
+
+  private findBranch(item: CartItem | null | undefined): AdminBranchResponse | null {
+    if (!item) return null;
+    if (item.branchId != null) {
+      const byId = this.branches.find((branch) => branch.id === item.branchId);
+      if (byId) return byId;
+    }
+    const branchName = this.normalizeLookupText(item.branchName || item.branch || '');
+    if (!branchName) return null;
+    return this.branches.find((branch) => {
+      const candidateName = this.normalizeLookupText(branch.name || '');
+      const candidateCode = this.normalizeLookupText(branch.code || '');
+      return candidateName === branchName || candidateCode === branchName || candidateName.includes(branchName) || branchName.includes(candidateName);
+    }) || null;
+  }
+
+  private resolveBranchProvince(
+    branch: AdminBranchResponse | null,
+    item: CartItem | null | undefined,
+    branchName: string,
+    branchAddress: string
+  ): string {
+    const direct = String(branch?.province || '').trim();
+    if (direct) return direct;
+
+    const fromItemName = this.findProvinceFromText(String(item?.branchName || item?.branch || '').trim());
+    if (fromItemName) return fromItemName;
+
+    const fromAddress = this.findProvinceFromText(branchAddress);
+    if (fromAddress) return fromAddress;
+
+    return this.findProvinceFromText(branchName);
+  }
+
+  private findProvinceFromText(value: string): string {
+    const text = this.normalizeLookupText(value);
+    if (!text) return '';
+    const provinces = this.branches
+      .map((branch) => String(branch.province || '').trim())
+      .filter((province, index, arr) => !!province && arr.indexOf(province) === index);
+
+    return provinces.find((province) => {
+      const normalizedProvince = this.normalizeLookupText(province);
+      return !!normalizedProvince && (text.includes(normalizedProvince) || normalizedProvince.includes(text));
+    }) || '';
+  }
+
+  private normalizeLookupText(value: unknown): string {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  private formatBranchAddress(branch: AdminBranchResponse | null): string {
+    if (!branch) return 'Chưa đồng bộ địa chỉ từ chi nhánh';
+    const parts = [branch.address, branch.ward, branch.district, branch.province]
+      .map((value) => String(value || '').trim())
+      .filter((value) => !!value);
+    return parts.length ? parts.join(', ') : 'Chưa khai báo địa chỉ';
+  }
+
+  private computeDistanceKm(
+    lat1?: number | null,
+    lng1?: number | null,
+    lat2?: number | null,
+    lng2?: number | null
+  ): number | null {
+    if (![lat1, lng1, lat2, lng2].every((value) => typeof value === 'number' && Number.isFinite(value))) {
+      return null;
+    }
+    const toRad = (deg: number) => deg * Math.PI / 180;
+    const dLat = toRad((lat2 as number) - (lat1 as number));
+    const dLng = toRad((lng2 as number) - (lng1 as number));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1 as number)) * Math.cos(toRad(lat2 as number)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(6371 * c * 10) / 10;
+  }
+
+  private getShipmentMethodStorageKey(key: string): string {
+    return `cart_shipping_method_${key}`;
+  }
+
+  private readStoredShipmentMethod(key: string): DeliveryMethod | null {
+    try {
+      const raw = localStorage.getItem(this.getShipmentMethodStorageKey(key));
+      return raw === 'FAST' || raw === 'ECONOMY' ? raw : null;
+    } catch {
+      return null;
+    }
+  }
 }
+

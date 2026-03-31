@@ -444,7 +444,9 @@ export class ProductDetailComponent implements OnInit {
           price: x.price!,
           quantity: typeof x.quantity === 'number' && x.quantity > 0 ? x.quantity : 1,
           size: x.size,
-          color: x.color
+          color: x.color,
+          branchId: typeof x.branchId === 'number' ? x.branchId : undefined,
+          branchName: x.branchName
         }));
     } catch {
       return [];

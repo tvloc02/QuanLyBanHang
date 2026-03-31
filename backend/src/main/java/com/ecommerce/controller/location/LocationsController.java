@@ -51,4 +51,13 @@ public class LocationsController {
             return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "Internal Server Error"));
         }
     }
+
+    @GetMapping("/search-geocode")
+    public ResponseEntity<ApiResponse<Object>> searchGeocode(@RequestParam("q") String query) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(locationService.searchGeocode(query)));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "Internal Server Error"));
+        }
+    }
 }

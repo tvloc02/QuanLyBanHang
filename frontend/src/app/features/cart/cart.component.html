@@ -3,8 +3,8 @@
     <div class="cart-header" *ngIf="items.length > 0">
       <div class="cart-heading">
         <p class="cart-kicker">Giỏ hàng</p>
-        <h1>Kiểm tra sản phẩm trước khi tiến hành thanh toán</h1>
-        <p class="cart-subtitle">Sản phẩm nằm bên trái, còn địa chỉ, voucher, phương thức thanh toán và tổng tiền ở cột bên phải.</p>
+        <h1>Kiểm tra sản phẩm và phí giao hàng theo từng chi nhánh</h1>
+        <p class="cart-subtitle">Hệ thống sẽ tách đơn theo kho sản phẩm, hiển thị lựa chọn giao hàng và cộng dồn phí vận chuyển.</p>
       </div>
       <a class="continue-shopping-btn" routerLink="/products">← Tiếp tục mua sắm</a>
     </div>
@@ -22,7 +22,7 @@
           <div class="section-header">
             <div>
               <h2>Sản phẩm ({{ items.length }})</h2>
-              <p>Điều chỉnh số lượng và xóa các sản phẩm không cần thiết trước khi thanh toán.</p>
+              <p>Chọn sản phẩm cần thanh toán. Các sản phẩm ở nhiều kho sẽ được tách riêng để tính phí giao hàng.</p>
             </div>
             <button type="button" class="clear-cart-btn" (click)="clearCart()">Xóa tất cả</button>
           </div>
@@ -51,7 +51,7 @@
                     <div class="item-meta">
                       <span *ngIf="item.color">Màu: {{ item.color }}</span>
                       <span *ngIf="item.size">Size: {{ item.size }}</span>
-                      <span *ngIf="item.branch">Chi nhánh: {{ item.branch }}</span>
+                      <span *ngIf="item.branchName || item.branch">Chi nhánh: {{ item.branchName || item.branch }}</span>
                     </div>
                     <div class="item-price-line">
                       <span class="item-current-price">{{ item.price | number:'1.0-0' }}đ</span>
@@ -83,7 +83,7 @@
           <div class="section-header compact">
             <div>
               <h2>Địa chỉ giao hàng</h2>
-              <p>Hiện địa chỉ mặc định, bấm chọn để đổi sang địa chỉ khác.</p>
+              <p>Chọn địa chỉ để hệ thống xác định cùng tỉnh hay khác tỉnh với kho chi nhánh.</p>
             </div>
             <button type="button" class="secondary-btn" (click)="openAddressModal()">Chọn địa chỉ khác</button>
           </div>
@@ -102,6 +102,72 @@
 
           <ng-template #noAddressSelected>
             <div class="empty-address">Chưa có địa chỉ nào. Hãy thêm hoặc chọn một địa chỉ để tiếp tục.</div>
+          </ng-template>
+        </section>
+
+        <section class="cart-section system-card">
+          <div class="section-header compact">
+            <div>
+              <h2>Chọn hình thức giao hàng</h2>
+              <p>Chọn hình thức giao hàng phù hợp cho từng đơn.</p>
+            </div>
+          </div>
+
+          <div class="shipment-groups" *ngIf="shipmentGroups.length > 0; else emptyShipmentState">
+            <article class="shipment-card" *ngFor="let shipment of shipmentGroups">
+              <div class="shipment-head">
+                <div>
+                  <div class="shipment-title">{{ shipment.branchName }}</div>
+                  <div class="shipment-subtitle">{{ shipment.branchAddress }}</div>
+                  <div class="shipment-zone">{{ shipment.sameProvince ? 'Khách cùng tỉnh với chi nhánh' : 'Khách khác tỉnh với chi nhánh' }}</div>
+                </div>
+                <div class="shipment-meta">
+                  <strong>{{ shipment.quantity }} SP</strong>
+                  <span>{{ shipment.subtotal | number:'1.0-0' }}đ</span>
+                </div>
+              </div>
+
+              <div class="shipment-products">
+                <div class="shipment-product" *ngFor="let item of shipment.items">
+                  <span>{{ item.name }}</span>
+                  <strong>x{{ item.quantity }}</strong>
+                </div>
+              </div>
+
+              <label
+                class="shipment-option"
+                *ngFor="let option of shipment.options"
+                [class.selected]="shipment.selectedOption.method === option.method"
+                (click)="setShipmentMethod(shipment, option.method)"
+              >
+                <div class="shipment-radio">
+                  <input
+                    type="radio"
+                    [name]="'shipment-' + shipment.key"
+                    [value]="option.method"
+                    [checked]="shipment.selectedOption.method === option.method"
+                    (change)="setShipmentMethod(shipment, option.method)"
+                  >
+                  <span></span>
+                </div>
+
+                <div class="shipment-option-main">
+                  <div class="shipment-option-title">{{ option.label }}</div>
+                  <div class="shipment-option-grid">
+                    <span>Khoảng cách: {{ formatDistanceKm(option.distanceKm) }}</span>
+                    <span>Ngày giao: {{ formatShippingDays(option.minDays, option.maxDays) }}</span>
+                    <strong>{{ option.fee | number:'1.0-0' }}đ</strong>
+                  </div>
+                  <div class="shipment-distance-note">
+                    {{ shipment.distanceSource === 'map' ? 'Khoảng cách đo theo tọa độ bản đồ.' : 'Khoảng cách lấy theo cấu hình mặc định do chưa có đủ tọa độ.' }}
+                  </div>
+                </div>
+              </label>
+            </article>
+          </div>
+
+          <ng-template #emptyShipmentState>
+            <div class="empty-address">Chọn ít nhất một sản phẩm để xem đơn vận chuyển.</div>
           </ng-template>
         </section>
 
@@ -294,8 +360,8 @@
         <div class="voucher-empty" *ngIf="discountLoading">Đang tải mã giảm giá...</div>
         <div class="voucher-empty" *ngIf="!discountLoading && discountLoadError">{{ discountLoadError }}</div>
 
-        <div class="voucher-list" *ngIf="!discountLoading && !discountLoadError && filteredDiscounts.length > 0">
-          <div class="voucher-item" *ngFor="let coupon of filteredDiscounts">
+        <div class="voucher-list" *ngIf="!discountLoading && filteredDiscounts.length > 0">
+          <div class="voucher-item" *ngFor="let coupon of filteredDiscounts" [class.disabled]="!isDiscountEligible(coupon)" [class.selected]="isDiscountSelected(coupon)">
             <div class="voucher-main">
               <div class="voucher-code">{{ coupon.code }}</div>
               <div class="voucher-title">{{ coupon.description || ('Nhập mã ' + coupon.code) }}</div>
@@ -308,13 +374,13 @@
               <div class="voucher-status" *ngIf="!isDiscountEligible(coupon)">Chưa đủ điều kiện</div>
               <div class="voucher-status ok" *ngIf="isDiscountEligible(coupon)">Đủ điều kiện áp dụng</div>
               <button type="button" class="voucher-apply-btn" [disabled]="!isDiscountEligible(coupon)" (click)="pickDiscount(coupon)">
-                Áp dụng
+                {{ isDiscountSelected(coupon) ? 'Đang chọn' : 'Áp dụng' }}
               </button>
             </div>
           </div>
         </div>
 
-        <div class="voucher-empty" *ngIf="!discountLoading && !discountLoadError && filteredDiscounts.length === 0">
+        <div class="voucher-empty" *ngIf="!discountLoading && filteredDiscounts.length === 0">
           Không có mã giảm giá phù hợp.
         </div>
       </div>

@@ -29,4 +29,9 @@ export class LocationService {
     const qs = `?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}`;
     return this.http.get<ApiResponse<any>>(`${environment.apiBaseUrl}/api/locations/reverse-geocode${qs}`);
   }
+
+  searchPlaces(query: string) {
+    const qs = `?q=${encodeURIComponent(query || '')}`;
+    return this.http.get<ApiResponse<any>>(`${environment.apiBaseUrl}/api/locations/search-geocode${qs}`);
+  }
 }

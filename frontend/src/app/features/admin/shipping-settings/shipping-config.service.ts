@@ -26,6 +26,23 @@ export type ProvinceConfigMode = 'before' | 'after';
 
 export type ShippingCarrier = 'GHTK_EXPRESS';
 
+export type DeliveryZone = 'SAME_PROVINCE' | 'DIFFERENT_PROVINCE';
+
+export type DeliveryMethod = 'ECONOMY' | 'FAST';
+
+export interface DeliveryDistanceTier {
+  minDistanceKm: number;
+  maxDistanceKm: number;
+  minDays: number;
+  maxDays: number;
+  fee: number;
+}
+
+export interface DeliveryPricingConfig {
+  sameProvince: Record<DeliveryMethod, DeliveryDistanceTier[]>;
+  differentProvince: Record<DeliveryMethod, DeliveryDistanceTier[]>;
+}
+
 export type ExpressOriginGroup = 'HN_HCM' | 'OTHER_32';
 
 export type ExpressLane = 'NOI_TINH' | 'NOI_MIEN' | 'LIEN_MIEN_GAN' | 'LIEN_MIEN_XA' | 'DAC_BIET_TIEU_CHUAN' | 'DAC_BIET_NHANH';
@@ -70,6 +87,7 @@ export class ShippingConfigService {
   private readonly SETTINGS_KEY = 'shipping_settings';
   private readonly DISTANCE_TEMPLATE_KEY = 'shipping_distance_template';
   private readonly CARRIER_CONFIG_KEY = 'shipping_carrier_config_v1';
+  private readonly DELIVERY_PRICING_KEY = 'shipping_delivery_pricing_v1';
 
   private shippingConfigsAfter$ = new BehaviorSubject<ProvinceShippingConfig[]>([]);
   private shippingConfigsBefore$ = new BehaviorSubject<ProvinceShippingConfig[]>([]);
@@ -108,6 +126,16 @@ export class ShippingConfigService {
     expressFee: 40000,
     weekendFee: 10000,
     remoteFee: 20000
+  });
+  private deliveryPricing$ = new BehaviorSubject<DeliveryPricingConfig>({
+    sameProvince: {
+      ECONOMY: [{ minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 }],
+      FAST: [{ minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 }]
+    },
+    differentProvince: {
+      ECONOMY: [{ minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 }],
+      FAST: [{ minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 }]
+    }
   });
 
   // Danh sách 63 tỉnh thành Việt Nam với thông tin sáp nhập
@@ -238,6 +266,14 @@ export class ShippingConfigService {
     return this.distanceTemplate$.asObservable();
   }
 
+  getDeliveryPricing(): Observable<DeliveryPricingConfig> {
+    return this.deliveryPricing$.asObservable();
+  }
+
+  getDeliveryPricingSnapshot(): DeliveryPricingConfig {
+    return JSON.parse(JSON.stringify(this.deliveryPricing$.value));
+  }
+
   getProvinces(): string[] {
     return this.provincesInfo.map(p => p.currentName);
   }
@@ -298,6 +334,33 @@ export class ShippingConfigService {
     this.saveDistanceTemplateToStorage();
   }
 
+  updateDeliveryPricing(config: DeliveryPricingConfig): void {
+    const normalized = this.normalizeDeliveryPricing(config);
+    this.deliveryPricing$.next(normalized);
+    this.saveDeliveryPricingToStorage();
+  }
+
+  normalizeProvinceName(value: unknown): string {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return '';
+    const compact = raw
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/^thanh pho\s+/g, '')
+      .replace(/^tp\.?\s*/g, '')
+      .replace(/^tinh\s+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (compact === 'ho chi minh' || compact === 'hcm' || compact === 'sai gon') return 'ho chi minh';
+    return compact;
+  }
+
+  isSameProvince(branchProvince: unknown, customerProvince: unknown): boolean {
+    const a = this.normalizeProvinceName(branchProvince);
+    const b = this.normalizeProvinceName(customerProvince);
+    return !!a && !!b && a === b;
+  }
+
   // Calculate shipping fee
   calculateShippingFee(province: string, distance: number): number {
     const config = this.getProvinceConfig(province, 'after');
@@ -351,6 +414,56 @@ export class ShippingConfigService {
     } catch {
       // ignore
     }
+  }
+
+  private saveDeliveryPricingToStorage(): void {
+    try {
+      localStorage.setItem(this.DELIVERY_PRICING_KEY, JSON.stringify(this.deliveryPricing$.value));
+    } catch {
+      // ignore
+    }
+  }
+
+  private normalizeDeliveryDistanceTier(raw: any, fallback: DeliveryDistanceTier): DeliveryDistanceTier {
+    const minDistanceKm = Number(raw?.minDistanceKm ?? raw?.minDistance ?? 0);
+    const maxDistanceKm = Number(raw?.maxDistanceKm ?? raw?.distanceKm ?? raw?.maxDistance ?? 0);
+    const minDays = Number(raw?.minDays);
+    const maxDays = Number(raw?.maxDays);
+    const fee = Number(raw?.fee);
+    const safeMin = Number.isFinite(minDistanceKm) ? Math.max(0, minDistanceKm) : fallback.minDistanceKm;
+    const safeMaxBase = Number.isFinite(maxDistanceKm) ? Math.max(0, maxDistanceKm) : fallback.maxDistanceKm;
+    const safeMax = Math.max(safeMin, safeMaxBase);
+    const safeMinDays = Number.isFinite(minDays) ? Math.max(0, Math.round(minDays)) : fallback.minDays;
+    const safeMaxDays = Number.isFinite(maxDays) ? Math.max(0, Math.round(maxDays)) : fallback.maxDays;
+    return {
+      minDistanceKm: safeMin,
+      maxDistanceKm: safeMax,
+      minDays: Math.min(safeMinDays, safeMaxDays),
+      maxDays: Math.max(safeMinDays, safeMaxDays),
+      fee: Number.isFinite(fee) ? Math.max(0, fee) : fallback.fee
+    };
+  }
+
+  private normalizeDeliveryTierList(raw: any, fallback: DeliveryDistanceTier[]): DeliveryDistanceTier[] {
+    const baseFallback = fallback.length ? fallback : [{ minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 }];
+    const rows = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    const normalized = rows.map((row, index) => this.normalizeDeliveryDistanceTier(row, baseFallback[Math.min(index, baseFallback.length - 1)]));
+    return (normalized.length ? normalized : baseFallback.map((row) => ({ ...row })))
+      .sort((a, b) => a.minDistanceKm - b.minDistanceKm || a.maxDistanceKm - b.maxDistanceKm);
+  }
+
+  private normalizeDeliveryPricing(raw: any): DeliveryPricingConfig {
+    const fallback = this.deliveryPricing$.value;
+    return {
+      sameProvince: {
+        ECONOMY: this.normalizeDeliveryTierList(raw?.sameProvince?.ECONOMY, fallback.sameProvince.ECONOMY),
+        FAST: this.normalizeDeliveryTierList(raw?.sameProvince?.FAST, fallback.sameProvince.FAST)
+      },
+      differentProvince: {
+        ECONOMY: this.normalizeDeliveryTierList(raw?.differentProvince?.ECONOMY, fallback.differentProvince.ECONOMY),
+        FAST: this.normalizeDeliveryTierList(raw?.differentProvince?.FAST, fallback.differentProvince.FAST)
+      }
+    };
   }
 
   importFromCSV(csvData: string): { success: boolean; message: string; imported: number } {
@@ -486,6 +599,14 @@ export class ShippingConfigService {
         }
       } else {
         this.saveCarrierConfigToStorage();
+      }
+
+      const storedDeliveryPricing = localStorage.getItem(this.DELIVERY_PRICING_KEY);
+      if (storedDeliveryPricing) {
+        const parsed = JSON.parse(storedDeliveryPricing);
+        this.deliveryPricing$.next(this.normalizeDeliveryPricing(parsed));
+      } else {
+        this.saveDeliveryPricingToStorage();
       }
     } catch (error) {
       console.error('Error loading shipping config from storage:', error);

@@ -28,6 +28,7 @@ export interface UserMeResponse {
   email?: string | null;
   username?: string | null;
   phone?: string | null;
+  roles?: string[] | null;
   province?: string | null;
   district?: string | null;
   ward?: string | null;

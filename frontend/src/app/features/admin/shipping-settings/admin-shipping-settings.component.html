@@ -1,191 +1,181 @@
 <div class="space-y-6">
-   <!-- Header (giống /admin/users) -->
-   <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
-     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-       <div class="flex items-start sm:items-center gap-4 min-w-0">
-         <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-           <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-             <path d="M3.3 7 12 12l8.7-5" />
-             <path d="M12 22V12" />
-           </svg>
-         </div>
-          <div class="min-w-0">
-            <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Cấu hình phí vận chuyển</h1>
-            <p class="text-blue-100 text-sm sm:text-base">Quản lý phí vận chuyển theo đơn vị vận chuyển và bảng giá cân nặng</p>
+  <div class="bg-gradient-to-r from-blue-700 to-blue-500 rounded-3xl shadow-xl p-6 sm:p-8 text-white">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-3xl">
+        <h1 class="text-3xl sm:text-4xl font-black tracking-tight">Cấu hình vận chuyển cho giỏ hàng</h1>
+      </div>
+      <button
+        type="button"
+        (click)="save()"
+        [disabled]="saving"
+        class="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-white text-blue-700 font-extrabold shadow hover:bg-blue-50 disabled:opacity-60"
+      >
+        {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="text-sm font-bold text-slate-500 uppercase tracking-wide">Chi nhánh có địa chỉ</div>
+      <div class="mt-2 text-3xl font-black text-slate-900">{{ configuredBranchCount }}/{{ branches.length }}</div>
+      <div class="mt-2 text-sm text-slate-600">Dùng để xác định cùng tỉnh hay khác tỉnh khi tính phí.</div>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="text-sm font-bold text-slate-500 uppercase tracking-wide">Chi nhánh có tọa độ</div>
+      <div class="mt-2 text-3xl font-black text-slate-900">{{ geoReadyBranchCount }}/{{ branches.length }}</div>
+      <div class="mt-2 text-sm text-slate-600">Nếu có tọa độ, cart sẽ hiển thị quãng đường đo thực tế.</div>
+    </div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="text-sm font-bold text-slate-500 uppercase tracking-wide">Cách áp dụng</div>
+      <div class="mt-2 text-base font-bold text-slate-900">Tách đơn theo chi nhánh</div>
+      <div class="mt-2 text-sm text-slate-600">Mỗi nhóm sản phẩm theo kho sẽ có 2 lựa chọn giao hàng riêng và cộng dồn phí.</div>
+    </div>
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-2">
+    <section
+      *ngFor="let zone of zoneMeta"
+      class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+    >
+      <div class="px-6 py-5 border-b border-slate-200 bg-slate-50">
+        <h2 class="text-xl font-black text-slate-900">{{ zone.label }}</h2>
+        <p class="mt-2 text-sm text-slate-600">{{ zone.description }}</p>
+      </div>
+
+      <div class="p-5 space-y-5">
+        <div *ngFor="let method of methodMeta" class="rounded-2xl border border-slate-200 overflow-hidden">
+          <div class="flex items-center justify-between gap-4 px-4 py-3 bg-white border-b border-slate-200">
+            <div>
+              <div class="font-extrabold text-slate-900">{{ method.label }}</div>
+              <div class="mt-1 inline-flex px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">{{ method.badge }}</div>
+            </div>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center min-w-10 h-10 rounded-xl bg-blue-600 text-white text-xl font-black hover:bg-blue-700"
+              (click)="addTier(zone.key, method.method)"
+              title="Thêm mốc khoảng cách"
+            >
+              +
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse">
+              <thead>
+                <tr class="bg-slate-50">
+                  <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Từ km</th>
+                  <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Đến km</th>
+                  <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Từ ngày</th>
+                  <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Đến ngày</th>
+                  <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Giá giao hàng</th>
+                  <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Tác vụ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let tier of getMethodTiers(zone.key, method.method); let i = index" class="border-b border-slate-100 last:border-b-0">
+                  <td class="px-4 py-4 text-center">
+                    <input type="number" min="0" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 text-center"
+                      [ngModel]="tier.minDistanceKm"
+                      (ngModelChange)="updateTierField(zone.key, method.method, i, 'minDistanceKm', $event)" />
+                  </td>
+                  <td class="px-4 py-4 text-center">
+                    <input type="number" min="0" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 text-center"
+                      [ngModel]="tier.maxDistanceKm"
+                      (ngModelChange)="updateTierField(zone.key, method.method, i, 'maxDistanceKm', $event)" />
+                  </td>
+                  <td class="px-4 py-4 text-center">
+                    <input type="number" min="0" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 text-center"
+                      [ngModel]="tier.minDays"
+                      (ngModelChange)="updateTierField(zone.key, method.method, i, 'minDays', $event)" />
+                  </td>
+                  <td class="px-4 py-4 text-center">
+                    <input type="number" min="0" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 text-center"
+                      [ngModel]="tier.maxDays"
+                      (ngModelChange)="updateTierField(zone.key, method.method, i, 'maxDays', $event)" />
+                  </td>
+                  <td class="px-4 py-4 text-center">
+                    <input type="number" min="0" class="w-32 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 text-center"
+                      [ngModel]="tier.fee"
+                      (ngModelChange)="updateTierField(zone.key, method.method, i, 'fee', $event)" />
+                  </td>
+                  <td class="px-4 py-4 text-center">
+                    <button
+                      type="button"
+                      class="inline-flex items-center justify-center min-w-10 h-10 rounded-xl bg-rose-50 text-rose-600 text-lg font-black hover:bg-rose-100 disabled:opacity-50"
+                      [disabled]="getMethodTiers(zone.key, method.method).length <= 1"
+                      (click)="removeTier(zone.key, method.method, i)"
+                      title="Xóa mốc khoảng cách"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+    </section>
+  </div>
+
+  <section class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-black text-slate-900">Chi nhánh lấy địa chỉ để tính phí</h2>
+        <p class="mt-2 text-sm text-slate-600">
+          Dữ liệu bên dưới lấy trực tiếp từ trang <code>/admin/branches</code>. Cart sẽ dùng địa chỉ/tọa độ này để định giá vận chuyển.
+        </p>
+      </div>
     </div>
 
-   <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-     <div class="p-5 border-b border-gray-200">
-       <div class="text-lg font-extrabold text-gray-900">Đơn vị vận chuyển</div>
-       <div class="text-sm text-gray-600 font-semibold mt-1">Chọn đơn vị và nhập bảng giá theo mẫu.</div>
-     </div>
+    <div *ngIf="branchesError" class="m-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+      {{ branchesError }}
+    </div>
 
-     <div class="p-5 space-y-4">
-       <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 items-end">
-         <div>
-           <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Đơn vị vận chuyển</label>
-           <select
-             class="appearance-none w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm hover:border-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
-             [ngModel]="carrierConfig?.carrier || 'GHTK_EXPRESS'"
-             (ngModelChange)="onCarrierChanged($event)"
-           >
-             <option *ngFor="let opt of carrierOptions" [value]="opt.value">{{ opt.label }}</option>
-           </select>
-         </div>
+    <div *ngIf="branchesLoading" class="p-6 text-sm font-semibold text-slate-500">Đang tải danh sách chi nhánh...</div>
 
-         <div class="lg:col-span-2 flex justify-end">
-           <button
-             type="button"
-             (click)="saveCarrierConfig()"
-             [disabled]="carrierSaving"
-             class="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-extrabold text-sm hover:bg-blue-700 disabled:opacity-60"
-           >
-             <span>{{ carrierSaving ? 'Đang lưu...' : 'Lưu bảng giá' }}</span>
-           </button>
-         </div>
-       </div>
-
-       <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-         <div class="rounded-2xl border border-gray-200 overflow-hidden">
-           <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
-             <div class="font-extrabold text-gray-900">Mẫu 1: Gửi hàng từ Hà Nội &amp; TP.HCM</div>
-             <div class="text-xs text-gray-600 font-semibold">Theo bảng giá Express (VNĐ). Mốc cân nặng: 3kg / 0.5kg; +0.5kg tiếp theo.</div>
-           </div>
-           <div class="overflow-x-auto">
-             <table class="min-w-full border border-gray-200 border-collapse">
-               <thead>
-                 <tr class="bg-white">
-                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Tuyến</th>
-                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Loại</th>
-                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Giá gốc</th>
-                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Kg gốc</th>
-                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">+0.5kg</th>
-                 </tr>
-               </thead>
-               <tbody class="bg-white">
-                 <ng-container *ngFor="let lane of expressLaneMeta">
-                   <tr class="bg-white">
-                     <td class="px-3 py-2 text-sm font-extrabold text-gray-900 border border-gray-200" [attr.rowspan]="wardTypeMeta.length">{{ lane.label }}</td>
-                     <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[0].label }}</td>
-                     <td class="px-3 py-2 text-center border border-gray-200">
-                       <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseFee')"
-                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseFee')"
-                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseFee', $event)" />
-                     </td>
-                     <td class="px-3 py-2 text-center border border-gray-200">
-                       <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
-                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
-                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'baseWeightKg', $event)" />
-                     </td>
-                     <td class="px-3 py-2 text-center border border-gray-200">
-                       <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
-                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
-                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg', $event)" />
-                     </td>
-                   </tr>
-                   <tr class="bg-white" *ngIf="wardTypeMeta.length > 1">
-                     <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[1].label }}</td>
-                     <td class="px-3 py-2 text-center border border-gray-200">
-                       <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseFee')"
-                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseFee')"
-                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseFee', $event)" />
-                     </td>
-                     <td class="px-3 py-2 text-center border border-gray-200">
-                       <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
-                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
-                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'baseWeightKg', $event)" />
-                     </td>
-                     <td class="px-3 py-2 text-center border border-gray-200">
-                       <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                              [ngModel]="getExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
-                              [placeholder]="getExpressPlaceholder('HN_HCM', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
-                              (ngModelChange)="setExpressPrice('HN_HCM', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg', $event)" />
-                     </td>
-                   </tr>
-                 </ng-container>
-               </tbody>
-             </table>
-           </div>
-         </div>
-
-         <div class="rounded-2xl border border-gray-200 overflow-hidden">
-           <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
-             <div class="font-extrabold text-gray-900">Mẫu 2: Gửi hàng từ 32 tỉnh thành (trừ Hà Nội &amp; TP.HCM)</div>
-             <div class="text-xs text-gray-600 font-semibold">Theo bảng giá Express (VNĐ). Không có tuyến “Đặc biệt” trong mẫu này.</div>
-           </div>
-           <div class="overflow-x-auto">
-             <table class="min-w-full border border-gray-200 border-collapse">
-               <thead>
-                 <tr class="bg-white">
-                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Tuyến</th>
-                   <th class="px-3 py-2 text-left text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Loại</th>
-                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Giá gốc</th>
-                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">Kg gốc</th>
-                   <th class="px-3 py-2 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider border border-gray-200">+0.5kg</th>
-                 </tr>
-               </thead>
-               <tbody class="bg-white">
-                 <ng-container *ngFor="let lane of expressLaneMeta">
-                   <ng-container *ngIf="lane.lane !== 'DAC_BIET_TIEU_CHUAN' && lane.lane !== 'DAC_BIET_NHANH'">
-                     <tr class="bg-white">
-                       <td class="px-3 py-2 text-sm font-extrabold text-gray-900 border border-gray-200" [attr.rowspan]="wardTypeMeta.length">{{ lane.label }}</td>
-                       <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[0].label }}</td>
-                       <td class="px-3 py-2 text-center border border-gray-200">
-                         <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseFee')"
-                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseFee')"
-                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseFee', $event)" />
-                       </td>
-                       <td class="px-3 py-2 text-center border border-gray-200">
-                         <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
-                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseWeightKg')"
-                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'baseWeightKg', $event)" />
-                       </td>
-                       <td class="px-3 py-2 text-center border border-gray-200">
-                         <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
-                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg')"
-                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[0].type, 'extraPerHalfKg', $event)" />
-                       </td>
-                     </tr>
-                     <tr class="bg-white" *ngIf="wardTypeMeta.length > 1">
-                       <td class="px-3 py-2 text-sm font-bold text-gray-700 border border-gray-200">{{ wardTypeMeta[1].label }}</td>
-                       <td class="px-3 py-2 text-center border border-gray-200">
-                         <input type="number" min="0" class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseFee')"
-                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseFee')"
-                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseFee', $event)" />
-                       </td>
-                       <td class="px-3 py-2 text-center border border-gray-200">
-                         <input type="number" min="0" step="0.5" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
-                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseWeightKg')"
-                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'baseWeightKg', $event)" />
-                       </td>
-                       <td class="px-3 py-2 text-center border border-gray-200">
-                         <input type="number" min="0" class="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900"
-                                [ngModel]="getExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
-                                [placeholder]="getExpressPlaceholder('OTHER_32', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg')"
-                                (ngModelChange)="setExpressPrice('OTHER_32', lane.lane, wardTypeMeta[1].type, 'extraPerHalfKg', $event)" />
-                       </td>
-                     </tr>
-                   </ng-container>
-                 </ng-container>
-               </tbody>
-             </table>
-           </div>
-         </div>
-       </div>
-     </div>
-  </div>
+    <div *ngIf="!branchesLoading" class="overflow-x-auto">
+      <table class="min-w-full border-collapse">
+        <thead>
+          <tr class="bg-white">
+            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Chi nhánh</th>
+            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Địa chỉ</th>
+            <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Có tỉnh</th>
+            <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">Có tọa độ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let branch of branches" class="border-b border-slate-100 last:border-b-0">
+            <td class="px-4 py-4">
+              <div class="font-extrabold text-slate-900">{{ branch.code }} - {{ branch.name }}</div>
+              <div class="mt-1 text-xs text-slate-500">ID {{ branch.id }}</div>
+            </td>
+            <td class="px-4 py-4 text-sm text-slate-700">{{ formatBranchAddress(branch) }}</td>
+            <td class="px-4 py-4 text-center">
+              <span
+                class="inline-flex px-2.5 py-1 rounded-full text-xs font-black"
+                [ngClass]="hasBranchAddress(branch) ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'"
+              >
+                {{ branch.province ? branch.province : 'Thiếu tỉnh' }}
+              </span>
+            </td>
+            <td class="px-4 py-4 text-center">
+              <span
+                class="inline-flex px-2.5 py-1 rounded-full text-xs font-black"
+                [ngClass]="hasBranchCoordinates(branch) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'"
+              >
+                {{ hasBranchCoordinates(branch) ? 'Sẵn sàng' : 'Chưa có' }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="branches.length === 0">
+            <td colspan="4" class="px-4 py-6 text-center text-sm font-semibold text-slate-500">
+              Chưa có chi nhánh nào để đối chiếu vận chuyển.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>

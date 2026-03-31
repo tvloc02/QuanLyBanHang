@@ -60,20 +60,20 @@ export class AdminCustomersComponent {
   }
 
   get activeCustomers(): number {
-    return (this.rows || []).filter((r) => r && r.enabled !== false).length;
+    return (this.rows || []).filter((row) => row && row.enabled !== false).length;
   }
 
   get lockedCustomers(): number {
-    return (this.rows || []).filter((r) => r && r.enabled === false).length;
+    return (this.rows || []).filter((row) => row && row.enabled === false).length;
   }
 
   get pendingDeleteRequests(): number {
     return 0;
   }
 
-  segmentLabel(seg?: string | null): string {
-    const s = (seg || '').toUpperCase();
-    switch (s) {
+  segmentLabel(segment?: string | null): string {
+    const normalized = (segment || '').toUpperCase();
+    switch (normalized) {
       case 'KIM_CUONG':
         return 'Kim cương';
       case 'VANG':
@@ -89,22 +89,15 @@ export class AdminCustomersComponent {
     }
   }
 
-  formatVnd(v?: number | null): string {
-    const n = typeof v === 'number' && isFinite(v) ? v : 0;
-    return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+  formatVnd(value?: number | null): string {
+    const normalized = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+    return `${new Intl.NumberFormat('vi-VN').format(normalized)}đ`;
   }
 
   accountAgeLabel(months?: number | null): string {
-    if (months == null || !isFinite(months)) return '-';
+    if (months == null || !Number.isFinite(months)) return '-';
     if (months < 1) return 'Mới';
     return `${months} tháng`;
-  }
-
-  branchLabel(branchId?: number | null): string {
-    if (!branchId) return '-';
-    const branch = (this.branches || []).find((item) => item.id === branchId);
-    if (!branch) return `#${branchId}`;
-    return branch.code ? `${branch.code} - ${branch.name}` : branch.name;
   }
 
   private loadBranches(): void {
@@ -126,8 +119,8 @@ export class AdminCustomersComponent {
   }
 
   load(): void {
-    this.error = '';
     this.loading = true;
+    this.error = '';
     this.adminData.getCustomers().subscribe({
       next: (res) => {
         this.loading = false;
@@ -182,13 +175,13 @@ export class AdminCustomersComponent {
             this.error = res?.message || 'Cập nhật khách hàng thất bại.';
             return;
           }
-          this.editOpen = false;
+          this.closeEdit();
           this.load();
         },
         error: (err: unknown) => {
           this.editLoading = false;
-          const e = err as HttpErrorResponse;
-          this.error = e?.error?.message || e?.message || 'Không thể cập nhật khách hàng.';
+          const error = err as HttpErrorResponse;
+          this.error = error?.error?.message || error?.message || 'Không thể cập nhật khách hàng.';
         }
       });
   }
@@ -197,13 +190,14 @@ export class AdminCustomersComponent {
     if (!row?.id) return;
     if (!confirm(`Reset mật khẩu cho khách hàng #${row.id}?`)) return;
     this.error = '';
+
     this.adminData.resetUserPassword(row.id).subscribe({
       next: (res) => {
         if (!res?.success) {
           this.error = res?.message || 'Reset mật khẩu thất bại.';
           return;
         }
-        alert('Đã reset mật khẩu. Mật khẩu mới mặc định là 12345678.');
+        alert('Đã reset mật khẩu. Mật khẩu mặc định mới là 12345678.');
       },
       error: () => {
         this.error = 'Không thể reset mật khẩu.';
@@ -216,6 +210,7 @@ export class AdminCustomersComponent {
     const nextEnabled = row.enabled === false;
     const message = nextEnabled ? `Mở khóa khách hàng #${row.id}?` : `Khóa khách hàng #${row.id}?`;
     if (!confirm(message)) return;
+
     this.error = '';
     this.adminData.setUserEnabled(row.id, nextEnabled).subscribe({
       next: (res) => {
@@ -234,6 +229,7 @@ export class AdminCustomersComponent {
   onDelete(row: AdminUserResponse): void {
     if (!row?.id) return;
     if (!confirm(`Xóa khách hàng ${row.fullName || row.email || '#' + row.id}?`)) return;
+
     this.error = '';
     this.adminData.deleteUser(row.id).subscribe({
       next: (res) => {
@@ -269,9 +265,9 @@ export class AdminCustomersComponent {
   suggestConvertUsername(): void {
     const rolePrefix = this.convertForm.role === 'MANAGER' ? 'QL' : 'NV';
     const branch = this.branches.find((item) => item.id === this.convertForm.branchId);
-    const code = (branch?.code || 'CN').toUpperCase();
+    const branchCode = (branch?.code || 'CN').toUpperCase();
     const seed = this.convertTarget?.id ? String(this.convertTarget.id).padStart(4, '0') : '0001';
-    this.convertForm.username = `${rolePrefix}_${code}_${seed}`;
+    this.convertForm.username = `${rolePrefix}_${branchCode}_${seed}`;
   }
 
   submitConvert(): void {
@@ -301,18 +297,18 @@ export class AdminCustomersComponent {
             this.error = res?.message || 'Chuyển tài khoản thất bại.';
             return;
           }
-          this.convertOpen = false;
+          this.closeConvert();
           this.load();
         },
         error: (err: unknown) => {
           this.convertLoading = false;
-          const e = err as HttpErrorResponse;
-          this.error = e?.error?.message || e?.message || 'Không thể chuyển tài khoản khách hàng.';
+          const error = err as HttpErrorResponse;
+          this.error = error?.error?.message || error?.message || 'Không thể chuyển tài khoản khách hàng.';
         }
       });
   }
 
   approveDeleteRequest(row: AdminUserResponse): void {
-    alert(`Luồng duyệt xóa tài khoản cho khách hàng #${row.id} cần backend riêng. Mình đã để sẵn nút để nối tiếp bước sau.`);
+    alert(`Luồng duyệt xóa tài khoản cho khách hàng #${row.id} cần backend riêng. Mình đã để sẵn nút để nối tiếp khi có API.`);
   }
 }

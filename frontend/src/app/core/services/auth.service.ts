@@ -67,6 +67,19 @@ export class AuthService {
     return localStorage.getItem(this.tokenKey);
   }
 
+  getCurrentUserId(): number | null {
+    const token = this.getToken();
+    if (!token) return null;
+    const payload = this.decodeJwtPayload(token);
+    const subject = payload?.sub;
+    const userId = Number(subject);
+    if (Number.isFinite(userId) && userId > 0) return userId;
+
+    const raw = localStorage.getItem(this.userIdKey);
+    const fallback = raw != null ? Number(raw) : NaN;
+    return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
+  }
+
   private decodeJwtPayload(token: string): any | null {
     const parts = token.split('.');
     if (parts.length < 2) return null;

@@ -61,7 +61,9 @@ public class OrderService {
         }
 
         QuoteResult q = computeQuote(req.getBranchId(), req.getShippingLatitude(), req.getShippingLongitude(), req.getItems());
-        BigDecimal shippingFee = q.shippingFee;
+        BigDecimal shippingFee = req.getShippingFee() != null && req.getShippingFee().compareTo(BigDecimal.ZERO) >= 0
+            ? req.getShippingFee()
+            : q.shippingFee;
 
         List<OrderItem> items = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;

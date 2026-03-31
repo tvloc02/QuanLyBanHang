@@ -8,7 +8,7 @@ import { UserAddressItem, UserDataService, UserMeResponse } from '../../core/ser
 
 import * as L from 'leaflet';
 
-type ProfileSection = 'profile' | 'bank' | 'address' | 'password' | 'notifications' | 'voucher';
+type ProfileSection = 'profile' | 'bank' | 'address' | 'password' | 'notifications' | 'voucher' | 'danger';
 
 interface Vn2Province {
   code: string;
@@ -206,6 +206,23 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.activeSection = section;
   }
 
+  get displayName(): string {
+    return String(this.form.value.fullName || this.me?.fullName || this.me?.username || 'Người dùng').trim();
+  }
+
+  get normalizedRoles(): string[] {
+    const raw = Array.isArray(this.me?.roles) ? this.me!.roles! : [];
+    return raw.map((role) => String(role || '').trim().toUpperCase()).filter(Boolean);
+  }
+
+  get isPrivilegedAccount(): boolean {
+    return this.normalizedRoles.some((role) => ['ADMIN', 'ROLE_ADMIN', 'MANAGER', 'ROLE_MANAGER', 'STAFF', 'ROLE_STAFF'].includes(role));
+  }
+
+  get canRequestAccountDeletion(): boolean {
+    return !this.isPrivilegedAccount;
+  }
+
   get avatarInitial(): string {
     const fromName = String(this.form.value.fullName || '').trim();
     const fromUser = String(this.me?.username || '').trim();
@@ -221,6 +238,17 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.cleanupAvatarObjectUrl();
     this.avatarObjectUrl = URL.createObjectURL(file);
     this.avatarPreviewUrl = this.avatarObjectUrl;
+  }
+
+  requestAccountDeletion(): void {
+    if (!this.canRequestAccountDeletion) {
+      this.showToast('error', 'Tài khoản nội bộ không được phép hủy tại trang hồ sơ.');
+      return;
+    }
+
+    const confirmed = confirm('Bạn có chắc muốn gửi yêu cầu hủy tài khoản?');
+    if (!confirmed) return;
+    this.showToast('success', 'Đã ghi nhận yêu cầu hủy tài khoản. API xử lý hủy sẽ được nối ở bước tiếp theo.');
   }
 
   load(): void {

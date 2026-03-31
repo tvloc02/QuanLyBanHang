@@ -2,6 +2,7 @@ package com.ecommerce.dto.response;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 public class UserMeResponse {
 
@@ -28,6 +29,8 @@ public class UserMeResponse {
     private Double longitude;
 
     private Long branchId;
+
+    private Set<String> roles;
 
     private List<UserAddressItemResponse> addresses;
 
@@ -131,6 +134,14 @@ public class UserMeResponse {
 
     public void setBranchId(Long branchId) {
         this.branchId = branchId;
+    }
+
+    public Set<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
     }
 
     public List<UserAddressItemResponse> getAddresses() {

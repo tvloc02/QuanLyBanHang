@@ -1,67 +1,87 @@
 <main class="lookup-page">
   <div class="container">
-    <div class="lookup-head">
-      <div class="lookup-head__title">Tra cứu đơn hàng</div>
-      <div class="lookup-head__sub">Nhập mã đơn và số điện thoại nhận hàng để xem trạng thái</div>
-    </div>
-
-    <div class="panel">
-      <div class="form">
-        <div class="field">
-          <div class="label">Mã đơn hàng</div>
-          <input class="input" [(ngModel)]="orderId" placeholder="VD: 1001" />
+    <div class="lookup-shell">
+      <div class="lookup-search">
+        <div class="lookup-search__fields">
+          <input class="lookup-input" [(ngModel)]="orderId" placeholder="Mã đơn hàng" />
+          <input class="lookup-input" [(ngModel)]="phone" placeholder="Số điện thoại nhận hàng" />
         </div>
-        <div class="field">
-          <div class="label">Số điện thoại</div>
-          <input class="input" [(ngModel)]="phone" placeholder="SĐT lúc đặt hàng" />
-        </div>
-        <button type="button" class="primary" (click)="lookup()" [disabled]="loading">
-          {{ loading ? 'Đang tra cứu...' : 'TRA CỨU' }}
+        <button type="button" class="lookup-button" (click)="lookup()" [disabled]="loading">
+          {{ loading ? 'Đang tra cứu...' : 'Tra cứu' }}
         </button>
       </div>
 
-      <div class="error" *ngIf="error">{{ error }}</div>
+      <div class="lookup-error" *ngIf="error">{{ error }}</div>
 
-      <div class="result" *ngIf="result">
-        <div class="result-head">
-          <div class="result-title">Đơn #{{ result.orderId }}</div>
-          <div class="result-status">{{ result.status }}</div>
-        </div>
+      <div class="lookup-tabs">
+        <button
+          type="button"
+          class="lookup-tab"
+          *ngFor="let tab of tabs"
+          [class.is-active]="activeTab === tab.key"
+          (click)="setActiveTab(tab.key)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
 
-        <div class="result-grid">
-          <div class="info">
-            <div class="row">
-              <span>Ngày tạo</span>
-              <b>{{ result.createdAt ? (result.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}</b>
+      <div class="lookup-content" *ngIf="visibleResult; else emptyState">
+        <div class="order-card">
+          <div class="order-card__head">
+            <div>
+              <div class="order-card__id">Đơn hàng #{{ visibleResult.orderId }}</div>
+              <div class="order-card__date">
+                {{ visibleResult.createdAt ? (visibleResult.createdAt | date:'dd/MM/yyyy HH:mm') : 'Chưa có thời gian' }}
+              </div>
             </div>
-            <div class="row">
+            <div class="order-card__status">{{ statusLabel }}</div>
+          </div>
+
+          <div class="order-card__meta">
+            <div class="meta-item">
               <span>Số điện thoại</span>
-              <b>{{ result.shippingPhone || '—' }}</b>
+              <strong>{{ visibleResult.shippingPhone || '—' }}</strong>
             </div>
-            <div class="row total">
+            <div class="meta-item">
               <span>Tổng tiền</span>
-              <b>{{ formatMoney(result.total) }}đ</b>
+              <strong>{{ formatMoney(visibleResult.total) }}đ</strong>
             </div>
           </div>
 
-          <div class="items" *ngIf="result.items && result.items.length > 0">
-            <div class="items-title">Sản phẩm</div>
-            <div class="item" *ngFor="let it of result.items">
-              <div class="name">{{ it.productName || 'Sản phẩm' }}</div>
-              <div class="meta">
-                <span>SL: <b>{{ it.quantity || 0 }}</b></span>
-                <span>Đơn giá: <b>{{ formatMoney(it.unitPrice) }}đ</b></span>
-                <span>Thành tiền: <b>{{ formatMoney(it.totalPrice) }}đ</b></span>
+          <div class="order-items" *ngIf="visibleResult.items?.length">
+            <div class="order-items__title">Sản phẩm</div>
+            <div class="order-item" *ngFor="let item of visibleResult.items">
+              <div class="order-item__name">{{ item.productName || 'Sản phẩm' }}</div>
+              <div class="order-item__meta">
+                <span>SL: {{ item.quantity || 0 }}</span>
+                <span>Đơn giá: {{ formatMoney(item.unitPrice) }}đ</span>
+                <span>Thành tiền: {{ formatMoney(item.totalPrice) }}đ</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="actions">
-          <button type="button" class="ghost" (click)="goShopping()">← Quay lại mua sắm</button>
-          <a class="ghost" routerLink="/sale">Xem trang Sale</a>
+          <div class="order-actions">
+            <button type="button" class="ghost-button" (click)="goShopping()">Mua sắm tiếp</button>
+            <a class="ghost-button" routerLink="/sale">Trang Sale</a>
+          </div>
         </div>
       </div>
+
+      <ng-template #emptyState>
+        <div class="lookup-empty">
+          <div class="lookup-empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 120 120" width="120" height="120" fill="none">
+              <path d="M36 20h40l16 16v48c0 6.6-5.4 12-12 12H36c-6.6 0-12-5.4-12-12V32c0-6.6 5.4-12 12-12Z" fill="#FFD15A"/>
+              <path d="M76 20v16h16" fill="#F4B73C"/>
+              <path d="M64 20h12v16H64z" fill="#D29A37"/>
+              <rect x="45" y="58" width="30" height="4" rx="2" fill="#E2AB35"/>
+              <rect x="45" y="68" width="30" height="4" rx="2" fill="#E2AB35"/>
+              <rect x="45" y="78" width="22" height="4" rx="2" fill="#E2AB35"/>
+            </svg>
+          </div>
+          <div class="lookup-empty__text">Đơn hàng trống</div>
+        </div>
+      </ng-template>
     </div>
   </div>
 </main>

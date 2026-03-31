@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -9,7 +9,7 @@ import { LocationService } from '../../../core/services/location.service';
 
 import * as L from 'leaflet';
 
-type AddressMode = 'before_merge' | 'after_merge';
+type AddressMode = 'after_merge';
 
 interface WardNode {
   name: string;
@@ -33,6 +33,20 @@ interface Vn2Province {
 interface Vn2Commune {
   code: string;
   name: string;
+}
+
+interface ReverseGeocodeAddress {
+  address: string;
+  province: string;
+  ward: string;
+  provinceCode: string;
+  communeCode: string;
+}
+
+interface GeocodeSearchResult {
+  displayName: string;
+  latitude: number;
+  longitude: number;
 }
 
 interface ApiResponse<T> {
@@ -74,7 +88,7 @@ export class AdminBranchesComponent {
   districtOptions: string[] = [];
   wardOptions: string[] = [];
 
-  addressMode: AddressMode = 'before_merge';
+  addressMode: AddressMode = 'after_merge';
 
   vn2Loading = false;
   vn2ProvinceOptions: Vn2Province[] = [];
@@ -100,6 +114,21 @@ export class AdminBranchesComponent {
   private map: L.Map | null = null;
   private mapMarker: L.Marker | null = null;
   private pendingLatLng: L.LatLng | null = null;
+  private readonly mapPinIcon: L.Icon = L.icon({
+    iconRetinaUrl: 'assets/leaflet/marker-icon-2x.png',
+    iconUrl: 'assets/leaflet/marker-icon.png',
+    shadowUrl: 'assets/leaflet/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+  mapPicking = false;
+  mapResolvedAddress: ReverseGeocodeAddress | null = null;
+  mapLocating = false;
+  mapSearchQ = '';
+  mapSearchLoading = false;
+  mapSearchResults: GeocodeSearchResult[] = [];
 
   createOpen = false;
   createLoading = false;
@@ -203,65 +232,47 @@ export class AdminBranchesComponent {
     return (this.rows || []).filter((r) => r && r.active === false).length;
   }
 
-  get canPickDistrict(): boolean {
-    return !!String(this.form.province || '').trim();
+  get selectedMapLatitude(): number | null {
+    return this.pendingLatLng ? Number(this.pendingLatLng.lat) : (this.form.latitude ?? null);
   }
 
-  get canPickWard(): boolean {
-    return this.canPickDistrict && !!String(this.form.district || '').trim();
+  get selectedMapLongitude(): number | null {
+    return this.pendingLatLng ? Number(this.pendingLatLng.lng) : (this.form.longitude ?? null);
+  }
+
+  private extractApiError(error: unknown, fallback: string): string {
+    const httpError = error as HttpErrorResponse | null;
+    const payload = (httpError as any)?.error;
+    const message =
+      (typeof payload === 'string' ? payload : '') ||
+      String(payload?.message || '').trim() ||
+      String(payload?.error || '').trim() ||
+      String((httpError as any)?.message || '').trim();
+    return message || fallback;
   }
 
   onAddressModeChange(mode: AddressMode): void {
-    const prevMode = this.addressMode;
     this.addressMode = mode;
-    if (mode === 'after_merge') {
-      this.districtOptions = [];
-      this.wardOptions = [];
+    this.districtOptions = [];
+    this.wardOptions = [];
 
-      if (prevMode === 'before_merge') {
-        this.savedDepth3Address = {
-          province: String(this.form.province || '').trim(),
-          district: String(this.form.district || '').trim(),
-          ward: String(this.form.ward || '').trim()
-        };
-      }
-
-      if (this.savedVn2Address.provinceCode) {
-        this.pendingVn2CommuneCode = this.savedVn2Address.communeCode;
-        this.pendingVn2CommuneName = this.savedVn2Address.wardName;
-        this.onVn2ProvinceChange(this.savedVn2Address.provinceCode);
-        if (this.savedVn2Address.provinceName) {
-          this.form.province = this.savedVn2Address.provinceName;
-        }
-        return;
-      }
-
-      if (!this.vn2ProvinceCode) {
-        const prov = this.bestMatchByName(this.vn2ProvinceOptions, String(this.form.province || '').trim());
-        if (prov) {
-          this.pendingVn2CommuneName = String(this.form.ward || this.form.district || '').trim();
-          this.onVn2ProvinceChange(prov.code);
-        }
+    if (this.savedVn2Address.provinceCode) {
+      this.pendingVn2CommuneCode = this.savedVn2Address.communeCode;
+      this.pendingVn2CommuneName = this.savedVn2Address.wardName;
+      this.onVn2ProvinceChange(this.savedVn2Address.provinceCode);
+      if (this.savedVn2Address.provinceName) {
+        this.form.province = this.savedVn2Address.provinceName;
       }
       return;
     }
 
-    if (prevMode === 'after_merge') {
-      this.savedVn2Address = {
-        provinceCode: String(this.vn2ProvinceCode || '').trim(),
-        communeCode: String(this.vn2CommuneCode || '').trim(),
-        provinceName: String(this.form.province || '').trim(),
-        wardName: String(this.form.ward || '').trim()
-      };
+    if (!this.vn2ProvinceCode) {
+      const prov = this.bestMatchByName(this.vn2ProvinceOptions, String(this.form.province || '').trim());
+      if (prov) {
+        this.pendingVn2CommuneName = String(this.form.ward || this.form.district || '').trim();
+        this.onVn2ProvinceChange(prov.code);
+      }
     }
-
-    if (this.savedDepth3Address.province || this.savedDepth3Address.district || this.savedDepth3Address.ward) {
-      this.form.province = this.savedDepth3Address.province;
-      this.form.district = this.savedDepth3Address.district;
-      this.form.ward = this.savedDepth3Address.ward;
-    }
-
-    this.applyAddressOptionsFromForm();
   }
 
   private loadManagers(): void {
@@ -459,7 +470,12 @@ export class AdminBranchesComponent {
   openMapPicker(): void {
     this.mapError = '';
     this.mapOpen = true;
+    this.mapPicking = false;
+    this.mapResolvedAddress = null;
     this.pendingLatLng = null;
+    this.mapSearchQ = '';
+    this.mapSearchLoading = false;
+    this.mapSearchResults = [];
 
     window.setTimeout(() => {
       this.initMap();
@@ -469,6 +485,7 @@ export class AdminBranchesComponent {
 
   closeMapPicker(): void {
     this.mapOpen = false;
+    this.mapSearchResults = [];
     this.destroyMap();
   }
 
@@ -483,17 +500,26 @@ export class AdminBranchesComponent {
     const lng = Number(this.pendingLatLng.lng);
     this.form.latitude = lat;
     this.form.longitude = lng;
-
-    this.locations.reverseGeocode(lat, lng).subscribe({
-      next: (res) => {
-        const data = (res as any)?.data || {};
-        this.applyReverseGeocode(data);
-      },
-      error: () => {
-      }
-    });
+    if (this.mapResolvedAddress) {
+      this.applyResolvedAddress(this.mapResolvedAddress);
+    }
 
     this.closeMapPicker();
+  }
+
+  private applyResolvedAddress(resolved: ReverseGeocodeAddress): void {
+    this.form.address = resolved.address || this.form.address || '';
+    this.form.province = resolved.province || this.form.province || '';
+    this.form.district = '';
+    this.form.ward = resolved.ward || this.form.ward || '';
+    this.vn2ProvinceCode = resolved.provinceCode || this.vn2ProvinceCode;
+    if (resolved.provinceCode) {
+      this.pendingVn2CommuneCode = resolved.communeCode || '';
+      this.pendingVn2CommuneName = resolved.ward || '';
+      this.onVn2ProvinceChange(resolved.provinceCode);
+    } else {
+      this.vn2CommuneCode = resolved.communeCode || this.vn2CommuneCode;
+    }
   }
 
   private applyReverseGeocode(data: any): void {
@@ -501,44 +527,115 @@ export class AdminBranchesComponent {
     const rawProvince = String(addr.state || addr.city || addr['ISO3166-2-lvl4'] || '').trim();
     const rawDistrict = String(addr.county || addr.city_district || '').trim();
     const rawWard = String(addr.suburb || addr.village || addr.quarter || addr.town || '').trim();
-    const displayName = String((data as any)?.display_name || '').trim();
+    const line1 = [
+      String(addr.house_number || '').trim(),
+      String(addr.road || '').trim(),
+      String(addr.neighbourhood || '').trim(),
+      String(addr.hamlet || '').trim()
+    ].filter(Boolean).join(', ');
+    const fallbackAddress = String((data as any)?.display_name || '').trim();
+    const prov = this.bestMatchByName(this.vn2ProvinceOptions, rawProvince);
+    const resolved: ReverseGeocodeAddress = {
+      address: line1 || fallbackAddress,
+      province: prov?.name || rawProvince,
+      ward: rawWard || rawDistrict,
+      provinceCode: prov?.code || '',
+      communeCode: ''
+    };
 
-    if (displayName && !String(this.form.address || '').trim()) {
-      this.form.address = displayName;
+    if (prov) {
+      const commune = this.bestMatchByName(this.vn2CommuneOptions, resolved.ward);
+      if (commune) resolved.communeCode = commune.code;
     }
 
-    if (this.addressMode === 'after_merge') {
-      const prov = this.bestMatchByName(this.vn2ProvinceOptions, rawProvince);
-      if (prov) {
-        this.vn2ProvinceCode = prov.code;
-        this.form.province = prov.name;
-        this.pendingVn2CommuneName = rawWard || rawDistrict;
-        this.onVn2ProvinceChange(prov.code);
-      } else {
-        this.form.province = rawProvince;
-        this.form.district = '';
-        this.form.ward = rawWard || rawDistrict;
-      }
+    this.mapResolvedAddress = resolved;
+    this.applyResolvedAddress(resolved);
+  }
+
+  searchMapPlaces(): void {
+    const query = String(this.mapSearchQ || '').trim();
+    this.mapError = '';
+    if (!query) {
+      this.mapSearchResults = [];
       return;
     }
 
-    const province = this.bestMatch(this.provinceOptions, rawProvince) || rawProvince;
-    if (province) {
-      this.form.province = province;
-      this.onProvinceChange(province);
+    this.mapSearchLoading = true;
+    this.locations.searchPlaces(query).subscribe({
+      next: (res) => {
+        this.mapSearchLoading = false;
+        const rows = Array.isArray((res as any)?.data) ? (res as any).data : [];
+        this.mapSearchResults = rows
+          .map((item: any) => ({
+            displayName: String(item?.display_name || '').trim(),
+            latitude: Number(item?.lat),
+            longitude: Number(item?.lon)
+          }))
+          .filter((item: GeocodeSearchResult) => item.displayName && Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+      },
+      error: () => {
+        this.mapSearchLoading = false;
+        this.mapSearchResults = [];
+        this.mapError = 'Khong the tim dia diem tren ban do.';
+      }
+    });
+  }
+
+  selectMapSearchResult(result: GeocodeSearchResult): void {
+    if (!this.map) return;
+    const latlng = new L.LatLng(result.latitude, result.longitude);
+    this.map?.setView(latlng, 16);
+    this.mapSearchResults = [];
+    this.resolveSelectedMapPoint(latlng);
+  }
+
+  useCurrentLocation(): void {
+    if (!this.map) return;
+    const geo = (globalThis as any)?.navigator?.geolocation;
+    this.mapError = '';
+    if (!geo?.getCurrentPosition) {
+      this.mapError = 'Trinh duyet khong ho tro dinh vi hien tai.';
+      return;
     }
 
-    const district = this.bestMatch(this.districtOptions, rawDistrict) || rawDistrict;
-    if (district) {
-      this.form.district = district;
-      this.onDistrictChange(district);
-    }
+    this.mapLocating = true;
+    geo.getCurrentPosition(
+      (pos: GeolocationPosition) => {
+        this.mapLocating = false;
+        const clat = Number(pos?.coords?.latitude);
+        const clng = Number(pos?.coords?.longitude);
+        if (!Number.isFinite(clat) || !Number.isFinite(clng)) {
+          this.mapError = 'Khong the doc duoc vi tri hien tai.';
+          return;
+        }
+        const latlng = new L.LatLng(clat, clng);
+        this.map?.setView(latlng, 16);
+        this.resolveSelectedMapPoint(latlng);
+      },
+      () => {
+        this.mapLocating = false;
+        this.mapError = 'Khong the lay vi tri hien tai. Hay cap quyen dinh vi hoac tim kiem dia diem.';
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  }
 
-    const ward = this.bestMatch(this.wardOptions, rawWard) || rawWard;
-    if (ward) {
-      this.form.ward = ward;
-      this.onWardChange(ward);
-    }
+  private resolveSelectedMapPoint(latlng: L.LatLng): void {
+    this.setMapMarker(latlng);
+    this.mapPicking = true;
+    this.mapResolvedAddress = null;
+    this.mapError = '';
+    this.locations.reverseGeocode(Number(latlng.lat), Number(latlng.lng)).subscribe({
+      next: (res) => {
+        this.mapPicking = false;
+        const data = (res as any)?.data || {};
+        this.applyReverseGeocode(data);
+      },
+      error: () => {
+        this.mapPicking = false;
+        this.mapError = 'Khong the lay dia chi tu vi tri da chon.';
+      }
+    });
   }
 
   private bestMatch(options: string[], value: string): string {
@@ -556,13 +653,23 @@ export class AdminBranchesComponent {
   private bestMatchByName<T extends { name: string }>(options: T[], value: string): T | null {
     const q = String(value || '').trim();
     if (!q) return null;
-    const ql = q.toLowerCase();
-    const exact = (options || []).find((x) => String(x?.name || '').toLowerCase() === ql);
+    const ql = this.normalizePlaceName(q);
+    const exact = (options || []).find((x) => this.normalizePlaceName(String(x?.name || '')) === ql);
     if (exact) return exact;
-    const inc = (options || []).find((x) => String(x?.name || '').toLowerCase().includes(ql));
+    const inc = (options || []).find((x) => this.normalizePlaceName(String(x?.name || '')).includes(ql));
     if (inc) return inc;
-    const rev = (options || []).find((x) => ql.includes(String(x?.name || '').toLowerCase()));
+    const rev = (options || []).find((x) => ql.includes(this.normalizePlaceName(String(x?.name || ''))));
     return rev || null;
+  }
+
+  private normalizePlaceName(value: string): string {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\b(thanh pho|tp\.?|tinh|quan|huyen|thi xa|thi tran|phuong|xa)\b/g, ' ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
   }
 
   private configureLeafletDefaultIcon(): void {
@@ -600,6 +707,19 @@ export class AdminBranchesComponent {
 
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       this.setMapMarker(e.latlng);
+      this.mapPicking = true;
+      this.mapResolvedAddress = null;
+      this.locations.reverseGeocode(Number(e.latlng.lat), Number(e.latlng.lng)).subscribe({
+        next: (res) => {
+          this.mapPicking = false;
+          const data = (res as any)?.data || {};
+          this.applyReverseGeocode(data);
+        },
+        error: (err: unknown) => {
+          this.mapPicking = false;
+          this.mapError = 'Không thể lấy địa chỉ từ vị trí đã chọn.';
+        }
+      });
     });
 
     window.setTimeout(() => {
@@ -635,7 +755,7 @@ export class AdminBranchesComponent {
     this.pendingLatLng = latlng;
     if (!this.map) return;
     if (!this.mapMarker) {
-      this.mapMarker = L.marker(latlng, { draggable: false }).addTo(this.map);
+      this.mapMarker = L.marker(latlng, { draggable: false, icon: this.mapPinIcon }).addTo(this.map);
     } else {
       this.mapMarker.setLatLng(latlng);
     }
@@ -776,7 +896,7 @@ export class AdminBranchesComponent {
   }
 
   openCreate(): void {
-    this.addressMode = 'before_merge';
+    this.addressMode = 'after_merge';
     this.vn2ProvinceCode = '';
     this.vn2CommuneCode = '';
     this.vn2CommuneOptions = [];
@@ -792,7 +912,7 @@ export class AdminBranchesComponent {
       longitude: null,
       active: true
     };
-    this.applyAddressOptionsFromForm();
+    this.mapResolvedAddress = null;
     this.managerQ = '';
     this.createOpen = true;
   }
@@ -836,8 +956,10 @@ export class AdminBranchesComponent {
           this.createOpen = false;
           this.load();
         },
-        error: () => {
+        error: (err: unknown) => {
           this.createLoading = false;
+          this.error = this.extractApiError(err, 'Khong the tao chi nhanh. Vui long thu lai.');
+          return;
           this.error = 'Không thể tạo chi nhánh. Vui lòng thử lại.';
         }
       });
@@ -846,12 +968,15 @@ export class AdminBranchesComponent {
   onEdit(row: AdminBranchResponse): void {
     const idsRaw = (row as any)?.managerUserIds;
     const ids = Array.isArray(idsRaw) ? idsRaw.map((x: any) => Number(x)).filter((x: any) => Number.isFinite(x)) : [];
+    const fallbackManagerId = Number((row as any)?.managerUserId);
+    if (!ids.length && Number.isFinite(fallbackManagerId)) {
+      ids.push(fallbackManagerId);
+    }
 
     const rowProvince = String((row as any)?.province || '').trim();
-    const rowDistrict = String((row as any)?.district || '').trim();
+    const rowDistrict = '';
     const rowWard = String((row as any)?.ward || '').trim();
-    const hasProvinceInVn2 = !!this.bestMatchByName(this.vn2ProvinceOptions, rowProvince);
-    this.addressMode = !rowDistrict && !!rowWard && hasProvinceInVn2 ? 'after_merge' : 'before_merge';
+    this.addressMode = 'after_merge';
 
     this.vn2ProvinceCode = '';
     this.vn2CommuneCode = '';
@@ -863,18 +988,13 @@ export class AdminBranchesComponent {
       managerUserIds: ids,
       address: row.address ?? '',
       province: rowProvince,
-      district: rowDistrict,
+      district: '',
       ward: rowWard,
       latitude: row.latitude ?? null,
       longitude: row.longitude ?? null,
       active: row.active !== false
     };
-
-    if (this.addressMode === 'after_merge') {
-      this.applyVn2ModeToForm();
-    } else {
-      this.applyAddressOptionsFromForm();
-    }
+    this.applyVn2ModeToForm();
     this.managerQ = '';
     this.editOpen = true;
   }
@@ -919,8 +1039,10 @@ export class AdminBranchesComponent {
           this.editOpen = false;
           this.load();
         },
-        error: () => {
+        error: (err: unknown) => {
           this.editLoading = false;
+          this.error = this.extractApiError(err, 'Khong the cap nhat chi nhanh. Vui long thu lai.');
+          return;
           this.error = 'Không thể cập nhật chi nhánh. Vui lòng thử lại.';
         }
       });

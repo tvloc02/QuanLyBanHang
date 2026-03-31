@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -321,16 +322,16 @@ public class AdminBranchController {
     private List<Long> normalizeManagerIds(AdminBranchUpsertRequest req) {
         if (req == null) return List.of();
         List<Long> ids = req.getManagerUserIds();
-        List<Long> out = new ArrayList<>();
+        Set<Long> uniqueIds = new LinkedHashSet<>();
         if (ids != null) {
             for (Long id : ids) {
-                if (id != null) out.add(id);
+                if (id != null) uniqueIds.add(id);
             }
         }
-        if (out.isEmpty() && req.getManagerUserId() != null) {
-            out.add(req.getManagerUserId());
+        if (uniqueIds.isEmpty() && req.getManagerUserId() != null) {
+            uniqueIds.add(req.getManagerUserId());
         }
-        return out;
+        return new ArrayList<>(uniqueIds);
     }
 
     private Map<Long, List<Long>> loadManagerIdsByBranchId(List<Long> branchIds) {
@@ -383,7 +384,12 @@ public class AdminBranchController {
     private void syncBranchManagers(Long branchId, List<Long> managerIds) {
         if (branchId == null) return;
         List<BranchManager> existing = branchManagerRepository.findByBranchId(branchId);
-        branchManagerRepository.deleteByBranchId(branchId);
+        Map<Long, BranchManager> existingByUserId = new HashMap<>();
+        for (BranchManager bm : existing) {
+            if (bm != null && bm.getUserId() != null && !existingByUserId.containsKey(bm.getUserId())) {
+                existingByUserId.put(bm.getUserId(), bm);
+            }
+        }
 
         Set<Long> oldUserIds = new HashSet<>();
         for (BranchManager bm : existing) {
@@ -402,16 +408,22 @@ public class AdminBranchController {
                 u.setBranchId(branchId);
                 u.setUpdatedAt(Instant.now());
                 userRepository.save(u);
-                BranchManager bm = new BranchManager();
-                bm.setBranchId(branchId);
-                bm.setUserId(userId);
-                branchManagerRepository.save(bm);
+                if (!oldUserIds.contains(userId)) {
+                    BranchManager bm = new BranchManager();
+                    bm.setBranchId(branchId);
+                    bm.setUserId(userId);
+                    branchManagerRepository.save(bm);
+                }
             });
         }
 
         for (Long oldId : oldUserIds) {
             if (oldId == null) continue;
             if (newUserIds.contains(oldId)) continue;
+            BranchManager existingManager = existingByUserId.get(oldId);
+            if (existingManager != null && existingManager.getId() != null) {
+                branchManagerRepository.delete(existingManager);
+            }
             userRepository.findById(oldId).ifPresent(u -> {
                 if (u.getRoles() == null || !u.getRoles().contains(UserRole.MANAGER)) return;
                 if (u.getBranchId() != null && Objects.equals(u.getBranchId(), branchId)) {

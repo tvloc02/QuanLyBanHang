@@ -12,10 +12,12 @@
  import com.fasterxml.jackson.databind.ObjectMapper;
  import com.ecommerce.exception.BadRequestException;
  import com.ecommerce.exception.ResourceNotFoundException;
- import java.time.Instant;
- import java.util.ArrayList;
- import java.util.Collections;
- import java.util.List;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
  import org.springframework.http.ResponseEntity;
  import org.springframework.web.bind.annotation.GetMapping;
  import org.springframework.web.bind.annotation.PutMapping;
@@ -95,6 +97,11 @@
           out.setLatitude(u.getLatitude());
           out.setLongitude(u.getLongitude());
           out.setBranchId(u.getBranchId());
+          out.setRoles(
+              u.getRoles() == null
+                  ? Collections.emptySet()
+                  : u.getRoles().stream().map(Enum::name).collect(Collectors.toSet())
+          );
           out.setAddresses(readAddresses(u));
           out.setCreatedAt(u.getCreatedAt());
           out.setUpdatedAt(u.getUpdatedAt());

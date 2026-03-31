@@ -1,56 +1,9 @@
-<div class="space-y-6">
-  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+<div class="space-y-6 branch-page">
+  <div class="page-hero bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-start sm:items-center gap-4 min-w-0">
-        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+        <div class="hero-icon w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
           <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 21V7a2 2 0 0 1 2-2h6v16H3Z" />
-            <path d="M11 21V3h8a2 2 0 0 1 2 2v16h-10Z" />
-            <path d="M7 9h1" />
-            <path d="M7 13h1" />
-            <path d="M7 17h1" />
-            <path d="M15 9h1" />
-            <path d="M15 13h1" />
-            <path d="M15 17h1" />
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Chi nhánh</h1>
-          <p class="text-blue-100 text-sm sm:text-base">Quản lý chi nhánh, tồn kho theo chi nhánh và thông tin phục vụ tính phí vận chuyển</p>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
-        <button
-          type="button"
-          (click)="openCreate()"
-          [disabled]="loading"
-          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
-        >
-          <span>Thêm chi nhánh</span>
-        </button>
-
-        <button
-          type="button"
-          (click)="load()"
-          [disabled]="loading"
-          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
-        >
-          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
-    {{ error }}
-  </div>
-
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100 shrink-0">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 21V7a2 2 0 0 1 2-2h6v16H3Z" />
             <path d="M11 21V3h8a2 2 0 0 1 2 2v16H11Z" />
             <path d="M7 9h1" />
@@ -62,146 +15,113 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng chi nhánh</div>
-          <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ totalBranches }}</div>
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Chi nhánh</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Quản lý địa chỉ kho, định vị bản đồ và tồn kho theo từng chi nhánh.</p>
         </div>
       </div>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-green-50 text-green-700 flex items-center justify-center border border-green-100 shrink-0">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Đang hoạt động</div>
-          <div class="mt-1 text-2xl font-extrabold text-green-600">{{ activeBranches }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-red-50 text-red-700 flex items-center justify-center border border-red-100 shrink-0">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tạm dừng</div>
-          <div class="mt-1 text-2xl font-extrabold text-red-600">{{ inactiveBranches }}</div>
-        </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="openCreate()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/15 text-white rounded-xl hover:bg-white/25 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Thêm chi nhánh</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div class="flex-1">
-        <div class="relative">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </span>
-          <input
-            class="w-full h-11 pl-10 pr-4 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
-            [(ngModel)]="q"
-            (ngModelChange)="onSearchChange()"
-            placeholder="Tìm theo mã, tên, quản lý, địa chỉ..."
-          />
-        </div>
-      </div>
-      <div class="text-sm font-extrabold text-gray-700">{{ filteredRows.length }} chi nhánh</div>
+  <div *ngIf="error" class="toast-inline toast-inline--error">
+    {{ error }}
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="metric-card">
+      <div class="metric-card__label">Tổng chi nhánh</div>
+      <div class="metric-card__value">{{ totalBranches }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Đang hoạt động</div>
+      <div class="metric-card__value text-green-600">{{ activeBranches }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-card__label">Tạm dừng</div>
+      <div class="metric-card__value text-red-600">{{ inactiveBranches }}</div>
     </div>
   </div>
 
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="overflow-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gradient-to-r from-blue-50 to-sky-50">
-          <tr class="divide-x divide-gray-200">
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 90px">STT</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 140px">Mã</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 220px">Tên</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 200px">Quản lý</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Địa chỉ</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 140px">Tồn kho</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 130px">Trạng thái</th>
-            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 160px">Thao tác</th>
+  <div class="card-shell">
+    <div class="toolbar-row">
+      <div class="toolbar-search">
+        <span class="toolbar-search__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </span>
+        <input
+          class="input"
+          [(ngModel)]="q"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Tìm theo mã, tên, quản lý, địa chỉ..."
+        />
+      </div>
+      <div class="toolbar-result">{{ filteredRows.length }} chi nhánh</div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="tbl branches-table">
+        <thead>
+          <tr>
+            <th style="width: 72px;">STT</th>
+            <th style="width: 130px;">Mã</th>
+            <th style="width: 240px;">Tên chi nhánh</th>
+            <th style="width: 220px;">Quản lý</th>
+            <th>Địa chỉ</th>
+            <th style="width: 140px;">Tồn kho</th>
+            <th style="width: 130px;">Trạng thái</th>
+            <th style="width: 160px;">Thao tác</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100 bg-white">
+        <tbody>
           <tr *ngIf="!loading && filteredRows.length === 0">
-            <td colspan="8" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có chi nhánh.</td>
+            <td colspan="8" class="empty">Chưa có chi nhánh.</td>
           </tr>
-          <tr *ngFor="let r of pagedRows; let i = index" class="hover:bg-blue-50/40 transition-colors divide-x divide-gray-200">
-            <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ pageIndex * pageSize + i + 1 }}</td>
-            <td class="px-4 py-3 text-left font-extrabold text-gray-900">{{ r.code }}</td>
-            <td class="px-4 py-3 text-left font-extrabold text-gray-900">{{ r.name }}</td>
-            <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ formatManagers(r) }}</td>
-            <td class="px-4 py-3 text-left text-sm font-semibold text-gray-700">{{ formatAddress(r) }}</td>
-            <td class="px-4 py-3 text-center">
-              <div class="flex flex-col items-center justify-center leading-tight">
-                <div class="text-sm font-extrabold text-gray-900">{{ (r.totalStock ?? 0) | number:'1.0-0' }}</div>
-                <div class="text-xs font-bold text-gray-500">{{ (r.productCount ?? 0) | number:'1.0-0' }} SP</div>
+          <tr *ngFor="let r of pagedRows; let i = index">
+            <td class="strong text-center branch-cell branch-cell--index">{{ pageIndex * pageSize + i + 1 }}</td>
+            <td class="strong branch-cell branch-cell--code">{{ r.code }}</td>
+            <td class="strong branch-cell branch-cell--name">{{ r.name }}</td>
+            <td class="branch-cell branch-cell--manager">{{ formatManagers(r) }}</td>
+            <td class="branch-cell branch-cell--address">{{ formatAddress(r) }}</td>
+            <td class="text-center">
+              <div class="stock-cell">
+                <div class="strong">{{ (r.totalStock ?? 0) | number:'1.0-0' }}</div>
+                <div class="stock-cell__sub">{{ (r.productCount ?? 0) | number:'1.0-0' }} SP</div>
               </div>
             </td>
-            <td class="px-4 py-3 text-center">
-              <span
-                class="inline-flex px-3 py-1 rounded-full text-xs font-extrabold"
-                [class.bg-green-100]="r.active !== false"
-                [class.text-green-700]="r.active !== false"
-                [class.bg-red-100]="r.active === false"
-                [class.text-red-700]="r.active === false"
-              >
+            <td class="text-center">
+              <span class="status-pill" [class.is-off]="r.active === false">
                 {{ r.active === false ? 'Tạm dừng' : 'Hoạt động' }}
               </span>
             </td>
-            <td class="px-4 py-3 text-center">
-              <div class="inline-flex items-center justify-center gap-2">
-                <button
-                  type="button"
-                  (click)="openStocks(r)"
-                  [disabled]="loading"
-                  class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 transition-colors disabled:opacity-60"
-                  title="Tồn kho"
-                  aria-label="Tồn kho"
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                    <path d="M3.3 7L12 12l8.7-5"/>
-                    <path d="M12 22V12"/>
-                  </svg>
+            <td>
+              <div class="row-actions">
+                <button class="icon-btn" type="button" (click)="openStocks(r)" [disabled]="loading" title="Tồn kho">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
                 </button>
-                <button
-                  type="button"
-                  (click)="onEdit(r)"
-                  [disabled]="loading"
-                  class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-blue-50 transition-colors disabled:opacity-60"
-                  title="Sửa"
-                  aria-label="Sửa"
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 20h9"/>
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/>
-                  </svg>
+                <button class="icon-btn" type="button" (click)="onEdit(r)" [disabled]="loading" title="Sửa">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
                 </button>
-                <button
-                  type="button"
-                  (click)="onDelete(r)"
-                  [disabled]="loading"
-                  class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
-                  title="Xóa"
-                  aria-label="Xóa"
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6"/>
-                    <path d="M14 11v6"/>
-                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                  </svg>
+                <button class="icon-btn icon-btn--danger" type="button" (click)="onDelete(r)" [disabled]="loading" title="Xóa">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               </div>
             </td>
@@ -210,93 +130,65 @@
       </table>
     </div>
 
-    <div class="border-t border-gray-100 p-3">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="inline-flex items-center gap-2">
-          <select
-            class="h-10 px-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-extrabold text-gray-900 focus:outline-none focus:ring-4 focus:ring-blue-200/60 focus:border-blue-600"
-            [ngModel]="pageSize"
-            (ngModelChange)="onPageSizeChange($event)"
-          >
-            <option *ngFor="let s of pageSizeOptions" [ngValue]="s">{{ s }} / trang</option>
-          </select>
-          <div class="text-sm font-extrabold text-gray-700">Tổng số: {{ totalRecords }}. Hiển thị {{ rangeStart }} - {{ rangeEnd }}</div>
-        </div>
+    <div class="table-footer">
+      <div class="table-footer__left">
+        <select class="input table-footer__select" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+          <option *ngFor="let s of pageSizeOptions" [ngValue]="s">{{ s }} / trang</option>
+        </select>
+        <div class="table-footer__info">Tổng số: {{ totalRecords }}. Hiển thị {{ rangeStart }} - {{ rangeEnd }}</div>
+      </div>
 
-        <div class="inline-flex items-center justify-center gap-2">
-          <button
-            type="button"
-            (click)="prevPage()"
-            [disabled]="pageIndex <= 0"
-            class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-60"
-            title="Trang trước"
-            aria-label="Trang trước"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <div class="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-blue-600 text-white font-extrabold">{{ currentPage }}</div>
-          <button
-            type="button"
-            (click)="nextPage()"
-            [disabled]="pageIndex >= totalPages - 1"
-            class="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-60"
-            title="Trang sau"
-            aria-label="Trang sau"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>
+      <div class="table-footer__right">
+        <button class="pager-btn" type="button" (click)="prevPage()" [disabled]="pageIndex <= 0">‹</button>
+        <div class="pager-current">{{ currentPage }}</div>
+        <button class="pager-btn" type="button" (click)="nextPage()" [disabled]="pageIndex >= totalPages - 1">›</button>
       </div>
     </div>
   </div>
 
-  <div class="overlay" *ngIf="createOpen">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Tạo chi nhánh">
-      <div class="modal-head">
-        <div class="modal-title">Tạo chi nhánh</div>
-        <button class="icon" type="button" (click)="cancelCreate()">✕</button>
+  <div class="cat-overlay" *ngIf="createOpen || editOpen">
+    <div class="cat-modal branch-modal">
+      <div class="cat-head">
+        <div class="cat-title">{{ createOpen ? 'Thêm chi nhánh' : 'Sửa chi nhánh' }}</div>
+        <button class="btn ghost" type="button" (click)="createOpen ? cancelCreate() : cancelEdit()">×</button>
       </div>
-      <div class="form" style="padding:16px">
+
+      <div class="cat-body branch-form-body">
         <div class="grid2">
           <div class="field">
             <label class="label">Mã chi nhánh</label>
-            <input class="input" [(ngModel)]="form.code" placeholder="VD: CN_HN_01" />
+            <input class="input" [(ngModel)]="form.code" placeholder="VD: HNI0001" />
           </div>
           <div class="field">
             <label class="label">Tên chi nhánh</label>
-            <input class="input" [(ngModel)]="form.name" placeholder="VD: Chi nhánh Hà Nội" />
+            <input class="input" [(ngModel)]="form.name" placeholder="VD: Chi nhánh Hà Đông 1, Hà Nội" />
           </div>
         </div>
-        <div class="grid2">
+
+        <div class="grid2 branch-form-top">
           <div class="field">
             <label class="label">Quản lý</label>
-            <div class="picker">
-              <div class="picker-search">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <div class="picker-card">
+              <div class="picker-card__search">
+                <span class="picker-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 </span>
-                <input class="picker-input" [(ngModel)]="managerQ" placeholder="Tìm kiếm quản lý..." />
+                <input class="picker-card__input" [(ngModel)]="managerQ" placeholder="Tìm kiếm quản lý..." />
               </div>
-              <div class="picker-list">
-                <label class="picker-item" *ngFor="let u of filteredManagerOptions">
-                  <input
-                    type="checkbox"
-                    class="picker-check"
-                    [checked]="isManagerChecked(u.id)"
-                    (change)="toggleManager(u.id, $any($event.target).checked)"
-                  />
-                  <div class="picker-main">
-                    <div class="picker-title">{{ (u.fullName || u.username || ('#' + u.id)) }}</div>
-                    <div class="picker-sub" *ngIf="u.email">{{ u.email }}</div>
+              <div class="picker-card__summary">{{ managerPickerSummary }}</div>
+              <div class="picker-card__list">
+                <label class="picker-card__item" *ngFor="let u of filteredManagerOptions">
+                  <input type="checkbox" [checked]="isManagerChecked(u.id)" (change)="toggleManager(u.id, $any($event.target).checked)" />
+                  <div>
+                    <div class="picker-card__title">{{ u.fullName || u.username || ('#' + u.id) }}</div>
+                    <div class="picker-card__sub" *ngIf="u.email">{{ u.email }}</div>
                   </div>
                 </label>
-
-                <div class="picker-empty" *ngIf="filteredManagerOptions.length === 0">
-                  Không tìm thấy quản lý.
-                </div>
+                <div class="picker-card__empty" *ngIf="filteredManagerOptions.length === 0">Không tìm thấy quản lý.</div>
               </div>
             </div>
           </div>
+
           <div class="field">
             <label class="label">Trạng thái</label>
             <select class="input" [(ngModel)]="form.active">
@@ -305,260 +197,84 @@
             </select>
           </div>
         </div>
-        <div class="field">
-          <label class="label">Địa chỉ</label>
-          <input class="input" [(ngModel)]="form.address" placeholder="Số nhà, đường, ..." />
-        </div>
 
-        <div class="field">
-          <label class="label">Chế độ hành chính</label>
-          <div class="addr-mode" (click)="$event.stopPropagation()">
-            <button
-              type="button"
-              class="btn ghost"
-              [class.active]="addressMode === 'after_merge'"
-              (click)="onAddressModeChange('after_merge')"
-            >Sau sáp nhập</button>
-            <button
-              type="button"
-              class="btn ghost"
-              [class.active]="addressMode === 'before_merge'"
-              (click)="onAddressModeChange('before_merge')"
-            >Trước sáp nhập</button>
-          </div>
-        </div>
+        <div class="card branch-address-card">
+          <div class="card-head">Địa chỉ kho và định vị</div>
+          <div class="card-body">
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Tỉnh/Thành phố</label>
+                <select class="input" [(ngModel)]="vn2ProvinceCode" (ngModelChange)="onVn2ProvinceChange($event)">
+                  <option value="">-- Chọn Tỉnh/TP --</option>
+                  <option *ngFor="let p of vn2ProvinceOptions" [value]="p.code">{{ p.name }}</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label">Phường/Xã</label>
+                <select class="input" [(ngModel)]="vn2CommuneCode" [disabled]="vn2Loading || !vn2CommuneOptions.length" (ngModelChange)="onVn2CommuneChange($event)">
+                  <option value="">{{ vn2Loading ? 'Đang tải...' : '-- Chọn Phường/Xã --' }}</option>
+                  <option *ngFor="let c of vn2CommuneOptions" [value]="c.code">{{ c.name }}</option>
+                </select>
+              </div>
+            </div>
 
-        <ng-container *ngIf="addressMode === 'after_merge'; else beforeMergeCreate">
-          <div class="grid2">
             <div class="field">
-              <label class="label">Tỉnh/TP</label>
-              <select class="input" [(ngModel)]="vn2ProvinceCode" (ngModelChange)="onVn2ProvinceChange($event)">
-                <option value="">-- Chọn Tỉnh/TP --</option>
-                <option *ngFor="let p of vn2ProvinceOptions" [value]="p.code">{{ p.name }}</option>
-              </select>
+              <label class="label">Địa chỉ chi tiết</label>
+              <input class="input" [(ngModel)]="form.address" placeholder="Số nhà, tên đường, cụm dân cư..." />
             </div>
-            <div class="field">
-              <label class="label">Phường/Xã</label>
-              <select class="input" [(ngModel)]="vn2CommuneCode" [disabled]="vn2Loading || !vn2CommuneOptions.length" (ngModelChange)="onVn2CommuneChange($event)">
-                <option value="">{{ vn2Loading ? 'Đang tải...' : '-- Chọn Phường/Xã --' }}</option>
-                <option *ngFor="let c of vn2CommuneOptions" [value]="c.code">{{ c.name }}</option>
-              </select>
-            </div>
-          </div>
-        </ng-container>
 
-        <ng-template #beforeMergeCreate>
-          <div class="grid3">
-            <div class="field">
-              <label class="label">Tỉnh/TP</label>
-              <select class="input" [ngModel]="form.province" (ngModelChange)="onProvinceChange($event)">
-                <option [ngValue]="''">-- Chọn Tỉnh/TP --</option>
-                <option *ngFor="let p of provinceOptions" [ngValue]="p">{{ p }}</option>
-              </select>
+            <div class="map-cta">
+              <div class="map-cta__content">
+                <div class="map-cta__title">Chọn vị trí trên bản đồ</div>
+                <div class="map-cta__sub">Map sẽ tự gợi ý tỉnh/thành, phường/xã và địa chỉ chi tiết theo điểm đã chọn.</div>
+              </div>
+              <button class="btn ghost" type="button" (click)="openMapPicker()">Mở map</button>
             </div>
-            <div class="field">
-              <label class="label">Quận/Huyện</label>
-              <select class="input" [ngModel]="form.district" [disabled]="!canPickDistrict" (ngModelChange)="onDistrictChange($event)">
-                <option [ngValue]="''">-- Chọn Quận/Huyện --</option>
-                <option *ngFor="let d of districtOptions" [ngValue]="d">{{ d }}</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="label">Phường/Xã</label>
-              <select class="input" [ngModel]="form.ward" [disabled]="!canPickWard" (ngModelChange)="onWardChange($event)">
-                <option [ngValue]="''">-- Chọn Phường/Xã --</option>
-                <option *ngFor="let w of wardOptions" [ngValue]="w">{{ w }}</option>
-              </select>
-            </div>
-          </div>
-        </ng-template>
 
-        <div class="field">
-          <button class="btn ghost" type="button" (click)="openMapPicker()">Chọn trên bản đồ</button>
-        </div>
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Latitude</label>
-            <input class="input" type="number" [(ngModel)]="form.latitude" placeholder="VD: 21.0278" />
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Latitude</label>
+                <input class="input" type="number" [(ngModel)]="form.latitude" placeholder="VD: 21.0278" />
+              </div>
+              <div class="field">
+                <label class="label">Longitude</label>
+                <input class="input" type="number" [(ngModel)]="form.longitude" placeholder="VD: 105.8342" />
+              </div>
+            </div>
           </div>
-          <div class="field">
-            <label class="label">Longitude</label>
-            <input class="input" type="number" [(ngModel)]="form.longitude" placeholder="VD: 105.8342" />
-          </div>
         </div>
-        <div class="modal-actions">
-          <button class="btn ghost" type="button" (click)="cancelCreate()">Hủy</button>
-          <button class="btn" type="button" (click)="submitCreate()" [disabled]="createLoading">{{ createLoading ? 'Đang lưu...' : 'Tạo chi nhánh' }}</button>
-        </div>
+      </div>
+
+      <div class="cat-actions">
+        <button class="btn ghost" type="button" (click)="createOpen ? cancelCreate() : cancelEdit()">Hủy</button>
+        <button class="btn" type="button" (click)="createOpen ? submitCreate() : submitEdit()" [disabled]="createOpen ? createLoading : editLoading">
+          {{ (createOpen ? createLoading : editLoading) ? 'Đang lưu...' : (createOpen ? 'Tạo chi nhánh' : 'Lưu thay đổi') }}
+        </button>
       </div>
     </div>
   </div>
 
-  <div class="overlay" *ngIf="editOpen">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="Sửa chi nhánh">
-      <div class="modal-head">
-        <div class="modal-title">Sửa chi nhánh</div>
-        <button class="icon" type="button" (click)="cancelEdit()">✕</button>
-      </div>
-      <div class="form" style="padding:16px">
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Mã chi nhánh</label>
-            <input class="input" [(ngModel)]="form.code" placeholder="VD: CN_HN_01" />
-          </div>
-          <div class="field">
-            <label class="label">Tên chi nhánh</label>
-            <input class="input" [(ngModel)]="form.name" placeholder="VD: Chi nhánh Hà Nội" />
-          </div>
-        </div>
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Quản lý</label>
-            <div class="picker">
-              <div class="picker-search">
-                <span class="ic" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                </span>
-                <input class="picker-input" [(ngModel)]="managerQ" placeholder="Tìm kiếm quản lý..." />
-              </div>
-              <div class="picker-list">
-                <label class="picker-item" *ngFor="let u of filteredManagerOptions">
-                  <input
-                    type="checkbox"
-                    class="picker-check"
-                    [checked]="isManagerChecked(u.id)"
-                    (change)="toggleManager(u.id, $any($event.target).checked)"
-                  />
-                  <div class="picker-main">
-                    <div class="picker-title">{{ (u.fullName || u.username || ('#' + u.id)) }}</div>
-                    <div class="picker-sub" *ngIf="u.email">{{ u.email }}</div>
-                  </div>
-                </label>
-
-                <div class="picker-empty" *ngIf="filteredManagerOptions.length === 0">
-                  Không tìm thấy quản lý.
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label">Trạng thái</label>
-            <select class="input" [(ngModel)]="form.active">
-              <option [ngValue]="true">Hoạt động</option>
-              <option [ngValue]="false">Tạm dừng</option>
-            </select>
-          </div>
-        </div>
-        <div class="field">
-          <label class="label">Địa chỉ</label>
-          <input class="input" [(ngModel)]="form.address" placeholder="Số nhà, đường, ..." />
-        </div>
-
-        <div class="field">
-          <label class="label">Chế độ hành chính</label>
-          <div class="addr-mode" (click)="$event.stopPropagation()">
-            <button
-              type="button"
-              class="btn ghost"
-              [class.active]="addressMode === 'after_merge'"
-              (click)="onAddressModeChange('after_merge')"
-            >Sau sáp nhập</button>
-            <button
-              type="button"
-              class="btn ghost"
-              [class.active]="addressMode === 'before_merge'"
-              (click)="onAddressModeChange('before_merge')"
-            >Trước sáp nhập</button>
-          </div>
-        </div>
-
-        <ng-container *ngIf="addressMode === 'after_merge'; else beforeMergeEdit">
-          <div class="grid2">
-            <div class="field">
-              <label class="label">Tỉnh/TP</label>
-              <select class="input" [(ngModel)]="vn2ProvinceCode" (ngModelChange)="onVn2ProvinceChange($event)">
-                <option value="">-- Chọn Tỉnh/TP --</option>
-                <option *ngFor="let p of vn2ProvinceOptions" [value]="p.code">{{ p.name }}</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="label">Phường/Xã</label>
-              <select class="input" [(ngModel)]="vn2CommuneCode" [disabled]="vn2Loading || !vn2CommuneOptions.length" (ngModelChange)="onVn2CommuneChange($event)">
-                <option value="">{{ vn2Loading ? 'Đang tải...' : '-- Chọn Phường/Xã --' }}</option>
-                <option *ngFor="let c of vn2CommuneOptions" [value]="c.code">{{ c.name }}</option>
-              </select>
-            </div>
-          </div>
-        </ng-container>
-
-        <ng-template #beforeMergeEdit>
-          <div class="grid3">
-            <div class="field">
-              <label class="label">Tỉnh/TP</label>
-              <select class="input" [ngModel]="form.province" (ngModelChange)="onProvinceChange($event)">
-                <option [ngValue]="''">-- Chọn Tỉnh/TP --</option>
-                <option *ngFor="let p of provinceOptions" [ngValue]="p">{{ p }}</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="label">Quận/Huyện</label>
-              <select class="input" [ngModel]="form.district" [disabled]="!canPickDistrict" (ngModelChange)="onDistrictChange($event)">
-                <option [ngValue]="''">-- Chọn Quận/Huyện --</option>
-                <option *ngFor="let d of districtOptions" [ngValue]="d">{{ d }}</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="label">Phường/Xã</label>
-              <select class="input" [ngModel]="form.ward" [disabled]="!canPickWard" (ngModelChange)="onWardChange($event)">
-                <option [ngValue]="''">-- Chọn Phường/Xã --</option>
-                <option *ngFor="let w of wardOptions" [ngValue]="w">{{ w }}</option>
-              </select>
-            </div>
-          </div>
-        </ng-template>
-
-        <div class="field">
-          <button class="btn ghost" type="button" (click)="openMapPicker()">Chọn trên bản đồ</button>
-        </div>
-        <div class="grid2">
-          <div class="field">
-            <label class="label">Latitude</label>
-            <input class="input" type="number" [(ngModel)]="form.latitude" placeholder="VD: 21.0278" />
-          </div>
-          <div class="field">
-            <label class="label">Longitude</label>
-            <input class="input" type="number" [(ngModel)]="form.longitude" placeholder="VD: 105.8342" />
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn ghost" type="button" (click)="cancelEdit()">Hủy</button>
-          <button class="btn" type="button" (click)="submitEdit()" [disabled]="editLoading">{{ editLoading ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="overlay" *ngIf="stocksOpen">
-    <div class="modal wide" role="dialog" aria-modal="true" aria-label="Tồn kho chi nhánh">
-      <div class="modal-head">
-        <div class="modal-title">Tồn kho chi nhánh {{ stocksBranch?.code || '' }}</div>
-        <button class="icon" type="button" (click)="closeStocks()">✕</button>
+  <div class="cat-overlay" *ngIf="stocksOpen">
+    <div class="cat-modal stocks-modal">
+      <div class="cat-head">
+        <div class="cat-title">Tồn kho chi nhánh {{ stocksBranch?.code || '' }}</div>
+        <button class="btn ghost" type="button" (click)="closeStocks()">×</button>
       </div>
 
-      <div class="form" style="padding:16px">
-        <div class="alert error" *ngIf="stocksError">{{ stocksError }}</div>
+      <div class="cat-body">
+        <div class="toast-inline toast-inline--error" *ngIf="stocksError">{{ stocksError }}</div>
 
-        <div class="filters-row" style="margin-bottom: 12px;">
-          <div class="search" style="min-width: 260px;">
-            <span class="search-ic" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <div class="toolbar-row toolbar-row--compact">
+          <div class="toolbar-search">
+            <span class="toolbar-search__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             </span>
-            <input class="search-input" [(ngModel)]="productQ" placeholder="Tìm sản phẩm theo ID, SKU, tên..." />
+            <input class="input" [(ngModel)]="productQ" placeholder="Tìm sản phẩm theo ID, SKU, tên..." />
           </div>
-          <div class="result">{{ filteredProducts.length }} sản phẩm</div>
+          <div class="toolbar-result">{{ filteredProducts.length }} sản phẩm</div>
         </div>
 
-        <div class="card" style="max-height: 55vh; overflow: auto;">
+        <div class="table-wrap table-wrap--modal">
           <table class="tbl">
             <thead>
               <tr>
@@ -574,37 +290,103 @@
               </tr>
               <tr *ngFor="let p of filteredProducts">
                 <td class="strong">#{{ p.id }}</td>
-                <td class="muted">{{ p.sku || '-' }}</td>
+                <td>{{ p.sku || '-' }}</td>
                 <td class="strong">{{ p.name }}</td>
-                <td>
-                  <input class="input" type="number" [ngModel]="getDraftStock(p.id)" (ngModelChange)="setDraftStock(p.id, $event)" />
-                </td>
+                <td><input class="input" type="number" [ngModel]="getDraftStock(p.id)" (ngModelChange)="setDraftStock(p.id, $event)" /></td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
 
-        <div class="modal-actions">
-          <button class="btn ghost" type="button" (click)="closeStocks()" [disabled]="stocksLoading">Đóng</button>
-          <button class="btn" type="button" (click)="saveStocks()" [disabled]="stocksLoading">{{ stocksLoading ? 'Đang lưu...' : 'Lưu tồn kho' }}</button>
-        </div>
+      <div class="cat-actions">
+        <button class="btn ghost" type="button" (click)="closeStocks()" [disabled]="stocksLoading">Đóng</button>
+        <button class="btn" type="button" (click)="saveStocks()" [disabled]="stocksLoading">{{ stocksLoading ? 'Đang lưu...' : 'Lưu tồn kho' }}</button>
       </div>
     </div>
   </div>
 
-  <div class="overlay" *ngIf="mapOpen" (click)="closeMapPicker()">
-    <div class="modal wide" role="dialog" aria-modal="true" aria-label="Chọn vị trí trên bản đồ" (click)="$event.stopPropagation()">
-      <div class="modal-head">
-        <div class="modal-title">Chọn vị trí trên bản đồ</div>
-        <button class="icon" type="button" (click)="closeMapPicker()">✕</button>
+  <div class="cat-overlay" *ngIf="mapOpen" (click)="closeMapPicker()">
+    <div class="cat-modal map-modal" (click)="$event.stopPropagation()">
+      <div class="cat-head">
+        <div class="cat-title">Chọn vị trí trên bản đồ</div>
+        <button class="btn ghost" type="button" (click)="closeMapPicker()">×</button>
       </div>
-      <div class="form" style="padding:16px">
-        <div #mapContainer style="height: 55vh; border-radius: 12px; overflow: hidden;"></div>
-        <div class="alert error" *ngIf="mapError" style="margin-top: 10px;">{{ mapError }}</div>
-        <div class="modal-actions">
-          <button class="btn ghost" type="button" (click)="closeMapPicker()">Hủy</button>
-          <button class="btn" type="button" (click)="confirmMapPicker()">Xác nhận</button>
+
+      <div class="cat-body map-modal__body">
+        <div class="map-panel">
+          <div class="map-toolbar">
+            <div class="toolbar-search map-toolbar__search">
+              <span class="toolbar-search__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </span>
+              <input
+                class="input"
+                [(ngModel)]="mapSearchQ"
+                (keydown.enter)="searchMapPlaces()"
+                placeholder="Tìm địa chỉ, tên đường, khu vực..."
+              />
+            </div>
+            <button class="btn ghost" type="button" (click)="searchMapPlaces()" [disabled]="mapSearchLoading">
+              {{ mapSearchLoading ? 'Đang tìm...' : 'Tìm kiếm' }}
+            </button>
+            <button class="btn ghost" type="button" (click)="useCurrentLocation()" [disabled]="mapLocating">
+              {{ mapLocating ? 'Đang định vị...' : 'Vị trí hiện tại' }}
+            </button>
+          </div>
+
+          <div class="map-search-results" *ngIf="mapSearchResults.length">
+            <button
+              class="map-search-result"
+              type="button"
+              *ngFor="let item of mapSearchResults"
+              (click)="selectMapSearchResult(item)"
+            >
+              <span class="map-search-result__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"/><circle cx="12" cy="11" r="2.5"/></svg>
+              </span>
+              <span class="map-search-result__text">{{ item.displayName }}</span>
+            </button>
+          </div>
+          <div #mapContainer class="map-canvas"></div>
+          <div class="map-panel__hint">Bấm vào bản đồ để đặt marker địa chỉ cho chi nhánh.</div>
         </div>
+
+        <div class="map-preview-card">
+          <div class="map-preview-card__title">Dữ liệu sẽ đổ vào form</div>
+          <div class="map-preview-card__state" *ngIf="mapPicking">Đang nhận diện địa chỉ từ vị trí đã chọn...</div>
+          <div class="map-preview-card__state" *ngIf="!mapPicking && !mapResolvedAddress">Chọn một điểm trên bản đồ để xem dữ liệu địa chỉ.</div>
+
+          <div class="map-preview-grid" *ngIf="mapResolvedAddress">
+            <div class="map-preview-item">
+              <span>Tỉnh/Thành</span>
+              <strong>{{ mapResolvedAddress.province || '-' }}</strong>
+            </div>
+            <div class="map-preview-item">
+              <span>Phường/Xã</span>
+              <strong>{{ mapResolvedAddress.ward || '-' }}</strong>
+            </div>
+            <div class="map-preview-item map-preview-item--full">
+              <span>Địa chỉ chi tiết</span>
+              <strong>{{ mapResolvedAddress.address || '-' }}</strong>
+            </div>
+            <div class="map-preview-item">
+              <span>Latitude</span>
+              <strong>{{ selectedMapLatitude ?? '-' }}</strong>
+            </div>
+            <div class="map-preview-item">
+              <span>Longitude</span>
+              <strong>{{ selectedMapLongitude ?? '-' }}</strong>
+            </div>
+          </div>
+
+          <div class="toast-inline toast-inline--error" *ngIf="mapError">{{ mapError }}</div>
+        </div>
+      </div>
+
+      <div class="cat-actions">
+        <button class="btn ghost" type="button" (click)="closeMapPicker()">Hủy</button>
+        <button class="btn" type="button" (click)="confirmMapPicker()" [disabled]="mapPicking">Xác nhận vị trí</button>
       </div>
     </div>
   </div>

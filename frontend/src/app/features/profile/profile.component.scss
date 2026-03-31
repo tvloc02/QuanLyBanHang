@@ -469,3 +469,28 @@
   color: #6c757d;
   margin-bottom: 20px;
 }
+
+:host {
+  .profile-panel,
+  .profile-card {
+    border: 1px solid var(--fh-border);
+    border-radius: 16px;
+  }
+
+  #profileForm input,
+  #profileForm select,
+  #profileForm textarea,
+  #profileForm button,
+  #profileForm .rounded-2xl,
+  #profileForm .rounded-xl {
+    border-radius: 12px;
+  }
+
+  #profileForm .rounded-\[24px\] {
+    border-radius: 16px;
+  }
+
+  #profileForm .rounded-\[18px\] {
+    border-radius: 14px;
+  }
+}

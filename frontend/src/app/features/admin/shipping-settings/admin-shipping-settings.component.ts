@@ -1,14 +1,21 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { 
-  ShippingConfigService, 
-  ShippingCarrierConfig,
-  ExpressOriginGroup,
-  ExpressLane,
-  WardType
-} from './shipping-config.service';
 import { Subscription } from 'rxjs';
+import { AdminBranchResponse, AdminDataService } from '../../../core/services/admin-data.service';
+import {
+  DeliveryDistanceTier,
+  DeliveryMethod,
+  DeliveryPricingConfig,
+  DeliveryZone,
+  ShippingConfigService
+} from './shipping-config.service';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
 
 @Component({
   selector: 'app-admin-shipping-settings',
@@ -20,143 +27,165 @@ import { Subscription } from 'rxjs';
 export class AdminShippingSettingsComponent implements OnInit, OnDestroy {
   private readonly subs = new Subscription();
 
-  private readonly SAMPLE: ShippingCarrierConfig = {
-    carrier: 'GHTK_EXPRESS',
-    express: {
-      hnHcm: {
-        originGroup: 'HN_HCM',
-        lanes: {
-          NOI_TINH: { PHUONG: { baseFee: 22000, baseWeightKg: 3, extraPerHalfKg: 2500 }, XA: { baseFee: 30000, baseWeightKg: 3, extraPerHalfKg: 2500 } },
-          NOI_MIEN: { PHUONG: { baseFee: 30000, baseWeightKg: 0.5, extraPerHalfKg: 2500 }, XA: { baseFee: 35000, baseWeightKg: 0.5, extraPerHalfKg: 2500 } },
-          LIEN_MIEN_GAN: { PHUONG: { baseFee: 30000, baseWeightKg: 0.5, extraPerHalfKg: 5000 }, XA: { baseFee: 37000, baseWeightKg: 0.5, extraPerHalfKg: 5000 } },
-          LIEN_MIEN_XA: { PHUONG: { baseFee: 32000, baseWeightKg: 0.5, extraPerHalfKg: 5000 }, XA: { baseFee: 40000, baseWeightKg: 0.5, extraPerHalfKg: 5000 } },
-          DAC_BIET_TIEU_CHUAN: { PHUONG: { baseFee: 30000, baseWeightKg: 0.5, extraPerHalfKg: 5000 }, XA: { baseFee: 40000, baseWeightKg: 0.5, extraPerHalfKg: 5000 } },
-          DAC_BIET_NHANH: { PHUONG: { baseFee: 40000, baseWeightKg: 0.5, extraPerHalfKg: 10000 }, XA: { baseFee: 50000, baseWeightKg: 0.5, extraPerHalfKg: 10000 } }
-        }
-      },
-      other32: {
-        originGroup: 'OTHER_32',
-        lanes: {
-          NOI_TINH: { PHUONG: { baseFee: 30000, baseWeightKg: 3, extraPerHalfKg: 2500 }, XA: { baseFee: 30000, baseWeightKg: 3, extraPerHalfKg: 2500 } },
-          NOI_MIEN: { PHUONG: { baseFee: 30000, baseWeightKg: 0.5, extraPerHalfKg: 2500 }, XA: { baseFee: 35000, baseWeightKg: 0.5, extraPerHalfKg: 2500 } },
-          LIEN_MIEN_GAN: { PHUONG: { baseFee: 30000, baseWeightKg: 0.5, extraPerHalfKg: 5000 }, XA: { baseFee: 37000, baseWeightKg: 0.5, extraPerHalfKg: 5000 } },
-          LIEN_MIEN_XA: { PHUONG: { baseFee: 32000, baseWeightKg: 0.5, extraPerHalfKg: 5000 }, XA: { baseFee: 40000, baseWeightKg: 0.5, extraPerHalfKg: 5000 } },
-          DAC_BIET_TIEU_CHUAN: { PHUONG: { baseFee: 0, baseWeightKg: 0.5, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0.5, extraPerHalfKg: 0 } },
-          DAC_BIET_NHANH: { PHUONG: { baseFee: 0, baseWeightKg: 0.5, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0.5, extraPerHalfKg: 0 } }
-        }
-      }
+  deliveryPricing: DeliveryPricingConfig | null = null;
+  saving = false;
+  branchesLoading = false;
+  branchesError = '';
+  branches: AdminBranchResponse[] = [];
+
+  readonly zoneMeta: Array<{ zone: DeliveryZone; key: keyof DeliveryPricingConfig; label: string; description: string }> = [
+    {
+      zone: 'SAME_PROVINCE',
+      key: 'sameProvince',
+      label: 'Khách cùng tỉnh với chi nhánh',
+      description: 'Áp dụng khi tỉnh/thành của địa chỉ giao hàng trùng tỉnh/thành của kho chi nhánh.'
+    },
+    {
+      zone: 'DIFFERENT_PROVINCE',
+      key: 'differentProvince',
+      label: 'Khách khác tỉnh với chi nhánh',
+      description: 'Áp dụng khi địa chỉ giao hàng và chi nhánh ở khác tỉnh/thành.'
     }
-  };
-
-  carrierConfig: ShippingCarrierConfig | null = null;
-  carrierSaving = false;
-
-  readonly carrierOptions: Array<{ value: ShippingCarrierConfig['carrier']; label: string }> = [
-    { value: 'GHTK_EXPRESS', label: 'GHTK Express' }
   ];
 
-  readonly expressLaneMeta: Array<{ lane: ExpressLane; label: string; hint: string }> = [
-    { lane: 'NOI_TINH', label: 'Nội tỉnh', hint: 'Áp dụng nội tỉnh (HN hoặc TP.HCM / hoặc tỉnh thường)' },
-    { lane: 'NOI_MIEN', label: 'Nội miền', hint: 'MB→MB / MT→MT / MN→MN' },
-    { lane: 'LIEN_MIEN_GAN', label: 'Liên miền gần (2)', hint: 'Theo bảng giá Express' },
-    { lane: 'LIEN_MIEN_XA', label: 'Liên miền xa (3)', hint: 'Theo bảng giá Express' },
-    { lane: 'DAC_BIET_TIEU_CHUAN', label: 'Đặc biệt - Tiêu chuẩn (4)', hint: 'HN↔TP.HCM / HN→Đà Nẵng / HCM→Đà Nẵng' },
-    { lane: 'DAC_BIET_NHANH', label: 'Đặc biệt - Nhanh (5)', hint: 'HN↔TP.HCM / HN→Đà Nẵng / HCM→Đà Nẵng' }
+  readonly methodMeta: Array<{ method: DeliveryMethod; label: string; badge: string }> = [
+    { method: 'ECONOMY', label: 'Giao tiết kiệm', badge: 'Tiết kiệm' },
+    { method: 'FAST', label: 'Giao nhanh', badge: 'Nhanh' }
   ];
 
-  readonly wardTypeMeta: Array<{ type: WardType; label: string }> = [
-    { type: 'PHUONG', label: 'Phường' },
-    { type: 'XA', label: 'Xã' }
-  ];
-
-  constructor(private shippingService: ShippingConfigService) {}
+  constructor(
+    private shippingService: ShippingConfigService,
+    private adminData: AdminDataService
+  ) {}
 
   ngOnInit(): void {
     this.subs.add(
-      this.shippingService.getCarrierConfig().subscribe(cfg => {
-        this.carrierConfig = cfg ? JSON.parse(JSON.stringify(cfg)) : null;
+      this.shippingService.getDeliveryPricing().subscribe((cfg) => {
+        this.deliveryPricing = JSON.parse(JSON.stringify(cfg));
       })
     );
+    this.loadBranches();
   }
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
   }
 
-  private ensureCarrierConfig(): ShippingCarrierConfig {
-    const cfg = this.carrierConfig;
-    if (cfg) return cfg;
-    const fallback: ShippingCarrierConfig = {
-      carrier: 'GHTK_EXPRESS',
-      express: {
-        hnHcm: {
-          originGroup: 'HN_HCM',
-          lanes: {
-            NOI_TINH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            NOI_MIEN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            LIEN_MIEN_GAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            LIEN_MIEN_XA: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            DAC_BIET_TIEU_CHUAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            DAC_BIET_NHANH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } }
-          }
-        },
-        other32: {
-          originGroup: 'OTHER_32',
-          lanes: {
-            NOI_TINH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            NOI_MIEN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            LIEN_MIEN_GAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            LIEN_MIEN_XA: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            DAC_BIET_TIEU_CHUAN: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } },
-            DAC_BIET_NHANH: { PHUONG: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 }, XA: { baseFee: 0, baseWeightKg: 0, extraPerHalfKg: 0 } }
-          }
-        }
+  private loadBranches(): void {
+    this.branchesLoading = true;
+    this.branchesError = '';
+    this.adminData.getBranches().subscribe({
+      next: (res: ApiResponse<AdminBranchResponse[]>) => {
+        this.branchesLoading = false;
+        this.branches = res?.success && Array.isArray(res.data) ? res.data : [];
+      },
+      error: () => {
+        this.branchesLoading = false;
+        this.branches = [];
+        this.branchesError = 'Không tải được danh sách chi nhánh để đối chiếu địa chỉ giao hàng.';
       }
-    };
-    this.carrierConfig = fallback;
-    return fallback;
+    });
   }
 
-  onCarrierChanged(value: ShippingCarrierConfig['carrier']): void {
-    const cfg = this.ensureCarrierConfig();
-    cfg.carrier = value;
+  get configuredBranchCount(): number {
+    return this.branches.filter((branch) => this.hasBranchAddress(branch)).length;
   }
 
-  getExpressPrice(origin: ExpressOriginGroup, lane: ExpressLane, wardType: WardType, field: 'baseFee' | 'baseWeightKg' | 'extraPerHalfKg'): number | null {
-    const cfg = this.ensureCarrierConfig();
-    const tpl = origin === 'HN_HCM' ? cfg.express.hnHcm : cfg.express.other32;
-    const v = (tpl?.lanes as any)?.[lane]?.[wardType]?.[field];
-    const n = Number(v);
-    if (!Number.isFinite(n)) return null;
-    return n === 0 ? null : n;
+  get geoReadyBranchCount(): number {
+    return this.branches.filter((branch) => this.hasBranchCoordinates(branch)).length;
   }
 
-  getExpressPlaceholder(origin: ExpressOriginGroup, lane: ExpressLane, wardType: WardType, field: 'baseFee' | 'baseWeightKg' | 'extraPerHalfKg'): number {
-    const tpl = origin === 'HN_HCM' ? this.SAMPLE.express.hnHcm : this.SAMPLE.express.other32;
-    const v = (tpl?.lanes as any)?.[lane]?.[wardType]?.[field];
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
+  getZoneConfig(zone: keyof DeliveryPricingConfig): Record<DeliveryMethod, DeliveryDistanceTier[]> {
+    return this.ensurePricing()[zone];
   }
 
-  setExpressPrice(origin: ExpressOriginGroup, lane: ExpressLane, wardType: WardType, field: 'baseFee' | 'baseWeightKg' | 'extraPerHalfKg', value: unknown): void {
-    const cfg = this.ensureCarrierConfig();
-    const tpl = origin === 'HN_HCM' ? cfg.express.hnHcm : cfg.express.other32;
-    const n = Number(value);
-    const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
-    (tpl.lanes as any)[lane] = (tpl.lanes as any)[lane] || {};
-    (tpl.lanes as any)[lane][wardType] = (tpl.lanes as any)[lane][wardType] || { baseFee: 0, baseWeightKg: 0.5, extraPerHalfKg: 0 };
-    (tpl.lanes as any)[lane][wardType][field] = safe;
+  getMethodTiers(zone: keyof DeliveryPricingConfig, method: DeliveryMethod): DeliveryDistanceTier[] {
+    return this.getZoneConfig(zone)[method];
   }
 
-  saveCarrierConfig(): void {
-    if (this.carrierSaving) return;
-    const cfg = this.ensureCarrierConfig();
-    this.carrierSaving = true;
-    try {
-      this.shippingService.updateCarrierConfig(cfg);
-      alert('Đã lưu bảng giá vận chuyển.');
-    } finally {
-      this.carrierSaving = false;
+  addTier(zone: keyof DeliveryPricingConfig, method: DeliveryMethod): void {
+    const tiers = this.getMethodTiers(zone, method);
+    const last = tiers[tiers.length - 1] || { minDistanceKm: 0, maxDistanceKm: 0, minDays: 0, maxDays: 0, fee: 0 };
+    const nextMin = Math.max(0, Number(last.maxDistanceKm || 0));
+    tiers.push({
+      minDistanceKm: nextMin,
+      maxDistanceKm: nextMin + 100,
+      minDays: Math.max(0, Number(last.minDays || 0)),
+      maxDays: Math.max(0, Number(last.maxDays || last.minDays || 0)),
+      fee: Math.max(0, Number(last.fee || 0))
+    });
+  }
+
+  removeTier(zone: keyof DeliveryPricingConfig, method: DeliveryMethod, index: number): void {
+    const tiers = this.getMethodTiers(zone, method);
+    if (tiers.length <= 1) return;
+    tiers.splice(index, 1);
+  }
+
+  updateTierField(
+    zone: keyof DeliveryPricingConfig,
+    method: DeliveryMethod,
+    index: number,
+    field: keyof DeliveryDistanceTier,
+    value: unknown
+  ): void {
+    const tiers = this.getMethodTiers(zone, method);
+    const tier = tiers[index];
+    if (!tier) return;
+    const parsed = Number(value);
+    const safe = Number.isFinite(parsed) ? Math.max(0, field === 'fee' || field === 'minDistanceKm' || field === 'maxDistanceKm' ? parsed : Math.round(parsed)) : 0;
+    (tier as any)[field] = safe;
+    if (field === 'minDistanceKm' && tier.maxDistanceKm < tier.minDistanceKm) {
+      tier.maxDistanceKm = tier.minDistanceKm;
     }
+    if (field === 'maxDistanceKm' && tier.minDistanceKm > tier.maxDistanceKm) {
+      tier.minDistanceKm = tier.maxDistanceKm;
+    }
+    if (field === 'minDays' && tier.maxDays < tier.minDays) {
+      tier.maxDays = tier.minDays;
+    }
+    if (field === 'maxDays' && tier.minDays > tier.maxDays) {
+      tier.minDays = tier.maxDays;
+    }
+  }
+
+  save(): void {
+    if (this.saving) return;
+    this.saving = true;
+    try {
+      this.shippingService.updateDeliveryPricing(this.ensurePricing());
+      alert('Đã lưu cấu hình phí vận chuyển cho trang giỏ hàng.');
+    } finally {
+      this.saving = false;
+    }
+  }
+
+  hasBranchAddress(branch: AdminBranchResponse | null | undefined): boolean {
+    if (!branch) return false;
+    return !![
+      branch.address,
+      branch.ward,
+      branch.district,
+      branch.province
+    ].find((value) => String(value || '').trim());
+  }
+
+  hasBranchCoordinates(branch: AdminBranchResponse | null | undefined): boolean {
+    if (!branch) return false;
+    return typeof branch.latitude === 'number' && typeof branch.longitude === 'number';
+  }
+
+  formatBranchAddress(branch: AdminBranchResponse | null | undefined): string {
+    if (!branch) return '-';
+    const parts = [branch.address, branch.ward, branch.district, branch.province]
+      .map((value) => String(value || '').trim())
+      .filter((value) => !!value);
+    return parts.length ? parts.join(', ') : 'Chưa khai báo địa chỉ';
+  }
+
+  private ensurePricing(): DeliveryPricingConfig {
+    if (this.deliveryPricing) return this.deliveryPricing;
+    this.deliveryPricing = this.shippingService.getDeliveryPricingSnapshot();
+    return this.deliveryPricing;
   }
 }

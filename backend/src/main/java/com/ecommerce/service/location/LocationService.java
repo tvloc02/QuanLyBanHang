@@ -2,6 +2,7 @@ package com.ecommerce.service.location;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,6 +61,29 @@ public class LocationService {
         );
         Map<String, Object> body = res.getBody();
         return body != null ? body : Map.of();
+    }
+
+    public Object searchGeocode(String query) {
+        String q = query == null ? "" : query.trim();
+        if (q.isEmpty()) {
+            return List.of();
+        }
+
+        String url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&countrycodes=vn&q=" + q;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.set("User-Agent", "FashionHub/1.0 (contact: support@fashionhub.local)");
+
+        HttpEntity<Void> req = new HttpEntity<>(headers);
+        ResponseEntity<Object> res = restTemplate.exchange(
+            url,
+            HttpMethod.GET,
+            req,
+            Object.class
+        );
+        Object body = res.getBody();
+        return body != null ? body : List.of();
     }
 
     private static class CacheEntry {

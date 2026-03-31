@@ -14,6 +14,7 @@ interface ApiResponse<T> {
 }
 
 type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'COMPLETED' | string;
+type LookupTab = 'all' | 'pending' | 'processing' | 'shipping' | 'delivered' | 'cancelled' | 'returned';
 
 interface OrderStatusLookupResponse {
   orderId: number;
@@ -32,8 +33,19 @@ interface OrderStatusLookupResponse {
   styleUrls: ['./order-lookup.component.scss']
 })
 export class OrderLookupComponent {
+  readonly tabs: Array<{ key: LookupTab; label: string }> = [
+    { key: 'all', label: 'Tất cả đơn hàng' },
+    { key: 'pending', label: 'Chờ thanh toán' },
+    { key: 'processing', label: 'Đang xử lý' },
+    { key: 'shipping', label: 'Đang giao' },
+    { key: 'delivered', label: 'Đã giao' },
+    { key: 'cancelled', label: 'Đã hủy' },
+    { key: 'returned', label: 'Hoàn hàng' }
+  ];
+
   orderId = '';
   phone = '';
+  activeTab: LookupTab = 'all';
 
   loading = false;
   error = '';
@@ -52,6 +64,20 @@ export class OrderLookupComponent {
   formatMoney(v: any): string {
     const n = Number(v || 0);
     return new Intl.NumberFormat('vi-VN').format(Number.isFinite(n) ? Math.round(n) : 0);
+  }
+
+  setActiveTab(tab: LookupTab): void {
+    this.activeTab = tab;
+  }
+
+  get visibleResult(): OrderStatusLookupResponse | null {
+    if (!this.result) return null;
+    if (this.activeTab === 'all') return this.result;
+    return this.matchesTab(this.result.status, this.activeTab) ? this.result : null;
+  }
+
+  get statusLabel(): string {
+    return this.mapStatusLabel(this.visibleResult?.status || '');
   }
 
   goShopping(): void {
@@ -94,11 +120,35 @@ export class OrderLookupComponent {
           return;
         }
         this.result = res.data;
+        this.activeTab = 'all';
       },
       error: (err: any) => {
         this.loading = false;
         this.error = err?.error?.message || 'Không thể tra cứu đơn hàng.';
       }
     });
+  }
+
+  private matchesTab(status: OrderStatus, tab: LookupTab): boolean {
+    const key = String(status || '').trim().toUpperCase();
+    if (tab === 'all') return true;
+    if (tab === 'pending') return key === 'PENDING';
+    if (tab === 'processing') return key === 'CONFIRMED' || key === 'PROCESSING';
+    if (tab === 'shipping') return key === 'SHIPPED';
+    if (tab === 'delivered') return key === 'DELIVERED' || key === 'COMPLETED';
+    if (tab === 'cancelled') return key === 'CANCELLED';
+    if (tab === 'returned') return key === 'RETURNED' || key === 'REFUNDED';
+    return false;
+  }
+
+  private mapStatusLabel(status: OrderStatus): string {
+    const key = String(status || '').trim().toUpperCase();
+    if (key === 'PENDING') return 'Chờ thanh toán';
+    if (key === 'CONFIRMED' || key === 'PROCESSING') return 'Đang xử lý';
+    if (key === 'SHIPPED') return 'Đang giao';
+    if (key === 'DELIVERED' || key === 'COMPLETED') return 'Đã giao';
+    if (key === 'CANCELLED') return 'Đã hủy';
+    if (key === 'RETURNED' || key === 'REFUNDED') return 'Hoàn hàng';
+    return key || 'Đơn hàng';
   }
 }
