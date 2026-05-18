@@ -21,6 +21,9 @@
      private String code;
  
      private String description;
+
+    @Column(length = 32)
+    private String type;
  
      private BigDecimal discountAmount;
  
@@ -34,6 +37,9 @@
 
     @Column(length = 255)
     private String allowedSegments;
+
+    @Column(length = 2000)
+    private String targetUserIds;
 
     private Integer usageLimit;
 
@@ -69,6 +75,14 @@
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public BigDecimal getDiscountAmount() {
@@ -117,6 +131,14 @@
 
     public void setAllowedSegments(String allowedSegments) {
         this.allowedSegments = allowedSegments;
+    }
+
+    public String getTargetUserIds() {
+        return targetUserIds;
+    }
+
+    public void setTargetUserIds(String targetUserIds) {
+        this.targetUserIds = targetUserIds;
     }
 
     public Integer getUsageLimit() {

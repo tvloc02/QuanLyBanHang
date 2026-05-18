@@ -101,6 +101,11 @@ export const routes: Routes = [
         ]
       },
       {
+        path: 'reports',
+        canActivate: [rolesGuard(['ADMIN', 'MANAGER'])],
+        loadComponent: () => import('./features/admin/reports/admin-reports.component').then((m) => m.AdminReportsComponent)
+      },
+      {
         path: 'orders',
         loadComponent: () => import('./features/admin/orders/admin-orders.component').then((m) => m.AdminOrdersComponent)
       },
@@ -176,6 +181,10 @@ export const routes: Routes = [
           {
             path: 'notifications',
             loadComponent: () => import('./features/admin/settings/admin-notification-settings.component').then((m) => m.AdminNotificationSettingsComponent)
+          },
+          {
+            path: 'payment',
+            loadComponent: () => import('./features/admin/settings/admin-payment-settings.component').then((m) => m.AdminPaymentSettingsComponent)
           },
           {
             path: 'home-sections',

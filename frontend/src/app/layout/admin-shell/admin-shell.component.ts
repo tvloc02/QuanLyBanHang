@@ -246,6 +246,8 @@ export class AdminShellComponent implements OnInit, OnDestroy {
       return 'sales';
     }
 
+    if (u.startsWith('/admin/reports')) return 'reports';
+
     if (u.startsWith('/admin/settings/home-sections') || u.startsWith('/admin/sale-page') || u.startsWith('/admin/home-config') || u.startsWith('/admin/category-config')) return 'storefront';
 
     if (

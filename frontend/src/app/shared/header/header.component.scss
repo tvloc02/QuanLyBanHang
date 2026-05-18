@@ -434,6 +434,44 @@
   box-shadow: 0 0 0 2px #fff;
 }
 
+.tl-header__icon.is-bump {
+  animation: tl-cart-icon-bump 0.52s cubic-bezier(0.2, 0.9, 0.28, 1.2);
+}
+
+.tl-header__icon.is-bump .tl-header__badge {
+  animation: tl-cart-badge-pop 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tl-cart-icon-bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.16);
+  }
+  65% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tl-cart-badge-pop {
+  0% {
+    transform: scale(0.8);
+  }
+  35% {
+    transform: scale(1.28);
+  }
+  65% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .tl-nav {
   background: #fff;
   border-top: 1px solid rgba(0, 0, 0, 0.06);

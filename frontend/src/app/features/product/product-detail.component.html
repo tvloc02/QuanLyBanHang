@@ -36,91 +36,72 @@
         </div>
       </div>
 
-      <aside class="buy">
-        <div class="buy__header">
-          <h1 class="title">{{ product.name }}</h1>
-          <div class="sku" *ngIf="product.sku">SKU: {{ product.sku }}</div>
+      <div class="buy">
+        <div class="title-row">
+          <div class="title">{{ product.name }}</div>
+          <div class="sku" *ngIf="product.sku">Mã: {{ product.sku }}</div>
         </div>
 
-        <div class="meta-row">
-          <div class="rating-line">
-            <span class="stars">★★★★★</span>
-            <span class="rating-value">{{ averageReviewRating | number:'1.0-1' }} sao</span>
-            <span class="dot">|</span>
-            <span>{{ reviewCount }} đánh giá</span>
-            <span class="dot">|</span>
-            <span *ngIf="product.soldCount">{{ product.soldCount }} đã bán</span>
+        <div class="meta">
+          <div class="rating" *ngIf="product.rating">
+            <span class="stars">★</span>
+            <span class="val">{{ product.rating }}</span>
+            <span class="sep">•</span>
+            <span class="sold" *ngIf="product.soldCount">Đã bán {{ product.soldCount }}</span>
+          </div>
+          <div class="brand" *ngIf="product.brand">Thương hiệu: <b>{{ product.brand }}</b></div>
+          <div class="stock" [class.ok]="stockStatus.ok" [class.bad]="!stockStatus.ok">
+            {{ stockStatus.label }}
           </div>
         </div>
 
-        <div class="sub-copy" *ngIf="product.promotionText || product.badge">
-          {{ product.promotionText || product.badge }}
-        </div>
-
-        <div class="price-panel">
-          <div class="price-panel__left">
-            <div class="list-price" *ngIf="product.oldPrice">Giá niêm yết cũ: {{ formatMoney(product.oldPrice) }}đ</div>
-            <div class="price-line">
-              <span class="price-now">{{ formatMoney(product.price) }}đ</span>
-              <span class="price-old" *ngIf="product.oldPrice">{{ formatMoney(product.oldPrice) }}đ</span>
-            </div>
-            <div class="price-saving" *ngIf="savingsAmount > 0">Giảm {{ formatMoney(savingsAmount) }}đ so với giá niêm yết</div>
+        <div class="price-box">
+          <div class="price">
+            <span class="now">{{ formatMoney(product.price) }}đ</span>
+            <span class="old" *ngIf="product.oldPrice">{{ formatMoney(product.oldPrice) }}đ</span>
           </div>
-          <div class="stock-pill" [class.is-out]="!stockStatus.ok">{{ stockStatus.label }}</div>
+          <span class="discount" *ngIf="discountLabel">{{ discountLabel }}</span>
         </div>
 
-        <section class="voucher-box" *ngIf="vouchers.length > 0">
-          <div class="box-title">Khuyến mãi</div>
-          <div class="voucher-list">
-            <div class="voucher-item" *ngFor="let voucher of vouchers">
-              <div class="voucher-item__icon">🎁</div>
-              <div class="voucher-item__body">
-                <div class="voucher-item__title">
-                  {{ voucherHeadline(voucher) }}
-                  <span class="voucher-code">{{ voucher.code }}</span>
-                  {{ voucherCondition(voucher) }}
-                </div>
-              </div>
-              <button type="button" class="voucher-copy" (click)="copyVoucher(voucher.code)">
-                {{ isVoucherCopied(voucher.code) ? 'Đã chép' : 'Sao chép' }}
+        <div class="promo" *ngIf="product.promotionText">
+          <div class="promo-title">{{ product.promotionTitle || 'ƯU ĐÃI' }}</div>
+          <div class="promo-main">{{ product.promotionText }}</div>
+        </div>
+
+        <div class="variants" *ngIf="(product.colors && product.colors.length) || (product.sizes && product.sizes.length)">
+          <div class="variant" *ngIf="product.colors && product.colors.length">
+            <div class="label">Màu sắc</div>
+            <div class="chips">
+              <button
+                type="button"
+                class="chip"
+                *ngFor="let c of product.colors"
+                [class.active]="c === selectedColor"
+                (click)="selectColor(c)"
+              >
+                {{ c }}
               </button>
             </div>
           </div>
-          <div class="voucher-badge">giá độc quyền online</div>
-        </section>
 
-        <div class="option-box" *ngIf="product.colors && product.colors.length">
-          <div class="box-title">Màu sắc <span class="option-current" *ngIf="selectedColorLabel">| {{ selectedColorLabel }}</span></div>
-          <div class="chips chips--colors">
-            <button
-              type="button"
-              class="chip chip--color"
-              *ngFor="let c of product.colors"
-              [class.active]="c === selectedColor"
-              (click)="selectColor(c)"
-            >
-              {{ c }}
-            </button>
+          <div class="variant" *ngIf="product.sizes && product.sizes.length">
+            <div class="label">Kích thước</div>
+            <div class="chips">
+              <button
+                type="button"
+                class="chip"
+                *ngFor="let s of product.sizes"
+                [class.active]="s === selectedSize"
+                (click)="selectSize(s)"
+              >
+                {{ s }}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="option-box" *ngIf="product.sizes && product.sizes.length">
-          <div class="box-title">Kích thước</div>
-          <div class="chips">
-            <button
-              type="button"
-              class="chip chip--size"
-              *ngFor="let s of product.sizes"
-              [class.active]="s === selectedSize"
-              (click)="selectSize(s)"
-            >
-              {{ s }}
-            </button>
-          </div>
-        </div>
-
-        <div class="qty-row">
-          <div class="box-title">Chọn số lượng</div>
+        <div class="qty">
+          <div class="label">Số lượng</div>
           <div class="qty-box">
             <button type="button" class="qty-btn" (click)="decQty()">−</button>
             <input class="qty-input" type="number" [(ngModel)]="quantity" (ngModelChange)="onQuantityInputChange()" min="1" max="99" />
@@ -128,10 +109,8 @@
           </div>
         </div>
 
-        <button type="button" class="helper-link" (click)="openSizeGuide()">Hướng dẫn kích thước</button>
-
         <div class="branch" *ngIf="product">
-          <div class="box-title">Chi nhánh</div>
+          <div class="label">Chi nhánh</div>
           <div class="branch-box">
             <select class="branch-select" [(ngModel)]="selectedBranchId" [disabled]="branchLoading || !branchOptions.length">
               <option [ngValue]="null">Chọn chi nhánh</option>
@@ -145,90 +124,82 @@
           </div>
         </div>
 
-        <div class="consult-line">Chat ngay để nhận tư vấn sản phẩm & ưu đãi →</div>
-
         <div class="actions">
-          <button type="button" class="ghost" (click)="addToCart()">🛒 Thêm giỏ hàng</button>
-          <button type="button" class="primary" (click)="buyNow()">Mua ngay</button>
+          <button type="button" class="ghost" (click)="addToCart()">THÊM GIỎ</button>
+          <button type="button" class="primary" (click)="buyNow()">MUA NGAY</button>
         </div>
-      </aside>
+      </div>
     </section>
 
     <section class="description" *ngIf="!loading && !error && product">
-      <h2 class="description__title">Mô tả sản phẩm</h2>
-
-      <div class="desc-blocks" *ngIf="productDescriptionBlocks.length > 0; else productDescriptionFallbackTpl">
-        <ng-container *ngFor="let block of productDescriptionBlocks">
-          <h3 *ngIf="block.type === 'heading-lg'" class="desc-heading desc-heading--lg">{{ block.text }}</h3>
-          <h4 *ngIf="block.type === 'heading-sm'" class="desc-heading desc-heading--sm">{{ block.text }}</h4>
-          <p *ngIf="block.type === 'paragraph'" class="desc-paragraph">{{ block.text }}</p>
-          <div *ngIf="block.type === 'divider'" class="desc-divider" aria-hidden="true"></div>
-          <figure *ngIf="block.type === 'image' && block.imageUrl" class="desc-image">
-            <img [src]="block.imageUrl" [alt]="block.alt || product.name" />
-            <figcaption *ngIf="block.alt" class="desc-image__caption">{{ block.alt }}</figcaption>
-          </figure>
-        </ng-container>
-      </div>
-
-      <ng-template #productDescriptionFallbackTpl>
-        <div class="desc" [innerText]="productDescriptionFallback || 'Chưa có mô tả cho sản phẩm.'"></div>
-      </ng-template>
+      <div class="section-title">Mô tả sản phẩm</div>
+      <div class="desc" [innerText]="product.description || 'Chưa có mô tả cho sản phẩm.'"></div>
     </section>
 
-    <section class="reviews-section" *ngIf="!loading && !error && product">
-      <h2 class="section-title">Đánh giá từ người mua</h2>
-      <div class="reviews">
-        <div class="reviews-summary">
-          <div class="reviews-summary__score">
-            <div class="reviews-summary__value">{{ averageReviewRating | number:'1.0-1' }}<span>/5</span></div>
-            <div class="reviews-summary__stars">★★★★★</div>
-            <div class="reviews-summary__count">{{ reviewCount }} đánh giá</div>
+    <section class="reviews-section" *ngIf="!loading && !error && product && reviews && reviews.length > 0">
+      <div class="section-title">Đánh giá từ người mua</div>
+      
+      <div class="reviews-container">
+        <!-- Phần trái: Thống kê -->
+        <div class="reviews-stats">
+          <div class="stats-score">
+            <div class="score-number">{{ averageRating || '-' }}</div>
+            <div class="score-max">/5</div>
           </div>
-
-          <div class="reviews-summary__bars">
-            <div class="rating-bar" *ngFor="let star of [5,4,3,2,1]">
-              <div class="rating-bar__label">{{ star }} ★</div>
-              <div class="rating-bar__track">
-                <div class="rating-bar__fill" [style.width.%]="ratingPercent(star)"></div>
+          
+          <div class="stats-stars">
+            <span class="star" *ngFor="let i of [1,2,3,4,5]">★</span>
+          </div>
+          
+          <div class="stats-count">{{ reviews.length }} đánh giá</div>
+          
+          <div class="stats-bars">
+            <div class="bar-row" *ngFor="let rating of [5,4,3,2,1]">
+              <span class="bar-label">{{ rating }} <span class="star-sm">★</span></span>
+              <div class="bar-container">
+                <div class="bar-fill" [style.width]="getRatingPercentage(rating) + '%'"></div>
               </div>
-              <div class="rating-bar__count">{{ ratingCount(star) }}</div>
+              <span class="bar-count">{{ getCountByRating(rating) }}</span>
             </div>
           </div>
         </div>
 
-        <div class="reviews-filter" *ngIf="reviewCount > 0">
-          <div class="reviews-filter__title">Lọc đánh giá</div>
-          <div class="reviews-filter__chips">
-            <button type="button" class="reviews-filter__chip" [class.is-active]="reviewFilter === 0" (click)="setReviewFilter(0)">Tất cả</button>
-            <button type="button" class="reviews-filter__chip" *ngFor="let star of [5,4,3,2,1]" [class.is-active]="reviewFilter === star" (click)="setReviewFilter(star)">
-              {{ star }} sao
-            </button>
+        <!-- Phần phải: Hình ảnh -->
+        <div class="reviews-images">
+          <div class="images-title">Hình ảnh từ người mua</div>
+          <div class="images-grid" *ngIf="getReviewImages().length > 0">
+            <img *ngFor="let img of getReviewImages()" [src]="img" alt="Customer review" class="review-img" />
           </div>
+          <div *ngIf="!getReviewImages().length" class="no-images">Chưa có hình ảnh</div>
         </div>
+      </div>
 
-        <div class="status" *ngIf="reviewsLoading">
-          <div class="spinner"></div>
-          <span>Đang tải đánh giá...</span>
+      <!-- Filter theo số sao -->
+      <div class="reviews-filter">
+        <span class="filter-label">Lọc đánh giá</span>
+        <div class="filter-buttons">
+          <button type="button" class="filter-btn" [class.active]="selectedRatingFilter === null" (click)="selectedRatingFilter = null">
+            Tất cả
+          </button>
+          <button type="button" class="filter-btn" *ngFor="let r of [5,4,3,2,1]" [class.active]="selectedRatingFilter === r" (click)="selectedRatingFilter = r">
+            {{ r }} sao
+          </button>
         </div>
+      </div>
 
-        <div class="status" *ngIf="!reviewsLoading && reviewCount === 0">
-          <span>Chưa có đánh giá nào cho sản phẩm này.</span>
-        </div>
-
-        <div class="status" *ngIf="!reviewsLoading && reviewCount > 0 && filteredReviews.length === 0">
-          <span>Không có đánh giá nào ở mức sao này.</span>
-        </div>
-
-        <div class="review" *ngFor="let review of filteredReviews">
-          <div class="avatar">{{ reviewAuthorInitial(review) }}</div>
+      <!-- Danh sách đánh giá -->
+      <div class="reviews-list">
+        <div class="review" *ngFor="let r of getFilteredReviews()">
+          <div class="avatar">{{ r.customerName?.charAt(0)?.toUpperCase() || '?' }}</div>
           <div class="r-body">
-            <div class="r-name">{{ reviewAuthorLabel(review) }}</div>
+            <div class="r-name">{{ r.customerName }}</div>
             <div class="r-stars">
-              <ng-container *ngFor="let star of stars">
-                <span>{{ star <= (review.rating || 0) ? '★' : '☆' }}</span>
-              </ng-container>
+              <span class="star" *ngFor="let i of [1,2,3,4,5]" [class.filled]="i <= (r.rating || 5)">★</span>
             </div>
-            <div class="r-text">{{ review.comment || 'Khách hàng chưa để lại nhận xét.' }}</div>
+            <div class="r-text">{{ r.reviewText }}</div>
+            <div class="r-images" *ngIf="r.images && r.images.length">
+              <img *ngFor="let img of r.images" [src]="img" alt="Review" class="r-img" />
+            </div>
           </div>
         </div>
       </div>
@@ -305,75 +276,6 @@
             Xác nhận mua
           </button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="guide-backdrop" *ngIf="sizeGuideOpen" (click)="closeSizeGuide()">
-    <div class="guide-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Hướng dẫn kích thước">
-      <div class="guide-modal__head">
-        <div>
-          <div class="guide-modal__eyebrow">Bảng hướng dẫn</div>
-          <h3 class="guide-modal__title">Ma trận size sản phẩm</h3>
-          <p class="guide-modal__subtitle" *ngIf="sizeGuideProductType">
-            {{ sizeGuideProductType.name }} <span *ngIf="activeSizeGuideGroupLabel">· {{ activeSizeGuideGroupLabel }}</span>
-          </p>
-        </div>
-        <button type="button" class="guide-modal__close" (click)="closeSizeGuide()">×</button>
-      </div>
-
-      <div class="guide-status" *ngIf="sizeGuideLoading">
-        <div class="spinner"></div>
-        <span>Đang tải ma trận size...</span>
-      </div>
-
-      <div class="guide-status guide-status--error" *ngIf="!sizeGuideLoading && sizeGuideError">
-        <span>{{ sizeGuideError }}</span>
-      </div>
-
-      <ng-container *ngIf="!sizeGuideLoading && !sizeGuideError && sizeGuideHasData">
-        <div class="guide-modal__tabs" *ngIf="sizeGuideGroups.length > 1">
-          <button
-            type="button"
-            class="guide-tab"
-            *ngFor="let group of sizeGuideGroups"
-            [class.is-active]="activeSizeGuideGroupKey === group.key"
-            (click)="selectSizeGuideGroup(group.key)"
-          >
-            {{ group.label }}
-          </button>
-        </div>
-
-        <div class="guide-matrix">
-          <table class="guide-table">
-            <thead>
-              <tr>
-                <th>Size</th>
-                <th>Chiều cao từ</th>
-                <th>Chiều cao đến</th>
-                <th>Cân nặng từ</th>
-                <th>Cân nặng đến</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let row of activeSizeGuideRows">
-                <td><strong>{{ row.size }}</strong></td>
-                <td>{{ row.heightMin != null ? row.heightMin : '—' }}</td>
-                <td>{{ row.heightMax != null ? row.heightMax : '—' }}</td>
-                <td>{{ row.weightMin != null ? row.weightMin : '—' }}</td>
-                <td>{{ row.weightMax != null ? row.weightMax : '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="guide-modal__note">
-          Bảng size này được lấy tự động từ loại sản phẩm đã cấu hình trong trang quản trị.
-        </div>
-      </ng-container>
-
-      <div class="guide-modal__actions">
-        <button type="button" class="guide-action" (click)="closeSizeGuide()">Đã hiểu</button>
       </div>
     </div>
   </div>

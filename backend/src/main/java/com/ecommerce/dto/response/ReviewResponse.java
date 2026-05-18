@@ -1,6 +1,8 @@
 package com.ecommerce.dto.response;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReviewResponse {
 
@@ -9,6 +11,7 @@ public class ReviewResponse {
     private Long userId;
     private Integer rating;
     private String comment;
+    private List<String> images = new ArrayList<>();
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -52,6 +55,14 @@ public class ReviewResponse {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public List<String> getImages() {
+        return images;
+    }
+
+    public void setImages(List<String> images) {
+        this.images = images;
     }
 
     public Instant getCreatedAt() {

@@ -15,12 +15,11 @@ export interface AuthTokenResponse {
 }
 
 export interface RegisterRequest {
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
+  username?: string;
   phone?: string;
   email?: string;
   password?: string;
-  confirmPassword?: string;
   gender?: string;
 }
 

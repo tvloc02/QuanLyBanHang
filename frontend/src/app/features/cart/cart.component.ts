@@ -7,8 +7,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
-import { UserDataService } from '../../core/services/user-data.service';
+import { UserBankAccountItem, UserDataService } from '../../core/services/user-data.service';
 import { AdminBranchResponse, AdminDataService } from '../../core/services/admin-data.service';
+import { AdminPaymentSettings, PaymentSettingsService } from '../../core/services/payment-settings.service';
 import {
   DeliveryDistanceTier,
   DeliveryMethod,
@@ -58,6 +59,15 @@ interface PaymentMethod {
   description: string;
 }
 
+interface LinkedBankAccount {
+  id: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  branchName?: string;
+  isPrimary?: boolean;
+}
+
 interface CouponDto {
   id: number;
   code: string;
@@ -69,6 +79,7 @@ interface CouponDto {
   maxDiscountAmount?: number | null;
   shippingDiscountAmount?: number | null;
   allowedSegments?: string | null;
+  targetUserIds?: string | null;
   targetAudience?: string | null;
   usageLimit?: number | null;
   usedCount?: number | null;
@@ -151,6 +162,8 @@ export class CartComponent implements OnInit {
   claimedCouponCodes = new Set<string>();
   selectedShipmentMethods: Record<string, DeliveryMethod> = {};
   addresses: Address[] = [];
+  bankAccounts: LinkedBankAccount[] = [];
+  adminPaymentSettings: AdminPaymentSettings | null = null;
   selectedAddressIndex = -1;
   showAddAddress = false;
   showAddAddressForm = false;
@@ -174,6 +187,16 @@ export class CartComponent implements OnInit {
     { id: 4, name: 'Ví điện tử', description: 'Thanh toán qua MoMo, ZaloPay, VNPay' }
   ];
   selectedPaymentMethod = 0;
+  qrPaymentOpen = false;
+  qrPaymentCountdown = 30;
+  qrPaymentStatus: 'idle' | 'checking' | 'success' | 'expired' = 'idle';
+  qrPaymentReference = '';
+  qrPaymentAmount = 0;
+  qrPaymentSuccessMessage = '';
+  paymentToast = '';
+  paymentToastType: 'success' | 'warning' = 'success';
+  private qrPaymentTimerId: number | null = null;
+  private qrPaymentSuccessTimerId: number | null = null;
 
   constructor(
     private router: Router,
@@ -181,7 +204,8 @@ export class CartComponent implements OnInit {
     private http: HttpClient,
     private userData: UserDataService,
     private adminData: AdminDataService,
-    private shippingConfigService: ShippingConfigService
+    private shippingConfigService: ShippingConfigService,
+    private paymentSettingsService: PaymentSettingsService
   ) {
     this.shippingPricing = this.shippingConfigService.getDeliveryPricingSnapshot();
   }
@@ -200,6 +224,8 @@ export class CartComponent implements OnInit {
     this.hydrateBadges();
     this.loadCart();
     this.loadAddresses();
+    this.loadBankAccounts();
+    this.loadAdminPaymentSettings();
     this.loadBranches();
 
     this.shippingConfigService.getDeliveryPricing()
@@ -515,6 +541,14 @@ export class CartComponent implements OnInit {
     return `${minDays}-${maxDays} ngày`;
   }
 
+  private loadBankAccounts(): void {
+    this.bankAccounts = this.userData.getBankAccounts(this.getCurrentUserId()).map((item, index) => this.mapBankAccount(item, index));
+  }
+
+  private loadAdminPaymentSettings(): void {
+    this.adminPaymentSettings = this.paymentSettingsService.getSettings();
+  }
+
   formatDistanceKm(distanceKm: number): string {
     return `${distanceKm.toFixed(distanceKm >= 100 ? 0 : 1)} km`;
   }
@@ -573,6 +607,15 @@ export class CartComponent implements OnInit {
     }
     if (!this.selectedAddress) {
       alert('Vui lòng chọn địa chỉ giao hàng');
+      return;
+    }
+    if (this.isBankTransferSelected && !this.hasAdminBankAccount) {
+      alert('Shop chưa cấu hình tài khoản ngân hàng nhận tiền trong khu quản trị.');
+      return;
+    }
+
+    if (this.isBankTransferSelected) {
+      this.openQrPaymentModal();
       return;
     }
 
@@ -698,7 +741,8 @@ export class CartComponent implements OnInit {
 
   isDiscountEligible(coupon: CouponDto): boolean {
     const code = String(coupon.code || '').trim().toUpperCase();
-    if (!code || !this.claimedCouponCodes.has(code)) return false;
+    if (!code) return false;
+    if (this.requiresClaimedCoupon(coupon) && !this.claimedCouponCodes.has(code)) return false;
     if (coupon.active === false) return false;
     const min = Number(coupon?.minOrderAmount);
     if (Number.isFinite(min) && min > 0 && this.subtotal < min) return false;
@@ -706,6 +750,12 @@ export class CartComponent implements OnInit {
     if (coupon.startsAt && new Date(coupon.startsAt) > new Date()) return false;
     if (coupon.usageLimit && coupon.usedCount && coupon.usedCount >= coupon.usageLimit) return false;
     return true;
+  }
+
+  private requiresClaimedCoupon(coupon: CouponDto): boolean {
+    const type = String(coupon?.type || '').trim().toLowerCase();
+    if (type === 'customer_specific') return true;
+    return !!String(coupon?.targetUserIds || '').trim();
   }
 
   isDiscountSelected(coupon: CouponDto): boolean {
@@ -733,15 +783,35 @@ export class CartComponent implements OnInit {
     }
 
     const code = this.discountCode.toUpperCase().trim();
-    const mockCoupon = this.discountOptions.find((c) => c.code === code);
+    const mockCoupon = this.discountOptions.find((c) => String(c.code || '').trim().toUpperCase() === code);
     if (mockCoupon) {
       if (!this.isDiscountEligible(mockCoupon)) {
         this.discountAmount = 0;
-        this.discountMessage = `Đơn hàng tối thiểu ${this.formatMoney(mockCoupon.minOrderAmount || 0)}đ để áp dụng mã này.`;
+        const minOrder = Number(mockCoupon.minOrderAmount || 0);
+        this.discountMessage = minOrder > 0
+          ? `Đơn hàng tối thiểu ${this.formatMoney(minOrder)}đ để áp dụng mã này.`
+          : 'Mã giảm giá không hợp lệ hoặc chưa đúng đối tượng áp dụng.';
         return;
       }
 
       let discount = 0;
+      if (String(mockCoupon.type || '').trim().toLowerCase() === 'customer_shipping') {
+        const shippingPercent = Number(mockCoupon.discountPercent || 0);
+        const shippingAmount = Number(mockCoupon.shippingDiscountAmount || 0);
+        const maxShippingDiscount = Number(mockCoupon.maxDiscountAmount || 0);
+
+        if (shippingPercent > 0) {
+          discount = this.shippingFee * (shippingPercent / 100);
+          if (maxShippingDiscount > 0) discount = Math.min(discount, maxShippingDiscount);
+        } else if (shippingAmount > 0) {
+          discount = shippingAmount;
+          if (maxShippingDiscount > 0) discount = Math.min(discount, maxShippingDiscount);
+        }
+        this.discountAmount = Math.min(Math.round(discount), this.shippingFee);
+        this.discountMessage = `Đã áp dụng mã giảm phí vận chuyển: -${this.formatMoney(this.discountAmount)}đ`;
+        return;
+      }
+
       if (mockCoupon.discountPercent) {
         discount = this.subtotal * (mockCoupon.discountPercent / 100);
         if (mockCoupon.maxDiscountAmount) discount = Math.min(discount, mockCoupon.maxDiscountAmount);
@@ -912,7 +982,162 @@ export class CartComponent implements OnInit {
   }
 
   selectPaymentMethod(index: number): void {
+    if (this.isPaymentMethodDisabled(index)) {
+      return;
+    }
     this.selectedPaymentMethod = index;
+  }
+
+  get hasLinkedBankAccount(): boolean {
+    return this.bankAccounts.length > 0;
+  }
+
+  get hasAdminBankAccount(): boolean {
+    const settings = this.adminPaymentSettings;
+    return !!(settings?.enabled && settings.bankName && settings.accountNumber && settings.accountHolder);
+  }
+
+  get isBankTransferSelected(): boolean {
+    return this.paymentMethods[this.selectedPaymentMethod]?.id === 2;
+  }
+
+  get primaryBankAccount(): LinkedBankAccount | null {
+    const settings = this.adminPaymentSettings;
+    if (settings?.enabled && settings.bankName && settings.accountNumber && settings.accountHolder) {
+      return {
+        id: 0,
+        bankName: settings.bankName,
+        accountNumber: settings.accountNumber,
+        accountHolder: settings.accountHolder,
+        branchName: settings.branchName || undefined,
+        isPrimary: true
+      };
+    }
+    return null;
+  }
+
+  get qrPaymentQrUrl(): string {
+    if (!this.primaryBankAccount || !this.qrPaymentAmount) return '';
+    return this.paymentSettingsService.getQrImageUrl(this.qrPaymentAmount, `THANH TOAN ${this.qrPaymentReference}`);
+  }
+
+  isPaymentMethodDisabled(index: number): boolean {
+    const method = this.paymentMethods[index];
+    return method?.id === 2 && !this.hasAdminBankAccount;
+  }
+
+  onPaymentMethodClick(index: number, event?: Event): void {
+    if (this.isPaymentMethodDisabled(index)) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      return;
+    }
+    this.selectPaymentMethod(index);
+  }
+
+  openQrPaymentModal(): void {
+    const bank = this.primaryBankAccount;
+    if (!bank) {
+      alert('Shop chưa cấu hình tài khoản ngân hàng nhận tiền.');
+      return;
+    }
+
+    this.qrPaymentOpen = true;
+    this.qrPaymentStatus = 'idle';
+    this.qrPaymentAmount = this.totalAmount;
+    this.qrPaymentCountdown = 30;
+    this.qrPaymentReference = `DH${Date.now().toString().slice(-8)}`;
+    this.qrPaymentSuccessMessage = '';
+    this.clearQrPaymentTimers();
+    this.qrPaymentTimerId = window.setInterval(() => {
+      this.qrPaymentCountdown = Math.max(0, this.qrPaymentCountdown - 1);
+      if (this.qrPaymentCountdown === 0) {
+        this.qrPaymentStatus = 'expired';
+        this.clearQrPaymentTimers();
+      }
+    }, 1000);
+  }
+
+  closeQrPaymentModal(): void {
+    this.qrPaymentOpen = false;
+    this.qrPaymentStatus = 'idle';
+    this.clearQrPaymentTimers();
+    this.clearQrPaymentSuccessTimer();
+  }
+
+  confirmQrPayment(): void {
+    if (this.qrPaymentStatus === 'expired' || this.qrPaymentStatus === 'success') return;
+    this.qrPaymentStatus = 'checking';
+    this.clearQrPaymentSuccessTimer();
+    this.qrPaymentSuccessTimerId = window.setTimeout(() => {
+      this.qrPaymentStatus = 'success';
+      this.qrPaymentSuccessMessage = 'Đã thanh toán thành công. Đơn hàng của bạn đang được xử lý.';
+      this.clearQrPaymentTimers();
+      this.finalizeSuccessfulBankPayment();
+      this.showPaymentToast('Đã thanh toán thành công bằng chuyển khoản ngân hàng.', 'success');
+      this.qrPaymentSuccessTimerId = window.setTimeout(() => {
+        this.closeQrPaymentModal();
+      }, 1600);
+    }, 1200);
+  }
+
+  renewQrPayment(): void {
+    this.openQrPaymentModal();
+  }
+
+  goToBankLinking(): void {
+    try {
+      localStorage.setItem('fh_profile_section', 'bank');
+    } catch {
+    }
+    this.router.navigateByUrl('/profile');
+  }
+
+  private finalizeSuccessfulBankPayment(): void {
+    const checkoutData = {
+      items: this.selectedItems,
+      shipments: this.shipmentGroups,
+      address: this.selectedAddress,
+      paymentMethod: this.paymentMethods[this.selectedPaymentMethod],
+      subtotal: this.subtotal,
+      shippingFee: this.shippingFee,
+      discountAmount: this.discountAmount,
+      totalAmount: this.totalAmount,
+      paymentReference: this.qrPaymentReference,
+      paymentStatus: 'PAID'
+    };
+
+    localStorage.setItem('checkoutData', JSON.stringify(checkoutData));
+    this.items = this.items.filter((item) => item.selected === false);
+    this.discountCode = '';
+    this.discountAmount = 0;
+    this.discountMessage = '';
+    this.persistCart();
+    window.dispatchEvent(new Event('cart-updated'));
+  }
+
+  private showPaymentToast(message: string, type: 'success' | 'warning'): void {
+    this.paymentToast = message;
+    this.paymentToastType = type;
+    window.setTimeout(() => {
+      if (this.paymentToast === message) {
+        this.paymentToast = '';
+      }
+    }, 2600);
+  }
+
+  private clearQrPaymentTimers(): void {
+    if (this.qrPaymentTimerId != null) {
+      window.clearInterval(this.qrPaymentTimerId);
+      this.qrPaymentTimerId = null;
+    }
+  }
+
+  private clearQrPaymentSuccessTimer(): void {
+    if (this.qrPaymentSuccessTimerId != null) {
+      window.clearTimeout(this.qrPaymentSuccessTimerId);
+      this.qrPaymentSuccessTimerId = null;
+    }
   }
 
   @HostListener('window:scroll')
@@ -1093,6 +1318,17 @@ export class CartComponent implements OnInit {
     } catch {
       return null;
     }
+  }
+
+  private mapBankAccount(item: UserBankAccountItem, index: number): LinkedBankAccount {
+    return {
+      id: Number(item.id ?? Date.now() + index),
+      bankName: String(item.bankName || '').trim(),
+      accountNumber: String(item.accountNumber || '').trim(),
+      accountHolder: String(item.accountHolder || '').trim(),
+      branchName: String(item.branchName || '').trim() || undefined,
+      isPrimary: Boolean(item.isPrimary || index === 0)
+    };
   }
 }
 

@@ -1,0 +1,278 @@
+.payment-settings-page {
+  display: grid;
+  gap: 20px;
+}
+
+.hero-card,
+.form-card,
+.preview-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.hero-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #3154f3 0%, #5b7cff 100%);
+  color: #fff;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.hero-card h1 {
+  margin: 8px 0 6px;
+  font-size: 32px;
+  line-height: 1.12;
+  font-weight: 900;
+}
+
+.hero-card p {
+  margin: 0;
+  max-width: 720px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.status-banner {
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.status-banner--success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.status-banner--error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 20px;
+}
+
+.form-card,
+.preview-card {
+  padding: 24px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.toggle-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field span {
+  font-size: 14px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #dbe3f0;
+  border-radius: 14px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #fff;
+}
+
+.field textarea {
+  min-height: 120px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.field--full {
+  grid-column: 1 / -1;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.primary-btn,
+.ghost-btn {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.primary-btn {
+  border: 0;
+  background: #3154f3;
+  color: #fff;
+}
+
+.ghost-btn {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+}
+
+.form-card .ghost-btn {
+  border-color: #dbe3f0;
+  background: #fff;
+  color: #0f172a;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pill.off {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.preview-amount {
+  font-size: 34px;
+  font-weight: 900;
+  color: #b91c1c;
+  line-height: 1.1;
+}
+
+.preview-code {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.qr-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18px;
+  min-height: 320px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.qr-frame img {
+  width: min(100%, 320px);
+  height: auto;
+  display: block;
+}
+
+.qr-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.preview-info {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #334155;
+}
+
+@media (max-width: 1100px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero-card,
+  .form-card,
+  .preview-card {
+    border-radius: 18px;
+  }
+
+  .hero-card {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .hero-card h1 {
+    font-size: 26px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}

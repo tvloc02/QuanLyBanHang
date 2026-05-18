@@ -1,5 +1,9 @@
 <div class="cart-page">
   <div class="container">
+    <div *ngIf="paymentToast" class="payment-toast" [class.is-warning]="paymentToastType === 'warning'">
+      {{ paymentToast }}
+    </div>
+
     <div class="cart-header" *ngIf="items.length > 0">
       <div class="cart-heading">
         <h1>Giỏ hàng</h1>
@@ -196,16 +200,45 @@
           </div>
 
           <div class="payment-methods">
-            <label class="payment-method" *ngFor="let method of paymentMethods; let i = index" [class.selected]="selectedPaymentMethod === i">
+            <label
+              class="payment-method"
+              *ngFor="let method of paymentMethods; let i = index"
+              [class.selected]="selectedPaymentMethod === i"
+              [class.disabled]="isPaymentMethodDisabled(i)"
+              (click)="onPaymentMethodClick(i, $event)"
+            >
               <div class="payment-radio">
-                <input type="radio" name="paymentMethod" [checked]="selectedPaymentMethod === i" (change)="selectPaymentMethod(i)">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  [checked]="selectedPaymentMethod === i"
+                  [disabled]="isPaymentMethodDisabled(i)"
+                  (change)="selectPaymentMethod(i)"
+                >
                 <span></span>
               </div>
               <div class="payment-info">
                 <div class="payment-name">{{ method.name }}</div>
                 <div class="payment-desc">{{ method.description }}</div>
+                <div *ngIf="method.id === 2 && !hasAdminBankAccount" class="payment-note payment-note--warning">
+                  Shop chưa cấu hình tài khoản ngân hàng nhận tiền nên tạm thời chưa dùng được phương thức này.
+                </div>
               </div>
             </label>
+          </div>
+
+          <div *ngIf="!hasAdminBankAccount" class="payment-linking-box">
+            <div class="payment-linking-title">Shop chưa cấu hình nhận chuyển khoản</div>
+            <div class="payment-linking-desc">Vào khu quản trị và mở trang Cấu hình thanh toán để nhập tài khoản ngân hàng nhận tiền của shop.</div>
+          </div>
+
+          <div *ngIf="isBankTransferSelected && primaryBankAccount" class="bank-transfer-summary">
+            <div class="bank-transfer-summary__title">Tài khoản nhận tiền</div>
+            <div class="bank-transfer-summary__line">{{ primaryBankAccount.bankName }}</div>
+            <div class="bank-transfer-summary__line">STK: {{ primaryBankAccount.accountNumber }}</div>
+            <div class="bank-transfer-summary__line">Chủ TK: {{ primaryBankAccount.accountHolder }}</div>
+            <div class="bank-transfer-summary__line" *ngIf="primaryBankAccount.branchName">Chi nhánh: {{ primaryBankAccount.branchName }}</div>
+            <div class="bank-transfer-summary__line" *ngIf="adminPaymentSettings?.note">{{ adminPaymentSettings?.note }}</div>
           </div>
         </section>
 
@@ -380,6 +413,63 @@
 
         <div class="voucher-empty" *ngIf="!discountLoading && filteredDiscounts.length === 0">
           Không có mã giảm giá phù hợp.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" *ngIf="qrPaymentOpen" (click)="closeQrPaymentModal()">
+      <div class="qr-payment-modal" (click)="$event.stopPropagation()">
+        <div class="voucher-modal-header">
+          <h3>Thanh toán chuyển khoản</h3>
+          <button type="button" class="close-modal-btn" (click)="closeQrPaymentModal()">×</button>
+        </div>
+
+        <div class="qr-payment-body" *ngIf="primaryBankAccount as bank">
+          <div class="qr-payment-top">
+            <div>
+              <div class="qr-payment-amount">{{ qrPaymentAmount | number:'1.0-0' }}đ</div>
+              <div class="qr-payment-ref">Mã thanh toán: {{ qrPaymentReference }}</div>
+            </div>
+            <div class="qr-payment-timer" [class.is-expired]="qrPaymentStatus === 'expired'">
+              {{ qrPaymentCountdown }}s
+            </div>
+          </div>
+
+          <div class="qr-payment-grid">
+            <div class="qr-payment-code">
+              <img *ngIf="qrPaymentStatus !== 'expired'" [src]="qrPaymentQrUrl" alt="QR thanh toán" />
+              <div *ngIf="qrPaymentStatus === 'expired'" class="qr-payment-expired">
+                Mã QR đã hết hạn
+              </div>
+            </div>
+
+            <div class="qr-payment-info">
+              <div class="qr-payment-bank">{{ bank.bankName }}</div>
+              <div class="qr-payment-line">Số tài khoản: <strong>{{ bank.accountNumber }}</strong></div>
+              <div class="qr-payment-line">Chủ tài khoản: <strong>{{ bank.accountHolder }}</strong></div>
+              <div class="qr-payment-line" *ngIf="bank.branchName">Chi nhánh: <strong>{{ bank.branchName }}</strong></div>
+              <div class="qr-payment-line">Số tiền: <strong>{{ qrPaymentAmount | number:'1.0-0' }}đ</strong></div>
+              <div class="qr-payment-line">Nội dung CK: <strong>{{ qrPaymentReference }}</strong></div>
+              <div class="qr-payment-note">
+                Mã QR có hiệu lực trong 30 giây. Sau khi khách chuyển khoản xong, bấm xác nhận để hoàn tất.
+              </div>
+              <div class="qr-payment-note" *ngIf="adminPaymentSettings?.note">
+                {{ adminPaymentSettings?.note }}
+              </div>
+            </div>
+          </div>
+
+          <div class="qr-payment-success" *ngIf="qrPaymentStatus === 'success'">
+            {{ qrPaymentSuccessMessage }}
+          </div>
+
+          <div class="qr-payment-actions">
+            <button type="button" class="secondary-btn" *ngIf="qrPaymentStatus === 'expired'" (click)="renewQrPayment()">Tạo mã mới</button>
+            <button type="button" class="secondary-btn" *ngIf="qrPaymentStatus !== 'success'" (click)="closeQrPaymentModal()">Đóng</button>
+            <button type="button" class="checkout-btn" *ngIf="qrPaymentStatus === 'idle' || qrPaymentStatus === 'checking'" [disabled]="qrPaymentStatus !== 'idle'" (click)="confirmQrPayment()">
+              {{ qrPaymentStatus === 'checking' ? 'Đang xác nhận...' : 'Tôi đã thanh toán' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>

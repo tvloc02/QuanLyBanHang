@@ -22,6 +22,15 @@ export interface UserAddressItem {
   isPrimary?: boolean | null;
 }
 
+export interface UserBankAccountItem {
+  id?: number | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountHolder?: string | null;
+  branchName?: string | null;
+  isPrimary?: boolean | null;
+}
+
 export interface UserMeResponse {
   id: number;
   fullName?: string | null;
@@ -62,5 +71,24 @@ export class UserDataService {
 
   updateMe(data: UserMeUpdateRequest) {
     return this.http.put<ApiResponse<UserMeResponse>>(`${environment.apiBaseUrl}/api/users/me`, data);
+  }
+
+  getBankAccounts(userId: number | null | undefined): UserBankAccountItem[] {
+    if (!userId || userId <= 0) return [];
+    try {
+      const raw = localStorage.getItem(`user_bank_accounts_${userId}`);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  saveBankAccounts(userId: number | null | undefined, accounts: UserBankAccountItem[]): void {
+    if (!userId || userId <= 0) return;
+    try {
+      localStorage.setItem(`user_bank_accounts_${userId}`, JSON.stringify(Array.isArray(accounts) ? accounts : []));
+    } catch {
+    }
   }
 }

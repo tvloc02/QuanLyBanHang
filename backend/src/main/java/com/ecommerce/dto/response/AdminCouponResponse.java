@@ -11,6 +11,8 @@ public class AdminCouponResponse {
 
     private String description;
 
+    private String type;
+
     private BigDecimal discountAmount;
 
     private Integer discountPercent;
@@ -22,6 +24,8 @@ public class AdminCouponResponse {
     private BigDecimal shippingDiscountAmount;
 
     private String allowedSegments;
+
+    private String targetUserIds;
 
     private Integer usageLimit;
 
@@ -39,12 +43,14 @@ public class AdminCouponResponse {
         Long id,
         String code,
         String description,
+        String type,
         BigDecimal discountAmount,
         Integer discountPercent,
         BigDecimal minOrderAmount,
         BigDecimal maxDiscountAmount,
         BigDecimal shippingDiscountAmount,
         String allowedSegments,
+        String targetUserIds,
         Integer usageLimit,
         Integer usedCount,
         Instant startsAt,
@@ -54,12 +60,14 @@ public class AdminCouponResponse {
         this.id = id;
         this.code = code;
         this.description = description;
+        this.type = type;
         this.discountAmount = discountAmount;
         this.discountPercent = discountPercent;
         this.minOrderAmount = minOrderAmount;
         this.maxDiscountAmount = maxDiscountAmount;
         this.shippingDiscountAmount = shippingDiscountAmount;
         this.allowedSegments = allowedSegments;
+        this.targetUserIds = targetUserIds;
         this.usageLimit = usageLimit;
         this.usedCount = usedCount;
         this.startsAt = startsAt;
@@ -89,6 +97,14 @@ public class AdminCouponResponse {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public BigDecimal getDiscountAmount() {
@@ -137,6 +153,14 @@ public class AdminCouponResponse {
 
     public void setAllowedSegments(String allowedSegments) {
         this.allowedSegments = allowedSegments;
+    }
+
+    public String getTargetUserIds() {
+        return targetUserIds;
+    }
+
+    public void setTargetUserIds(String targetUserIds) {
+        this.targetUserIds = targetUserIds;
     }
 
     public Integer getUsageLimit() {

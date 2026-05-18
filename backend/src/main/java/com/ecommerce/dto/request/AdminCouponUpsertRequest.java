@@ -9,6 +9,8 @@ public class AdminCouponUpsertRequest {
 
     private String description;
 
+    private String type;
+
     private BigDecimal discountAmount;
 
     private Integer discountPercent;
@@ -20,6 +22,8 @@ public class AdminCouponUpsertRequest {
     private BigDecimal shippingDiscountAmount;
 
     private String allowedSegments;
+
+    private String targetUserIds;
 
     private Integer usageLimit;
 
@@ -45,6 +49,14 @@ public class AdminCouponUpsertRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public BigDecimal getDiscountAmount() {
@@ -93,6 +105,14 @@ public class AdminCouponUpsertRequest {
 
     public void setAllowedSegments(String allowedSegments) {
         this.allowedSegments = allowedSegments;
+    }
+
+    public String getTargetUserIds() {
+        return targetUserIds;
+    }
+
+    public void setTargetUserIds(String targetUserIds) {
+        this.targetUserIds = targetUserIds;
     }
 
     public Integer getUsageLimit() {

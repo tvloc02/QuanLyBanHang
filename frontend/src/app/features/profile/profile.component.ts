@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { LocationService } from '../../core/services/location.service';
-import { UserAddressItem, UserDataService, UserMeResponse } from '../../core/services/user-data.service';
+import { UserAddressItem, UserBankAccountItem, UserDataService, UserMeResponse } from '../../core/services/user-data.service';
 
 import * as L from 'leaflet';
 
@@ -34,6 +34,15 @@ interface Address {
   vn2ProvinceCode?: string;
   vn2CommuneCode?: string;
   type?: string;
+  isPrimary?: boolean;
+}
+
+interface BankAccount {
+  id: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  branchName?: string;
   isPrimary?: boolean;
 }
 
@@ -108,6 +117,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
   addressError = '';
   showAddAddressForm = false;
   addresses: Address[] = [];
+  bankAccounts: BankAccount[] = [];
+  showAddBankForm = false;
+  newBankAccount: Partial<BankAccount> = {
+    bankName: '',
+    accountNumber: '',
+    accountHolder: '',
+    branchName: '',
+    isPrimary: false
+  };
   newAddress: Partial<Address> = {
     name: '',
     phone: '',
@@ -173,6 +191,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    try {
+      const savedSection = localStorage.getItem('fh_profile_section');
+      if (savedSection === 'bank' || savedSection === 'address' || savedSection === 'voucher' || savedSection === 'notifications' || savedSection === 'password' || savedSection === 'danger' || savedSection === 'profile') {
+        this.activeSection = savedSection;
+      }
+      localStorage.removeItem('fh_profile_section');
+    } catch {
+    }
     this.load();
     this.loadVn2Provinces();
     this.configureLeafletDefaultIcon();
@@ -273,6 +299,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         });
 
         this.loadAddresses();
+        this.loadBankAccounts();
         this.applyVn2ToForm();
         this.hydrateAddressesFromMe();
       },
@@ -655,6 +682,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  private loadBankAccounts(): void {
+    this.bankAccounts = this.userData.getBankAccounts(this.me?.id).map((item, index) => this.mapBankAccount(item, index));
+  }
+
   private hydrateAddressesFromMe(): void {
     const apiAddresses = Array.isArray(this.me?.addresses) ? this.me!.addresses! : [];
     if (apiAddresses.length > 0) {
@@ -843,6 +874,90 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.syncAddressesToBackend('Đã cập nhật địa chỉ chính.');
   }
 
+  isNewBankAccountValid(): boolean {
+    return !!(
+      String(this.newBankAccount.bankName || '').trim() &&
+      String(this.newBankAccount.accountNumber || '').trim() &&
+      String(this.newBankAccount.accountHolder || '').trim()
+    );
+  }
+
+  openAddBankForm(): void {
+    this.showAddBankForm = true;
+    this.newBankAccount = {
+      bankName: '',
+      accountNumber: '',
+      accountHolder: '',
+      branchName: '',
+      isPrimary: this.bankAccounts.length === 0
+    };
+  }
+
+  cancelAddBankForm(): void {
+    this.showAddBankForm = false;
+    this.newBankAccount = {
+      bankName: '',
+      accountNumber: '',
+      accountHolder: '',
+      branchName: '',
+      isPrimary: false
+    };
+  }
+
+  saveBankAccount(): void {
+    if (!this.isNewBankAccountValid()) {
+      this.showToast('error', 'Vui lòng nhập đầy đủ ngân hàng, số tài khoản và tên chủ tài khoản.');
+      return;
+    }
+
+    const account: BankAccount = {
+      id: Date.now(),
+      bankName: String(this.newBankAccount.bankName || '').trim(),
+      accountNumber: String(this.newBankAccount.accountNumber || '').trim(),
+      accountHolder: String(this.newBankAccount.accountHolder || '').trim(),
+      branchName: String(this.newBankAccount.branchName || '').trim() || undefined,
+      isPrimary: Boolean(this.newBankAccount.isPrimary || this.bankAccounts.length === 0)
+    };
+
+    if (account.isPrimary) {
+      this.bankAccounts.forEach((item) => item.isPrimary = false);
+      this.bankAccounts.unshift(account);
+    } else {
+      this.bankAccounts.push(account);
+    }
+
+    this.persistBankAccounts();
+    this.cancelAddBankForm();
+    this.showToast('success', 'Đã liên kết tài khoản ngân hàng.');
+  }
+
+  setPrimaryBankAccount(index: number): void {
+    if (index < 0 || index >= this.bankAccounts.length) return;
+    this.bankAccounts.forEach((item) => item.isPrimary = false);
+    const primary = this.bankAccounts.splice(index, 1)[0];
+    primary.isPrimary = true;
+    this.bankAccounts.unshift(primary);
+    this.persistBankAccounts();
+    this.showToast('success', 'Đã cập nhật tài khoản ngân hàng mặc định.');
+  }
+
+  deleteBankAccount(index: number): void {
+    if (index < 0 || index >= this.bankAccounts.length) return;
+    this.bankAccounts.splice(index, 1);
+    if (this.bankAccounts.length > 0 && !this.bankAccounts.some((item) => item.isPrimary)) {
+      this.bankAccounts[0].isPrimary = true;
+    }
+    this.persistBankAccounts();
+    this.showToast('success', 'Đã xóa tài khoản ngân hàng liên kết.');
+  }
+
+  maskBankAccountNumber(value: string | null | undefined): string {
+    const raw = String(value || '').replace(/\s+/g, '');
+    if (!raw) return '';
+    if (raw.length <= 4) return raw;
+    return `${'*'.repeat(Math.max(0, raw.length - 4))}${raw.slice(-4)}`;
+  }
+
   // Voucher methods
   applyVoucherCode(): void {
     if (!this.voucherCode.trim()) return;
@@ -943,6 +1058,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
+  private persistBankAccounts(): void {
+    const userId = this.me?.id;
+    if (!userId) return;
+    const payload = this.bankAccounts.map((item) => this.mapBankAccountToStorage(item));
+    this.userData.saveBankAccounts(userId, payload);
+  }
+
   private mapApiAddressToUi(item: UserAddressItem, index: number): Address {
     const addressDetail = String(item.addressDetail || '').trim();
     const ward = String(item.ward || '').trim();
@@ -977,5 +1099,27 @@ export class ProfileComponent implements OnInit, OnDestroy {
         type: String(addr.type || '').trim() || null,
         isPrimary: Boolean(addr.isPrimary || index === 0)
       };
+  }
+
+  private mapBankAccount(item: UserBankAccountItem, index: number): BankAccount {
+    return {
+      id: Number(item.id ?? Date.now() + index),
+      bankName: String(item.bankName || '').trim(),
+      accountNumber: String(item.accountNumber || '').trim(),
+      accountHolder: String(item.accountHolder || '').trim(),
+      branchName: String(item.branchName || '').trim() || undefined,
+      isPrimary: Boolean(item.isPrimary || index === 0)
+    };
+  }
+
+  private mapBankAccountToStorage(item: BankAccount): UserBankAccountItem {
+    return {
+      id: item.id,
+      bankName: item.bankName,
+      accountNumber: item.accountNumber,
+      accountHolder: item.accountHolder,
+      branchName: item.branchName || null,
+      isPrimary: Boolean(item.isPrimary)
+    };
   }
 }

@@ -29,6 +29,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CouponService {
 
+    private static final String TYPE_CUSTOMER_SEGMENT = "customer_segment";
+    private static final String TYPE_CUSTOMER_SHIPPING = "customer_shipping";
+    private static final String TYPE_CUSTOMER_SPECIFIC = "customer_specific";
+    private static final String TYPE_ORDER_AMOUNT = "order_amount";
+
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
     private final UserRepository userRepository;
@@ -120,12 +125,35 @@ public class CouponService {
         return out;
     }
 
+    private static Set<Long> parseTargetUserIds(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return Set.of();
+        java.util.Set<Long> out = new java.util.HashSet<>();
+        for (String part : raw.split(",")) {
+            if (part == null) continue;
+            String value = part.trim();
+            if (value.isEmpty()) continue;
+            try {
+                out.add(Long.parseLong(value));
+            } catch (NumberFormatException ignored) {}
+        }
+        return out;
+    }
+
     private void validateCouponSegmentEligibility(Coupon coupon, Long userId) {
         if (coupon == null) return;
         Set<String> allowed = parseAllowedSegments(coupon.getAllowedSegments());
         if (allowed.isEmpty()) return;
         String seg = computeCustomerSegment(userId);
         if (seg == null || !allowed.contains(seg.toUpperCase())) {
+            throw new BadRequestException("Coupon not available for this user");
+        }
+    }
+
+    private void validateCouponTargetUserEligibility(Coupon coupon, Long userId) {
+        if (coupon == null) return;
+        Set<Long> targetUserIds = parseTargetUserIds(coupon.getTargetUserIds());
+        if (targetUserIds.isEmpty()) return;
+        if (userId == null || !targetUserIds.contains(userId)) {
             throw new BadRequestException("Coupon not available for this user");
         }
     }
@@ -141,6 +169,7 @@ public class CouponService {
 
         validateCouponActive(coupon);
         validateCouponSegmentEligibility(coupon, userId);
+        validateCouponTargetUserEligibility(coupon, userId);
 
         if (userCouponRepository.existsByUserIdAndCouponId(userId, coupon.getId())) {
             throw new BadRequestException("Coupon already claimed");
@@ -177,13 +206,14 @@ public class CouponService {
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
 
         validateCouponActive(coupon);
+        validateCouponTargetUserEligibility(coupon, userId);
 
         Optional<UserCoupon> ucOpt = userCouponRepository.findByUserIdAndCouponId(userId, coupon.getId());
         if (ucOpt.isEmpty() || ucOpt.get().getStatus() != UserCouponStatus.CLAIMED) {
             throw new BadRequestException("Coupon not available for this user");
         }
 
-        BigDecimal discount = computeDiscount(coupon, subtotal);
+        BigDecimal discount = computeProductDiscount(coupon, subtotal);
         BigDecimal totalAfterDiscount = subtotal.subtract(discount);
 
         CouponPreviewResponse res = new CouponPreviewResponse();
@@ -205,6 +235,7 @@ public class CouponService {
 
         validateCouponActive(coupon);
         validateCouponSegmentEligibility(coupon, userId);
+        validateCouponTargetUserEligibility(coupon, userId);
 
         UserCoupon uc = userCouponRepository.findByUserIdAndCouponId(userId, coupon.getId())
                 .orElseThrow(() -> new BadRequestException("Coupon not available for this user"));
@@ -213,22 +244,22 @@ public class CouponService {
             throw new BadRequestException("Coupon is not in claimed status");
         }
 
-        BigDecimal productDiscount = computeDiscount(coupon, subtotal);
+        BigDecimal productDiscount = computeProductDiscount(coupon, subtotal);
         BigDecimal ship = shippingFee == null ? BigDecimal.ZERO : shippingFee;
         if (ship.compareTo(BigDecimal.ZERO) < 0) ship = BigDecimal.ZERO;
-        BigDecimal shipDiscount = BigDecimal.ZERO;
+        BigDecimal shipDiscount = computeShippingDiscount(coupon, subtotal, ship);
 
         // Nếu coupon có discountPercent và loại là dành cho vận chuyển (hoặc chung)
-        if (coupon.getDiscountPercent() != null && coupon.getDiscountPercent() > 0) {
+        if (false && coupon.getDiscountPercent() != null && coupon.getDiscountPercent() > 0) {
             // Tính toán giảm giá vận chuyển dựa trên phần trăm
             shipDiscount = ship
                     .multiply(BigDecimal.valueOf(coupon.getDiscountPercent()))
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        } else if (coupon.getShippingDiscountAmount() != null && coupon.getShippingDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+        } else if (false && coupon.getShippingDiscountAmount() != null && coupon.getShippingDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
             shipDiscount = coupon.getShippingDiscountAmount();
         }
 
-        if (coupon.getMaxDiscountAmount() != null && shipDiscount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+        if (false && coupon.getMaxDiscountAmount() != null && shipDiscount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
             shipDiscount = coupon.getMaxDiscountAmount();
         }
 
@@ -267,9 +298,25 @@ public class CouponService {
         }
     }
 
-    private static BigDecimal computeDiscount(Coupon coupon, BigDecimal subtotal) {
+    private static String normalizeType(String rawType) {
+        if (rawType == null || rawType.isBlank()) return TYPE_CUSTOMER_SEGMENT;
+        String type = rawType.trim();
+        if (TYPE_CUSTOMER_SHIPPING.equalsIgnoreCase(type)) return TYPE_CUSTOMER_SHIPPING;
+        if (TYPE_CUSTOMER_SPECIFIC.equalsIgnoreCase(type)) return TYPE_CUSTOMER_SPECIFIC;
+        if (TYPE_ORDER_AMOUNT.equalsIgnoreCase(type)) return TYPE_ORDER_AMOUNT;
+        return TYPE_CUSTOMER_SEGMENT;
+    }
+
+    private static void validateMinOrderAmount(Coupon coupon, BigDecimal subtotal) {
         if (coupon.getMinOrderAmount() != null && subtotal.compareTo(coupon.getMinOrderAmount()) < 0) {
             throw new BadRequestException("Order does not meet minimum amount");
+        }
+    }
+
+    private static BigDecimal computeProductDiscount(Coupon coupon, BigDecimal subtotal) {
+        validateMinOrderAmount(coupon, subtotal);
+        if (TYPE_CUSTOMER_SHIPPING.equals(normalizeType(coupon.getType()))) {
+            return BigDecimal.ZERO;
         }
 
         BigDecimal discount = BigDecimal.ZERO;
@@ -294,15 +341,45 @@ public class CouponService {
         return discount;
     }
 
+    private static BigDecimal computeShippingDiscount(Coupon coupon, BigDecimal subtotal, BigDecimal shippingFee) {
+        validateMinOrderAmount(coupon, subtotal);
+        if (!TYPE_CUSTOMER_SHIPPING.equals(normalizeType(coupon.getType()))) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discount = BigDecimal.ZERO;
+        if (coupon.getShippingDiscountAmount() != null && coupon.getShippingDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            discount = coupon.getShippingDiscountAmount();
+        } else if (coupon.getDiscountPercent() != null && coupon.getDiscountPercent() > 0) {
+            discount = shippingFee
+                .multiply(BigDecimal.valueOf(coupon.getDiscountPercent()))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+
+        if (coupon.getMaxDiscountAmount() != null && discount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+            discount = coupon.getMaxDiscountAmount();
+        }
+        if (discount.compareTo(BigDecimal.ZERO) < 0) {
+            discount = BigDecimal.ZERO;
+        }
+        if (discount.compareTo(shippingFee) > 0) {
+            discount = shippingFee;
+        }
+        return discount;
+    }
+
     private static CouponDto toDto(Coupon c) {
         CouponDto dto = new CouponDto();
         dto.setId(c.getId());
         dto.setCode(c.getCode());
         dto.setDescription(c.getDescription());
+        dto.setType(normalizeType(c.getType()));
         dto.setDiscountAmount(c.getDiscountAmount());
         dto.setDiscountPercent(c.getDiscountPercent());
         dto.setMinOrderAmount(c.getMinOrderAmount());
         dto.setMaxDiscountAmount(c.getMaxDiscountAmount());
+        dto.setShippingDiscountAmount(c.getShippingDiscountAmount());
+        dto.setTargetUserIds(c.getTargetUserIds());
         dto.setUsageLimit(c.getUsageLimit());
         dto.setUsedCount(c.getUsedCount());
         dto.setStartsAt(c.getStartsAt());

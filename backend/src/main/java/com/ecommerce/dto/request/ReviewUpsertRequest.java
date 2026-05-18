@@ -1,10 +1,14 @@
 package com.ecommerce.dto.request;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ReviewUpsertRequest {
 
     private Long productId;
     private Integer rating;
     private String comment;
+    private List<String> images = new ArrayList<>();
 
     public ReviewUpsertRequest() {}
 
@@ -30,5 +34,13 @@ public class ReviewUpsertRequest {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+    public List<String> getImages() {
+        return images;
+    }
+
+    public void setImages(List<String> images) {
+        this.images = images;
     }
 }

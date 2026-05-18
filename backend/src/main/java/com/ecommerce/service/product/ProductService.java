@@ -19,6 +19,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import com.ecommerce.repository.CategoryRepository;
 import com.ecommerce.repository.ProductRepository;
+import com.ecommerce.repository.ProductTypeRepository;
 import com.ecommerce.repository.ProductVariantRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -47,14 +48,22 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     
     private final ProductVariantRepository productVariantRepository;
+
+    private final ProductTypeRepository productTypeRepository;
     
     @PersistenceContext
     private EntityManager entityManager;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, ProductVariantRepository productVariantRepository) {
+    public ProductService(
+        ProductRepository productRepository,
+        CategoryRepository categoryRepository,
+        ProductVariantRepository productVariantRepository,
+        ProductTypeRepository productTypeRepository
+    ) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.productVariantRepository = productVariantRepository;
+        this.productTypeRepository = productTypeRepository;
     }
 
     private String generateSku(String name) {
@@ -102,7 +111,7 @@ public class ProductService {
     }
 
     public List<ProductResponse> list() {
-        return productRepository.findAll().stream().map(ProductService::toResponse).toList();
+        return productRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     public ProductResponse get(Long id) {
@@ -457,7 +466,7 @@ public class ProductService {
         }
     }
 
-    private static ProductResponse toResponse(Product p) {
+    private ProductResponse toResponse(Product p) {
         ProductResponse res = new ProductResponse();
         res.setId(p.getId());
         res.setSku(p.getSku());
@@ -469,6 +478,12 @@ public class ProductService {
         res.setStock(p.getStock());
         res.setCategoryId(p.getCategoryId());
         res.setProductTypeId(p.getProductTypeId());
+        if (p.getProductTypeId() != null) {
+            String fieldsJson = productTypeRepository.findById(p.getProductTypeId())
+                .map(pt -> pt.getFieldsJson())
+                .orElse(null);
+            res.setProductTypeFieldsJson(fieldsJson);
+        }
         res.setGender(p.getGender());
         res.setAttributesJson(p.getAttributesJson());
         res.setCategoryIds(p.getCategoryIds());

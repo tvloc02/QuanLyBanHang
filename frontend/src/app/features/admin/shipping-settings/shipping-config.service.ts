@@ -85,9 +85,11 @@ export class ShippingConfigService {
   private readonly STORAGE_KEY_AFTER = 'shipping_configs_after';
   private readonly STORAGE_KEY_BEFORE = 'shipping_configs_before';
   private readonly SETTINGS_KEY = 'shipping_settings';
+  private readonly SETTINGS_KEY_CAMEL = 'shippingSettings';
   private readonly DISTANCE_TEMPLATE_KEY = 'shipping_distance_template';
   private readonly CARRIER_CONFIG_KEY = 'shipping_carrier_config_v1';
   private readonly DELIVERY_PRICING_KEY = 'shipping_delivery_pricing_v1';
+  private readonly LEGACY_DISTANCE_SHIPPINGS_KEY = 'distanceShippings';
 
   private shippingConfigsAfter$ = new BehaviorSubject<ProvinceShippingConfig[]>([]);
   private shippingConfigsBefore$ = new BehaviorSubject<ProvinceShippingConfig[]>([]);
@@ -466,6 +468,116 @@ export class ShippingConfigService {
     };
   }
 
+  private hasConfiguredDeliveryPricing(cfg: DeliveryPricingConfig | null | undefined): boolean {
+    if (!cfg) return false;
+    return (['sameProvince', 'differentProvince'] as const).some((zone) =>
+      (['ECONOMY', 'FAST'] as const).some((method) =>
+        (cfg[zone][method] || []).some((tier) =>
+          Number(tier?.fee || 0) > 0 || Number(tier?.minDays || 0) > 0 || Number(tier?.maxDays || 0) > 0
+        )
+      )
+    );
+  }
+
+  private buildLegacyFallbackPricing(): DeliveryPricingConfig | null {
+    let settings: ShippingSettings | null = null;
+    let distanceShippings: any[] = [];
+
+    try {
+      const rawSettings = localStorage.getItem(this.SETTINGS_KEY) || localStorage.getItem(this.SETTINGS_KEY_CAMEL);
+      if (rawSettings) {
+        const parsed = JSON.parse(rawSettings);
+        if (parsed && typeof parsed === 'object') {
+          settings = {
+            freeShippingThreshold: Number(parsed.freeShippingThreshold ?? 500000) || 500000,
+            defaultFee: Number(parsed.defaultFee ?? 30000) || 30000,
+            sameDayFee: Number(parsed.sameDayFee ?? 50000) || 50000,
+            expressFee: Number(parsed.expressFee ?? 40000) || 40000,
+            weekendFee: Number(parsed.weekendFee ?? 10000) || 10000,
+            remoteFee: Number(parsed.remoteFee ?? 20000) || 20000
+          };
+        }
+      }
+    } catch {
+      settings = null;
+    }
+
+    try {
+      const rawDistance = localStorage.getItem(this.LEGACY_DISTANCE_SHIPPINGS_KEY);
+      if (rawDistance) {
+        const parsed = JSON.parse(rawDistance);
+        distanceShippings = Array.isArray(parsed) ? parsed : [];
+      }
+    } catch {
+      distanceShippings = [];
+    }
+
+    if (!settings && distanceShippings.length === 0) {
+      return null;
+    }
+
+    const safeSettings = settings || this.settings$.value;
+    const baseEconomy = distanceShippings.length
+      ? distanceShippings.map((row) => ({
+          minDistanceKm: Math.max(0, Number(row?.minDistance ?? 0)),
+          maxDistanceKm: Math.max(0, Number(row?.maxDistance ?? row?.minDistance ?? 0)),
+          minDays: Math.max(0, Math.round(Number(row?.estimatedDays ?? 0))),
+          maxDays: Math.max(0, Math.round(Number(row?.estimatedDays ?? 0))),
+          fee: Math.max(0, Number(row?.fee ?? safeSettings.defaultFee ?? 0))
+        }))
+      : [{
+          minDistanceKm: 0,
+          maxDistanceKm: 9999,
+          minDays: 2,
+          maxDays: 3,
+          fee: Math.max(0, Number(safeSettings.defaultFee || 0))
+        }];
+
+    const economySame = this.normalizeDeliveryTierList(baseEconomy, this.deliveryPricing$.value.sameProvince.ECONOMY);
+    const economyDifferent = this.normalizeDeliveryTierList(
+      baseEconomy.map((tier) => ({
+        ...tier,
+        fee: Math.max(Number(tier.fee || 0), Number(safeSettings.defaultFee || 0) + Number(safeSettings.remoteFee || 0))
+      })),
+      this.deliveryPricing$.value.differentProvince.ECONOMY
+    );
+
+    const fastSame = this.normalizeDeliveryTierList(
+      baseEconomy.map((tier) => ({
+        ...tier,
+        minDays: 0,
+        maxDays: Math.max(0, Math.min(Number(tier.maxDays || 0), 1)),
+        fee: Math.max(Number(tier.fee || 0), Number(safeSettings.sameDayFee || safeSettings.expressFee || 0))
+      })),
+      this.deliveryPricing$.value.sameProvince.FAST
+    );
+
+    const fastDifferent = this.normalizeDeliveryTierList(
+      baseEconomy.map((tier) => ({
+        ...tier,
+        minDays: 1,
+        maxDays: Math.max(1, Math.min(Number(tier.maxDays || 0), 2)),
+        fee: Math.max(
+          Number(tier.fee || 0),
+          Number(safeSettings.expressFee || 0),
+          Number(safeSettings.defaultFee || 0) + Number(safeSettings.remoteFee || 0)
+        )
+      })),
+      this.deliveryPricing$.value.differentProvince.FAST
+    );
+
+    return {
+      sameProvince: {
+        ECONOMY: economySame,
+        FAST: fastSame
+      },
+      differentProvince: {
+        ECONOMY: economyDifferent,
+        FAST: fastDifferent
+      }
+    };
+  }
+
   importFromCSV(csvData: string): { success: boolean; message: string; imported: number } {
     try {
       const lines = csvData.split('\n').filter(line => line.trim());
@@ -579,7 +691,7 @@ export class ShippingConfigService {
         }
       }
 
-      const storedSettings = localStorage.getItem(this.SETTINGS_KEY);
+      const storedSettings = localStorage.getItem(this.SETTINGS_KEY) || localStorage.getItem(this.SETTINGS_KEY_CAMEL);
       if (storedSettings) {
         this.settings$.next(JSON.parse(storedSettings));
       }
@@ -604,8 +716,19 @@ export class ShippingConfigService {
       const storedDeliveryPricing = localStorage.getItem(this.DELIVERY_PRICING_KEY);
       if (storedDeliveryPricing) {
         const parsed = JSON.parse(storedDeliveryPricing);
-        this.deliveryPricing$.next(this.normalizeDeliveryPricing(parsed));
+        const normalized = this.normalizeDeliveryPricing(parsed);
+        if (this.hasConfiguredDeliveryPricing(normalized)) {
+          this.deliveryPricing$.next(normalized);
+        } else {
+          const legacyFallback = this.buildLegacyFallbackPricing();
+          this.deliveryPricing$.next(legacyFallback || normalized);
+          if (legacyFallback) this.saveDeliveryPricingToStorage();
+        }
       } else {
+        const legacyFallback = this.buildLegacyFallbackPricing();
+        if (legacyFallback) {
+          this.deliveryPricing$.next(legacyFallback);
+        }
         this.saveDeliveryPricingToStorage();
       }
     } catch (error) {

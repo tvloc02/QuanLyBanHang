@@ -133,7 +133,7 @@
         <button
           type="button"
           class="review-star"
-          *ngFor="let star of [1,2,3,4,5]"
+          *ngFor="let star of [1, 2, 3, 4, 5]"
           [class.is-active]="star <= reviewRating"
           (click)="reviewRating = star"
         >
@@ -147,6 +147,21 @@
         rows="5"
         placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
       ></textarea>
+
+      <div class="review-upload">
+        <label class="review-upload__button">
+          <input type="file" accept="image/*" multiple (change)="onReviewImagesSelected($event)" />
+          <span>Thêm ảnh minh chứng</span>
+        </label>
+        <div class="review-upload__hint">Tối đa 5 ảnh</div>
+      </div>
+
+      <div class="review-images" *ngIf="reviewImagePreviews.length > 0">
+        <div class="review-image" *ngFor="let preview of reviewImagePreviews; let i = index">
+          <img [src]="preview" [alt]="'Ảnh minh chứng ' + (i + 1)" />
+          <button type="button" class="review-image__remove" (click)="removeReviewImage(i)">×</button>
+        </div>
+      </div>
 
       <div class="lookup-error review-error" *ngIf="reviewError">{{ reviewError }}</div>
     </div>

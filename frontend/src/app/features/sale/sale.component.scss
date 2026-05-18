@@ -178,6 +178,137 @@
   color: #991b1b;
 }
 
+.sale-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 16px;
+}
+
+.sale-product-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: transform 0.25s ease;
+}
+
+.sale-product-card:hover {
+  transform: translateY(-2px);
+}
+
+.sale-product-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.76;
+  overflow: hidden;
+  background: #f3f3f3;
+}
+
+.sale-product-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0 4px;
+}
+
+.sale-product-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 3.5em;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.36;
+  color: #111827;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.sale-product-name:hover {
+  color: #c1121f;
+}
+
+.sale-product-pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sale-product-price {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: #c1121f;
+}
+
+.sale-product-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sale-product-old-price {
+  font-size: 14px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.sale-product-discount {
+  font-size: 14px;
+  font-weight: 900;
+  color: #c1121f;
+}
+
+.sale-product-extra {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+@media (min-width: 640px) {
+  .sale-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 30px 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sale-product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 34px 20px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .sale-product-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 36px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .sale-product-name {
+    min-height: 3.2em;
+    font-size: 14px;
+  }
+
+  .sale-product-price {
+    font-size: 16px;
+  }
+
+  .sale-product-old-price,
+  .sale-product-discount {
+    font-size: 12px;
+  }
+}
+
  @media (max-width: 1024px) {
    .sale-quick-tiles-scroll {
      grid-template-columns: repeat(4, minmax(0, 1fr));

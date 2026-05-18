@@ -26,6 +26,8 @@ public class ProductResponse {
 
     private Long productTypeId;
 
+    private String productTypeFieldsJson;
+
     private String gender;
 
     private String attributesJson;
@@ -138,6 +140,14 @@ public class ProductResponse {
 
     public void setProductTypeId(Long productTypeId) {
         this.productTypeId = productTypeId;
+    }
+
+    public String getProductTypeFieldsJson() {
+        return productTypeFieldsJson;
+    }
+
+    public void setProductTypeFieldsJson(String productTypeFieldsJson) {
+        this.productTypeFieldsJson = productTypeFieldsJson;
     }
 
     public String getGender() {

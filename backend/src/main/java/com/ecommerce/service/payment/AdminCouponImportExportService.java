@@ -72,11 +72,10 @@ public class AdminCouponImportExportService {
       r1.createCell(0).setCellValue("XINCHAO2024");
       r1.createCell(1).setCellValue("Giảm 50% phí ship đơn từ 200k");
       r1.createCell(2).setCellValue("customer_shipping");
-      r1.createCell(3).setCellValue(30000);
-      r1.createCell(4).setCellValue(0);
+      r1.createCell(4).setCellValue(50);
       r1.createCell(5).setCellValue(200000);
       r1.createCell(6).setCellValue(30000);
-      r1.createCell(7).setCellValue(50000);
+      r1.createCell(7).setCellValue(0);
       r1.createCell(8).setCellValue("TIEM_NANG,THAN_THIET");
       r1.createCell(9).setCellValue(100);
       r1.createCell(10).setCellValue(Instant.now().toString());
@@ -118,8 +117,7 @@ public class AdminCouponImportExportService {
           
           String type = getStringCell(row, 2);
           if (type == null || type.isBlank()) type = "customer_segment";
-          // Giả sử có trường type trong Coupon entity hoặc xử lý logic phù hợp
-          // Lưu ý: Coupon entity hiện tại chưa có trường type, tôi sẽ gán dựa trên dữ liệu hiện có
+          coupon.setType(type);
           
           coupon.setDiscountAmount(getDecimalCell(row, 3));
           coupon.setDiscountPercent(getIntCell(row, 4));

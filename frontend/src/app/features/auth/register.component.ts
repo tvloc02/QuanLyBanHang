@@ -569,7 +569,13 @@ export class RegisterComponent implements AfterViewInit {
   }
 
   submit(): void {
-    if (!this.email || !this.password || !this.phone) {
+    const firstName = String(this.firstName || '').trim();
+    const lastName = String(this.lastName || '').trim();
+    const fullName = [lastName, firstName].filter(Boolean).join(' ').trim();
+    const phone = String(this.phone || '').trim();
+    const email = String(this.email || '').trim().toLowerCase();
+
+    if (!fullName || !email || !this.password || !phone) {
       this.toast.error('Vui lòng điền đầy đủ các thông tin bắt buộc.');
       return;
     }
@@ -581,12 +587,11 @@ export class RegisterComponent implements AfterViewInit {
     this.loading.set(true);
     this.auth
       .register({
-        firstName: this.firstName,
-        lastName: this.lastName,
-        phone: this.phone,
-        email: this.email,
+        fullName,
+        username: email,
+        phone,
+        email,
         password: this.password,
-        confirmPassword: this.confirmPassword,
         gender: this.gender
       })
       .subscribe({

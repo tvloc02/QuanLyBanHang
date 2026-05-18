@@ -1,6 +1,6 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, DestroyRef, OnInit } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -26,6 +26,7 @@ interface ProductDetailResponse {
   category?: string;
   brand?: string;
   productTypeId?: number | null;
+  productTypeFieldsJson?: string | null;
   gender?: string | null;
   imageUrl?: string;
   images?: string[];
@@ -35,8 +36,24 @@ interface ProductDetailResponse {
   soldCount?: number;
   sizes?: string[];
   colors?: string[];
+  variants?: ProductVariantResponse[];
   promotionTitle?: string;
   promotionText?: string;
+}
+
+interface ProductVariantSizeStockResponse {
+  size?: string | null;
+  stock?: number | null;
+}
+
+interface ProductVariantResponse {
+  id?: number | null;
+  color?: string | null;
+  price?: number | null;
+  oldPrice?: number | null;
+  images?: string[];
+  stocks?: ProductVariantSizeStockResponse[];
+  active?: boolean | null;
 }
 
 interface CartItem {
@@ -78,6 +95,9 @@ interface ReviewResponse {
   userId?: number | null;
   rating?: number | null;
   comment?: string | null;
+  reviewText?: string | null;
+  customerName?: string | null;
+  images?: string[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -179,6 +199,7 @@ export class ProductDetailComponent implements OnInit {
   private sizeGuideCacheId: number | null = null;
 
   constructor(
+    @Inject(DOCUMENT) private document: Document,
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
@@ -223,6 +244,7 @@ export class ProductDetailComponent implements OnInit {
         this.product = {
           ...p,
           productTypeId: p.productTypeId != null ? Number(p.productTypeId) : null,
+          productTypeFieldsJson: p.productTypeFieldsJson != null ? String(p.productTypeFieldsJson) : null,
           gender: p.gender != null ? String(p.gender) : null,
           price: Number(p.price || 0),
           oldPrice: p.oldPrice !== undefined ? Number(p.oldPrice) : undefined,
@@ -230,24 +252,34 @@ export class ProductDetailComponent implements OnInit {
           discountPercent: p.discountPercent !== undefined ? Number(p.discountPercent) : undefined,
           soldCount: p.soldCount !== undefined ? Number(p.soldCount) : undefined,
           imageUrl: p.imageUrl ? this.normalizeImageUrl(String(p.imageUrl)) : undefined,
-          images: Array.isArray(p.images) ? p.images.map((x) => this.normalizeImageUrl(String(x))) : undefined
+          images: Array.isArray(p.images) ? p.images.map((x) => this.normalizeImageUrl(String(x))) : undefined,
+          variants: Array.isArray(p.variants)
+            ? p.variants.map((variant) => ({
+                id: variant?.id != null ? Number(variant.id) : null,
+                color: variant?.color != null ? String(variant.color) : null,
+                price: variant?.price != null ? Number(variant.price) : null,
+                oldPrice: variant?.oldPrice != null ? Number(variant.oldPrice) : null,
+                images: Array.isArray(variant?.images)
+                  ? variant.images.map((image) => this.normalizeImageUrl(String(image)))
+                  : [],
+                stocks: Array.isArray(variant?.stocks)
+                  ? variant.stocks.map((stock) => ({
+                      size: stock?.size != null ? String(stock.size) : null,
+                      stock: stock?.stock != null ? Number(stock.stock) : null
+                    }))
+                  : [],
+                active: variant?.active !== false
+              }))
+            : undefined
         };
         this.hydrateDescriptionBlocks(p.description);
-
-        const imgs = (this.product.images && this.product.images.length
-          ? this.product.images
-          : this.product.imageUrl
-            ? [this.product.imageUrl]
-            : []
-        ).filter(Boolean) as string[];
-        this.images = imgs.length ? imgs : [this.productPlaceholderImage];
-        this.activeImage = this.images[0] || this.productPlaceholderImage;
 
         const sizes = p.sizes || [];
         const colors = p.colors || [];
         this.selectedSize = sizes.length ? sizes[0] : '';
         this.selectedColor = colors.length ? colors[0] : '';
         this.quantity = 1;
+        this.syncGalleryWithSelection();
 
         this.loading = false;
         this.loadCoupons();
@@ -346,12 +378,15 @@ export class ProductDetailComponent implements OnInit {
         this.reviewsLoading = false;
         const rows = Array.isArray(res?.data) ? res.data : [];
         this.reviews = rows
-          .map((row) => ({
+          .map((row: any) => ({
             id: row.id ?? null,
             productId: row.productId ?? null,
             userId: row.userId ?? null,
             rating: row.rating != null ? Number(row.rating) : null,
             comment: row.comment || '',
+            reviewText: row.reviewText || row.comment || '',
+            customerName: row.customerName || row.userName || (row.userId ? `Khách hàng #${row.userId}` : 'Khách hàng'),
+            images: Array.isArray(row.images) ? row.images.map((img: string) => this.normalizeImageUrl(img)) : [],
             createdAt: row.createdAt || null,
             updatedAt: row.updatedAt || null
           }))
@@ -395,11 +430,13 @@ export class ProductDetailComponent implements OnInit {
 
   selectColor(c: string): void {
     this.selectedColor = c;
+    this.syncGalleryWithSelection();
     this.loadBranchOptions();
   }
 
   selectSize(s: string): void {
     this.selectedSize = s;
+    this.syncGalleryWithSelection();
     this.loadBranchOptions();
   }
 
@@ -432,7 +469,7 @@ export class ProductDetailComponent implements OnInit {
     this.sizeGuideOpen = false;
   }
 
-  addToCart(): void {
+  addToCart(trigger?: HTMLElement | ElementRef<HTMLElement> | null): void {
     if (!this.product) return;
 
     if (!this.selectedBranchId) {
@@ -473,6 +510,8 @@ export class ProductDetailComponent implements OnInit {
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
+    this.runAddToCartAnimation(trigger);
+    window.dispatchEvent(new Event('cart-updated'));
   }
 
   buyNow(): void {
@@ -587,6 +626,43 @@ export class ProductDetailComponent implements OnInit {
     return String(this.selectedColor || '').trim();
   }
 
+  private syncGalleryWithSelection(): void {
+    const fallbackImages = (this.product?.images || []).filter(Boolean);
+    const fallbackPrimary = this.product?.imageUrl ? [this.product.imageUrl] : [];
+    const nextImages = [...fallbackImages, ...fallbackPrimary]
+      .map((image) => this.normalizeImageUrl(String(image)))
+      .filter((image, index, arr) => !!image && arr.indexOf(image) === index);
+
+    this.images = nextImages.length ? nextImages : [this.productPlaceholderImage];
+    const preferredImage = this.selectedVariantImages()[0] || this.images[0] || this.productPlaceholderImage;
+    this.activeImage = preferredImage;
+  }
+
+  private selectedVariantImages(): string[] {
+    const variant = this.findMatchingVariant();
+    return Array.isArray(variant?.images) ? variant!.images.filter(Boolean) : [];
+  }
+
+  private findMatchingVariant(): ProductVariantResponse | null {
+    const variants = (this.product?.variants || []).filter((variant) => variant && variant.active !== false);
+    if (!variants.length) return null;
+
+    const wantedColor = String(this.selectedColor || '').trim().toLowerCase();
+    const wantedSize = String(this.selectedSize || '').trim().toLowerCase();
+
+    const byColor = wantedColor
+      ? variants.filter((variant) => String(variant?.color || '').trim().toLowerCase() === wantedColor)
+      : variants;
+
+    const byColorAndSize = wantedSize
+      ? byColor.filter((variant) =>
+          (variant?.stocks || []).some((stock) => String(stock?.size || '').trim().toLowerCase() === wantedSize)
+        )
+      : byColor;
+
+    return byColorAndSize[0] || byColor[0] || variants[0] || null;
+  }
+
   get activeSizeGuideGroupLabel(): string {
     const key = String(this.activeSizeGuideGroupKey || '').trim();
     if (!key) return '';
@@ -657,6 +733,40 @@ export class ProductDetailComponent implements OnInit {
   get filteredReviews(): ReviewResponse[] {
     if (this.reviewFilter === 0) return this.reviews;
     return this.reviews.filter((review) => Number(review.rating || 0) === this.reviewFilter);
+  }
+
+  get averageRating(): number {
+    return this.averageReviewRating;
+  }
+
+  getRatingPercentage(rating: number): number {
+    return this.ratingPercent(rating);
+  }
+
+  getCountByRating(rating: number): number {
+    return this.ratingCount(rating);
+  }
+
+  getReviewImages(): string[] {
+    const allImages: string[] = [];
+    this.reviews.forEach(r => {
+      if (r.images && Array.isArray(r.images)) {
+        allImages.push(...r.images);
+      }
+    });
+    return allImages;
+  }
+
+  get selectedRatingFilter(): number | null {
+    return this.reviewFilter === 0 ? null : this.reviewFilter;
+  }
+
+  set selectedRatingFilter(val: number | null) {
+    this.reviewFilter = val === null ? 0 : (val as 0 | 1 | 2 | 3 | 4 | 5);
+  }
+
+  getFilteredReviews(): ReviewResponse[] {
+    return this.filteredReviews;
   }
 
   ratingCount(star: number): number {
@@ -734,6 +844,86 @@ export class ProductDetailComponent implements OnInit {
     }
   }
 
+  private runAddToCartAnimation(trigger?: HTMLElement | ElementRef<HTMLElement> | null): void {
+    if (typeof window === 'undefined') return;
+
+    const source = this.resolveElement(trigger);
+    const target = this.document.querySelector('[data-cart-icon]') as HTMLElement | null;
+    if (!source || !target) return;
+
+    const sourceRect = source.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const imageUrl = this.activeImage || this.product?.imageUrl || this.productPlaceholderImage;
+    const flyer = this.document.createElement('div');
+    flyer.className = 'cart-flyer';
+    flyer.style.position = 'fixed';
+    flyer.style.zIndex = '9999';
+    flyer.style.pointerEvents = 'none';
+    flyer.style.overflow = 'hidden';
+    flyer.style.borderRadius = '18px';
+    flyer.style.border = '1px solid rgba(193, 18, 31, 0.16)';
+    flyer.style.boxShadow = '0 18px 40px rgba(17, 24, 39, 0.18)';
+    flyer.style.background = '#ffffff';
+
+    const image = this.document.createElement('img');
+    image.src = imageUrl;
+    image.alt = this.product?.name || 'Sản phẩm';
+    image.style.width = '100%';
+    image.style.height = '100%';
+    image.style.objectFit = 'cover';
+    image.style.display = 'block';
+    flyer.appendChild(image);
+    this.document.body.appendChild(flyer);
+
+    const startSize = Math.max(56, Math.min(86, sourceRect.width * 0.38));
+    const startX = sourceRect.left + (sourceRect.width - startSize) / 2;
+    const startY = sourceRect.top + (sourceRect.height - startSize) / 2;
+    const endSize = 24;
+    const endX = targetRect.left + targetRect.width / 2 - endSize / 2;
+    const endY = targetRect.top + targetRect.height / 2 - endSize / 2;
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+
+    flyer.style.width = `${startSize}px`;
+    flyer.style.height = `${startSize}px`;
+    flyer.style.left = `${startX}px`;
+    flyer.style.top = `${startY}px`;
+
+    const animation = flyer.animate(
+      [
+        {
+          transform: 'translate3d(0, 0, 0) scale(1)',
+          opacity: 0.98,
+          offset: 0
+        },
+        {
+          transform: `translate3d(${deltaX * 0.35}px, ${deltaY * 0.2 - 42}px, 0) scale(1.06)`,
+          opacity: 1,
+          offset: 0.45
+        },
+        {
+          transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(${endSize / startSize})`,
+          opacity: 0.2,
+          offset: 1
+        }
+      ],
+      {
+        duration: 760,
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        fill: 'forwards'
+      }
+    );
+
+    animation.onfinish = () => flyer.remove();
+    animation.oncancel = () => flyer.remove();
+  }
+
+  private resolveElement(trigger?: HTMLElement | ElementRef<HTMLElement> | null): HTMLElement | null {
+    if (!trigger) return null;
+    if (trigger instanceof ElementRef) return trigger.nativeElement;
+    return trigger;
+  }
+
   private hydrateDescriptionBlocks(raw?: string | null): void {
     const source = String(raw || '').trim();
     this.productDescriptionBlocks = [];
@@ -775,6 +965,32 @@ export class ProductDetailComponent implements OnInit {
 
   private loadSizeGuide(): void {
     const productTypeId = Number(this.product?.productTypeId || 0);
+    const embeddedFieldsJson = String(this.product?.productTypeFieldsJson || '').trim();
+
+    if (embeddedFieldsJson) {
+      const parsed = this.parseProductTypeSizeMatrix(embeddedFieldsJson);
+      this.sizeGuideLoading = false;
+      this.sizeGuideError = '';
+      this.sizeGuideProductType = productTypeId > 0
+        ? {
+            id: productTypeId,
+            code: '',
+            name: String(this.product?.name || ''),
+            active: true,
+            fieldsJson: embeddedFieldsJson
+          }
+        : null;
+      this.sizeGuideGroups = parsed.groups;
+      this.sizeGuideRowsByGroup = parsed.rowsByGroup;
+      this.activeSizeGuideGroupKey = this.pickInitialSizeGuideGroupKey(parsed.groups, parsed.rowsByGroup);
+      this.sizeGuideCacheId = productTypeId > 0 ? productTypeId : null;
+
+      if (!this.sizeGuideHasData) {
+        this.sizeGuideError = 'Loại sản phẩm này chưa cấu hình ma trận size.';
+      }
+      return;
+    }
+
     if (!Number.isFinite(productTypeId) || productTypeId <= 0) {
       this.sizeGuideLoading = false;
       this.sizeGuideError = 'Sản phẩm này chưa có loại sản phẩm để hiển thị bảng size.';
@@ -794,7 +1010,7 @@ export class ProductDetailComponent implements OnInit {
     this.sizeGuideLoading = true;
     this.sizeGuideError = '';
 
-    const url = `${environment.apiBaseUrl}/api/admin/product-types/${productTypeId}`;
+    const url = `${environment.apiBaseUrl}/api/product-types/${productTypeId}`;
     this.http.get<ApiResponse<ProductTypeResponse>>(url).subscribe({
       next: (res) => {
         this.sizeGuideLoading = false;

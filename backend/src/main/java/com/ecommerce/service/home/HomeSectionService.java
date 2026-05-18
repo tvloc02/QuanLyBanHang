@@ -255,10 +255,13 @@ public class HomeSectionService {
         dto.setId(c.getId());
         dto.setCode(c.getCode());
         dto.setDescription(c.getDescription());
+        dto.setType(c.getType());
         dto.setDiscountAmount(c.getDiscountAmount());
         dto.setDiscountPercent(c.getDiscountPercent());
         dto.setMinOrderAmount(c.getMinOrderAmount());
         dto.setMaxDiscountAmount(c.getMaxDiscountAmount());
+        dto.setShippingDiscountAmount(c.getShippingDiscountAmount());
+        dto.setTargetUserIds(c.getTargetUserIds());
         dto.setUsageLimit(c.getUsageLimit());
         dto.setUsedCount(c.getUsedCount());
         dto.setStartsAt(c.getStartsAt());

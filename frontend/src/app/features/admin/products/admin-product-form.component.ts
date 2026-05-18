@@ -49,7 +49,6 @@ interface AdminProductVariantBranchStockResponse {
   size: string;
   stock: number;
   imageUrl?: string;
-  weightKg?: number;
   updatedAt?: string;
 }
 
@@ -114,18 +113,7 @@ interface ProductResponse {
   soldCount?: number;
   sizes?: string[];
   colors?: string[];
-  gender?: string;
   active?: boolean;
-}
-
-type DescriptionBlockType = 'heading-lg' | 'heading-sm' | 'divider' | 'paragraph' | 'image';
-
-interface DescriptionBlock {
-  id: string;
-  type: DescriptionBlockType;
-  text?: string;
-  imageUrl?: string;
-  alt?: string;
 }
 
 @Component({
@@ -138,8 +126,6 @@ interface DescriptionBlock {
 export class AdminProductFormComponent {
   loading = false;
   saving = false;
-  descriptionBlocks: DescriptionBlock[] = [];
-  private descriptionBlockSeed = 0;
 
   get canEditMatrixPrice(): boolean {
     return !this.saving;
@@ -256,17 +242,15 @@ export class AdminProductFormComponent {
 
   activeTab: 'BASIC' | 'IMAGES' | 'DESCRIPTION' = 'BASIC';
 
-  readonly cleanTabs: Array<{ key: AdminProductFormComponent['activeTab']; label: string }> = [
-    { key: 'BASIC', label: 'Thông tin' },
-    { key: 'IMAGES', label: 'Ảnh' },
-    { key: 'DESCRIPTION', label: 'Mô tả' }
-  ];
-
   readonly tabs: Array<{ key: AdminProductFormComponent['activeTab']; label: string }> = [
     { key: 'BASIC', label: 'Thông tin' },
     { key: 'IMAGES', label: 'Ảnh' },
     { key: 'DESCRIPTION', label: 'Mô tả' }
   ];
+
+  get cleanTabs(): Array<{ key: AdminProductFormComponent['activeTab']; label: string }> {
+    return this.tabs;
+  }
 
   private readonly apiBaseUrl = (environment.apiBaseUrl || '').replace(/\/$/, '');
 
@@ -430,7 +414,7 @@ export class AdminProductFormComponent {
   }
 
   variantBranchRows: VariantBranchMatrixRow[] = [];
-  private variantBranchCellByKey = new Map<string, { stock: number; imageUrl: string; weightKg: number | null }>();
+  private variantBranchCellByKey = new Map<string, { stock: number; imageUrl: string }>();
 
   private variantBranchSyncTimer: any = null;
 
@@ -460,157 +444,6 @@ export class AdminProductFormComponent {
     return this.activeTab === key;
   }
 
-  trackByDescriptionBlock(_: number, block: DescriptionBlock): string {
-    return block.id;
-  }
-
-  addDescriptionBlock(type: DescriptionBlockType): void {
-    this.descriptionBlocks = [...this.descriptionBlocks, this.createDescriptionBlock(type)];
-    this.syncDescriptionToForm();
-  }
-
-  insertDescriptionBlockAfter(index: number, type: DescriptionBlockType): void {
-    const blocks = [...this.descriptionBlocks];
-    const insertAt = Math.max(0, Math.min(index + 1, blocks.length));
-    blocks.splice(insertAt, 0, this.createDescriptionBlock(type));
-    this.descriptionBlocks = blocks;
-    this.syncDescriptionToForm();
-  }
-
-  moveDescriptionBlockUp(index: number): void {
-    if (index <= 0 || index >= this.descriptionBlocks.length) return;
-    const blocks = [...this.descriptionBlocks];
-    [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]];
-    this.descriptionBlocks = blocks;
-    this.syncDescriptionToForm();
-  }
-
-  moveDescriptionBlockDown(index: number): void {
-    if (index < 0 || index >= this.descriptionBlocks.length - 1) return;
-    const blocks = [...this.descriptionBlocks];
-    [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]];
-    this.descriptionBlocks = blocks;
-    this.syncDescriptionToForm();
-  }
-
-  removeDescriptionBlock(index: number): void {
-    if (index < 0 || index >= this.descriptionBlocks.length) return;
-    this.descriptionBlocks = this.descriptionBlocks.filter((_, i) => i !== index);
-    if (this.descriptionBlocks.length === 0) {
-      this.descriptionBlocks = [this.createDescriptionBlock('paragraph')];
-    }
-    this.syncDescriptionToForm();
-  }
-
-  onDescriptionBlockChanged(): void {
-    this.syncDescriptionToForm();
-  }
-
-  async onDescriptionImageSelect(index: number, event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement | null;
-    const file = input?.files?.[0];
-    if (!file) return;
-    this.error = '';
-    try {
-      const formData = new FormData();
-      formData.append('file', file, file.name || 'description-image.jpg');
-      const url = `${environment.apiBaseUrl}/api/admin/uploads`;
-      const res = await this.http.post<ApiResponse<{ url: string }>>(url, formData).toPromise();
-      const uploaded = res?.data?.url;
-      if (!uploaded) {
-        this.error = res?.message || 'Upload ảnh mô tả thất bại.';
-        return;
-      }
-      const block = this.descriptionBlocks[index];
-      if (!block) return;
-      block.imageUrl = uploaded;
-      block.alt = block.alt || 'Ảnh mô tả sản phẩm';
-      this.syncDescriptionToForm();
-    } catch (e: any) {
-      this.error = e?.error?.message || 'Không upload được ảnh mô tả.';
-    } finally {
-      if (input) input.value = '';
-    }
-  }
-
-  clearDescriptionImage(index: number): void {
-    const block = this.descriptionBlocks[index];
-    if (!block) return;
-    block.imageUrl = '';
-    this.syncDescriptionToForm();
-  }
-
-  private createDescriptionBlock(type: DescriptionBlockType): DescriptionBlock {
-    const id = `desc-block-${Date.now()}-${this.descriptionBlockSeed++}`;
-    switch (type) {
-      case 'image':
-        return { id, type, imageUrl: '', alt: '' };
-      case 'heading-lg':
-        return { id, type, text: 'Tiêu đề lớn' };
-      case 'heading-sm':
-        return { id, type, text: 'Tiêu đề nhỏ' };
-      case 'divider':
-        return { id, type };
-      default:
-        return { id, type, text: '' };
-    }
-  }
-
-  private hydrateDescriptionBlocks(raw: string | null | undefined): void {
-    const text = (raw || '').toString().trim();
-    if (!text) {
-      this.descriptionBlocks = [this.createDescriptionBlock('paragraph')];
-      this.syncDescriptionToForm();
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(text);
-      const blocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
-      if (parsed?.kind === 'blocks' && blocks.length > 0) {
-        this.descriptionBlocks = blocks.map((block: any) => ({
-          id: String(block?.id || `desc-block-${Date.now()}-${this.descriptionBlockSeed++}`),
-          type: (block?.type || 'paragraph') as DescriptionBlockType,
-          text: typeof block?.text === 'string' ? block.text : '',
-          imageUrl: typeof block?.imageUrl === 'string' ? block.imageUrl : '',
-          alt: typeof block?.alt === 'string' ? block.alt : ''
-        }));
-        this.syncDescriptionToForm();
-        return;
-      }
-    } catch {
-      // fallback to plain text block
-    }
-
-    this.descriptionBlocks = [{
-      id: `desc-block-${Date.now()}-${this.descriptionBlockSeed++}`,
-      type: 'paragraph',
-      text
-    }];
-    this.syncDescriptionToForm();
-  }
-
-  private syncDescriptionToForm(): void {
-    const blocks = (this.descriptionBlocks || [])
-      .map((block) => ({
-        id: block.id,
-        type: block.type,
-        text: (block.text || '').toString(),
-        imageUrl: (block.imageUrl || '').toString(),
-        alt: (block.alt || '').toString()
-      }))
-      .filter((block) => {
-        if (block.type === 'divider') return true;
-        if (block.type === 'image') return !!block.imageUrl;
-        return !!block.text.trim();
-      });
-
-    this.form.patchValue(
-      { description: JSON.stringify({ kind: 'blocks', blocks }) },
-      { emitEvent: false }
-    );
-  }
-
   scrollToSection(sectionId: string): void {
     const id = (sectionId || '').toString().trim();
     if (!id) return;
@@ -627,20 +460,111 @@ export class AdminProductFormComponent {
     brand: ['FashionHub', [Validators.required]],
     price: [199000, [Validators.required]],
     oldPrice: [null as number | null],
+    weightKg: [null as number | null],
     stock: [0, [Validators.required]],
     images: this.fb.array<string>([]),
     badge: [''],
     discountPercent: [null as number | null],
     rating: [null as number | null],
     soldCount: [null as number | null],
-    sizes: this.fb.array<string>([]),
-    colors: this.fb.array<string>([]),
-    sizesCsv: [''],
-    colorsCsv: [''],
+    sizesCsv: ['S,M,L'],
+    colorsCsv: ['Đen,Trắng'],
     variants: this.fb.array([]),
     description: [''],
     active: [true]
   });
+
+  descriptionBlocks: any[] = [];
+
+  addDescriptionBlock(type: string): void {
+    this.descriptionBlocks.push({
+      id: Date.now().toString(),
+      type: type,
+      text: '',
+      imageUrl: '',
+      alt: ''
+    });
+    this.onDescriptionBlockChanged();
+  }
+
+  insertDescriptionBlockAfter(index: number, type: string): void {
+    this.descriptionBlocks.splice(index + 1, 0, {
+      id: Date.now().toString(),
+      type: type,
+      text: '',
+      imageUrl: '',
+      alt: ''
+    });
+    this.onDescriptionBlockChanged();
+  }
+
+  removeDescriptionBlock(index: number): void {
+    this.descriptionBlocks.splice(index, 1);
+    this.onDescriptionBlockChanged();
+  }
+
+  moveDescriptionBlock(index: number, direction: 'up' | 'down'): void {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= this.descriptionBlocks.length) return;
+    const temp = this.descriptionBlocks[index];
+    this.descriptionBlocks[index] = this.descriptionBlocks[newIndex];
+    this.descriptionBlocks[newIndex] = temp;
+    this.onDescriptionBlockChanged();
+  }
+
+  moveDescriptionBlockUp(index: number): void {
+    this.moveDescriptionBlock(index, 'up');
+  }
+
+  moveDescriptionBlockDown(index: number): void {
+    this.moveDescriptionBlock(index, 'down');
+  }
+
+  trackByDescriptionBlock(index: number, block: any): string {
+    return block.id || index.toString();
+  }
+
+  onDescriptionBlockChanged(): void {
+    if (this.descriptionBlocks.length === 0) {
+      this.form.get('description')?.setValue('');
+      return;
+    }
+    const content = {
+      kind: 'blocks',
+      blocks: this.descriptionBlocks
+    };
+    this.form.get('description')?.setValue(JSON.stringify(content));
+  }
+
+  async onDescriptionImageSelect(index: number, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name || 'image.jpg');
+      const url = `${environment.apiBaseUrl}/api/admin/uploads`;
+      const res = await this.http.post<ApiResponse<{ url: string }>>(url, formData).toPromise();
+      const uploaded = res?.data?.url;
+      if (uploaded) {
+        this.descriptionBlocks[index].imageUrl = uploaded;
+        this.onDescriptionBlockChanged();
+      }
+    } catch (e) {
+      console.error('Description image upload error:', e);
+    } finally {
+      input.value = '';
+    }
+  }
+
+  clearDescriptionImage(index: number): void {
+    this.descriptionBlocks[index].imageUrl = '';
+    this.onDescriptionBlockChanged();
+  }
+
+  resolveDescriptionImageUrl(url: string): string {
+    return this.resolveImageUrl(url);
+  }
 
   private pendingMainPreview = new Map<number, string>();
   private pendingVariantPreview = new Map<string, string>();
@@ -710,68 +634,12 @@ export class AdminProductFormComponent {
       this.loadProduct(this.id);
     } else {
       this.images.clear();
-      this.hydrateDescriptionBlocks('');
       // Bỏ addImage() mặc định để không bắt buộc có ảnh ngay lập tức
     }
 
     this.form.get('productTypeId')?.valueChanges.subscribe((pid) => {
       this.onProductTypeChanged(pid != null ? Number(pid) : null);
     });
-
-    // Add CSV parsing for sizes and colors
-    this.form.get('sizesCsv')?.valueChanges.subscribe((value) => {
-      this.updateSizesFromArray(value || '');
-    });
-
-    this.form.get('colorsCsv')?.valueChanges.subscribe((value) => {
-      this.updateColorsFromArray(value || '');
-    });
-  }
-
-  private updateSizesFromArray(csvValue: string): void {
-    const sizesArray = this.sizes;
-    sizesArray.clear();
-    
-    if (!csvValue) return;
-    
-    const sizes = csvValue
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s);
-    
-    sizes.forEach(size => {
-      sizesArray.push(this.fb.control(size));
-    });
-    
-    // Update matrix if branches are selected
-    if (this.selectedBranchIds.size > 0) {
-      setTimeout(() => {
-        this.ensureVariantBranchRows();
-      }, 0);
-    }
-  }
-
-  private updateColorsFromArray(csvValue: string): void {
-    const colorsArray = this.colors;
-    colorsArray.clear();
-    
-    if (!csvValue) return;
-    
-    const colors = csvValue
-      .split(',')
-      .map(c => c.trim())
-      .filter(c => c);
-    
-    colors.forEach(color => {
-      colorsArray.push(this.fb.control(color));
-    });
-    
-    // Update matrix if branches are selected
-    if (this.selectedBranchIds.size > 0) {
-      setTimeout(() => {
-        this.ensureVariantBranchRows();
-      }, 0);
-    }
   }
 
   private parseProductTypeSizeMatrix(fieldsJson: string | null | undefined): { groups: SizeGroup[]; rowsByGroup: Record<string, SizeMatrixRow[]> } {
@@ -873,9 +741,11 @@ export class AdminProductFormComponent {
   }
 
   private inferGroupKeyFromCurrentSizes(groups: SizeGroup[], rowsByGroup: Record<string, SizeMatrixRow[]>): string | null {
-    const sizes = (this.sizes?.controls || [])
-      .map((c: any) => (c.value || '').toString().trim())
-      .filter((x: string) => x);
+    const cur = (this.form.value.sizesCsv || '').toString();
+    const sizes = cur
+      .split(',')
+      .map((x) => x.trim())
+      .filter((x) => x);
     if (!sizes.length) return null;
     const wanted = new Set(sizes);
     for (const g of groups || []) {
@@ -1021,12 +891,8 @@ export class AdminProductFormComponent {
   private sortVariantRowKeysByCsvOrder(
     rowKeys: Array<{ genderKey: string; color: string; size: string }>
   ): Array<{ genderKey: string; color: string; size: string }> {
-    const colors = (this.colors?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
-    const sizes = (this.sizes?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
+    const colors = this.parseCsv(this.form.value.colorsCsv);
+    const sizes = this.parseCsv(this.form.value.sizesCsv);
     const genders = this.getSelectedGenderKeys();
 
     const colorIndex = new Map<string, number>();
@@ -1049,60 +915,22 @@ export class AdminProductFormComponent {
     });
   }
 
-  private remapVariantBranchCellsWithGender(): void {
-    const genders = this.getSelectedGenderKeys();
-    if (genders.length === 0 || genders[0] === '') return; // No need to remap if no gender
-    
-    const newMap = new Map<string, { stock: number; imageUrl: string; weightKg: number | null }>();
-    
-    // For each existing entry (with empty gender), create entries for each gender
-    for (const [key, value] of this.variantBranchCellByKey.entries()) {
-      const parts = key.split('|');
-      if (parts.length >= 4) {
-        const branchId = parts[0];
-        const color = parts[2];
-        const size = parts[3];
-
-        for (const gender of genders) {
-          const newKey = this.variantCellKey(Number(branchId), gender, color, size);
-          newMap.set(newKey, { stock: value.stock, imageUrl: value.imageUrl, weightKg: value.weightKg });
-        }
-      }
-    }
-    
-    this.variantBranchCellByKey = newMap;
-    console.log('Remapped variantBranchCellByKey with genders:', genders);
-    console.log('New map size:', newMap.size);
-  }
-
   private ensureVariantBranchRows(): void {
     const branchIds = Array.from(this.selectedBranchIds || [])
       .map((x) => Number(x))
       .filter((x) => Number.isFinite(x));
 
-    console.log('ensureVariantBranchRows - branchIds:', branchIds);
-
     if (branchIds.length === 0) {
       this.variantBranchRows = [];
-      console.log('No branch ids, returning empty rows');
       return;
     }
 
-    const sizes = (this.sizes?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
-    const colors = (this.colors?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
+    const sizes = this.parseCsv(this.form.value.sizesCsv);
+    const colors = this.parseCsv(this.form.value.colorsCsv);
     const genders = this.getSelectedGenderKeys();
-
-    console.log('ensureVariantBranchRows - sizes:', sizes);
-    console.log('ensureVariantBranchRows - colors:', colors);
-    console.log('ensureVariantBranchRows - genders:', genders);
 
     if (sizes.length === 0 || colors.length === 0) {
       this.variantBranchRows = [];
-      console.log('No sizes or colors, returning empty rows');
       return;
     }
 
@@ -1130,23 +958,21 @@ export class AdminProductFormComponent {
       const total = branchStocks.reduce((sum, x) => sum + Math.max(0, Number(x.stock || 0)), 0);
 
       let imageUrl = '';
-      let weightKg: number | null = null;
       for (const bid of branchIds) {
         const cell = this.variantBranchCellByKey.get(this.variantCellKey(bid, genderKey, color, size));
-        if (cell) {
-          if (!imageUrl && cell.imageUrl) imageUrl = cell.imageUrl;
-          if (weightKg == null && cell.weightKg != null) weightKg = cell.weightKg;
+        const u = (cell?.imageUrl || '').toString().trim();
+        if (u) {
+          imageUrl = u;
+          break;
         }
       }
-
-      console.log(`Row weightKg for ${genderKey}-${color}-${size}:`, weightKg, '(loaded from API)');
 
       return {
         genderKey,
         genderLabel: this.genderLabelByKey(genderKey),
         color,
         size,
-        weightKg,
+        weightKg: null,
         price,
         oldPrice,
         imageUrl,
@@ -1163,18 +989,17 @@ export class AdminProductFormComponent {
       .map((x) => Number(x))
       .filter((x) => Number.isFinite(x));
 
-    const nextMap = new Map<string, { stock: number; imageUrl: string; weightKg: number | null }>(this.variantBranchCellByKey);
+    const nextMap = new Map<string, { stock: number; imageUrl: string }>(this.variantBranchCellByKey);
 
     for (const row of this.variantBranchRows || []) {
       row.total = (row.branchStocks || []).reduce((sum, x) => sum + Math.max(0, Number(x.stock || 0)), 0);
       for (const bid of branchIds) {
         const cell = (row.branchStocks || []).find((x) => x && x.branchId === bid);
         const key = this.variantCellKey(bid, row.genderKey, row.color, row.size);
-        const prev = nextMap.get(key) || { stock: 0, imageUrl: '', weightKg: null };
+        const prev = nextMap.get(key) || { stock: 0, imageUrl: '' };
         nextMap.set(key, {
           stock: Number(cell?.stock || 0),
-          imageUrl: row.imageUrl ? String(row.imageUrl) : prev.imageUrl,
-          weightKg: row.weightKg !== null ? row.weightKg : prev.weightKg
+          imageUrl: row.imageUrl ? String(row.imageUrl) : prev.imageUrl
         });
       }
     }
@@ -1480,18 +1305,16 @@ export class AdminProductFormComponent {
       next: (res) => {
         if (!res?.success) return;
         const rows = Array.isArray(res.data) ? res.data : [];
-        const nextMap = new Map<string, { stock: number; imageUrl: string; weightKg: number | null }>();
+        const nextMap = new Map<string, { stock: number; imageUrl: string }>();
         for (const x of rows) {
           if (!x || typeof x.branchId !== 'number') continue;
           const color = (x.color || '').toString();
           const size = (x.size || '').toString();
           const key = this.variantCellKey(x.branchId, '', color, size);
-          const value: { stock: number; imageUrl: string; weightKg: number | null } = {
+          nextMap.set(key, {
             stock: Number(x.stock || 0),
-            imageUrl: (x.imageUrl || '').toString().trim(),
-            weightKg: x.weightKg != null ? Number(x.weightKg) : null
-          };
-          nextMap.set(key, value);
+            imageUrl: (x.imageUrl || '').toString().trim()
+          });
         }
         this.variantBranchCellByKey = nextMap;
         this.ensureDefaultSelectedBranches();
@@ -1505,10 +1328,6 @@ export class AdminProductFormComponent {
   }
 
   matrixImagePreview(url: string): string {
-    return this.resolveImageUrl((url || '').toString());
-  }
-
-  resolveDescriptionImageUrl(url?: string | null): string {
     return this.resolveImageUrl((url || '').toString());
   }
 
@@ -1649,56 +1468,8 @@ export class AdminProductFormComponent {
     return this.form.get('images') as FormArray;
   }
 
-  get sizes(): FormArray {
-    return this.form.get('sizes') as FormArray;
-  }
-
-  get colors(): FormArray {
-    return this.form.get('colors') as FormArray;
-  }
-
   get variants(): FormArray {
     return this.form.get('variants') as FormArray;
-  }
-
-  addSize(value = ''): void {
-    this.sizes.push(this.fb.control(value));
-    this.generateVariantsFromCsv();
-  }
-
-  removeSize(index: number): void {
-    if (this.sizes.length > 1) {
-      this.sizes.removeAt(index);
-      this.generateVariantsFromCsv();
-    }
-  }
-
-  updateSize(index: number, value: string): void {
-    const ctrl = this.sizes.at(index);
-    if (ctrl) {
-      ctrl.setValue(value);
-      this.generateVariantsFromCsv();
-    }
-  }
-
-  addColor(value = ''): void {
-    this.colors.push(this.fb.control(value));
-    this.generateVariantsFromCsv();
-  }
-
-  removeColor(index: number): void {
-    if (this.colors.length > 1) {
-      this.colors.removeAt(index);
-      this.generateVariantsFromCsv();
-    }
-  }
-
-  updateColor(index: number, value: string): void {
-    const ctrl = this.colors.at(index);
-    if (ctrl) {
-      ctrl.setValue(value);
-      this.generateVariantsFromCsv();
-    }
   }
 
   private computeTotalStockForSubmit(): number {
@@ -1865,12 +1636,8 @@ export class AdminProductFormComponent {
   }
 
   generateVariantsFromCsv(): void {
-    const sizes = (this.sizes?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
-    const colors = (this.colors?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
+    const sizes = this.parseCsv(this.form.value.sizesCsv);
+    const colors = this.parseCsv(this.form.value.colorsCsv);
 
     if (this.selectedBranchIds.size === 0) {
       this.error = 'Vui lòng chọn ít nhất 1 kho (chi nhánh) trước khi tạo ma trận.';
@@ -2426,44 +2193,8 @@ export class AdminProductFormComponent {
           this.error = res?.message || 'Không thể tải sản phẩm.';
           return;
         }
-        
-        // Load branch stocks first before applying product to form
-        const stockUrl = `${environment.apiBaseUrl}/api/admin/products/${id}/variant-branch-stocks`;
-        this.http.get<ApiResponse<AdminProductVariantBranchStockResponse[]>>(stockUrl).subscribe({
-          next: (sRes) => {
-            if (sRes?.success && Array.isArray(sRes.data)) {
-              const rows = sRes.data;
-              const nextMap = new Map<string, { stock: number; imageUrl: string; weightKg: number | null }>();
-              const uniqueBranchIds = new Set<number>();
-              
-              for (const x of rows) {
-                if (!x || typeof x.branchId !== 'number') continue;
-                uniqueBranchIds.add(x.branchId);
-                const color = (x.color || '').toString();
-                const size = (x.size || '').toString();
-                // Don't set gender key yet - will be set after product data is loaded
-                const key = this.variantCellKey(x.branchId, '', color, size);
-                const value: { stock: number; imageUrl: string; weightKg: number | null } = {
-                  stock: Number(x.stock || 0),
-                  imageUrl: (x.imageUrl || '').toString().trim(),
-                  weightKg: x.weightKg != null ? Number(x.weightKg) : null
-                };
-                nextMap.set(key, value);
-              }
-              
-              this.variantBranchCellByKey = nextMap;
-              // Pre-select branches that have stock
-              uniqueBranchIds.forEach(bid => this.selectedBranchIds.add(bid));
-              
-              this.applyProductToForm(res.data);
-            } else {
-              this.applyProductToForm(res.data);
-            }
-          },
-          error: () => {
-            this.applyProductToForm(res.data);
-          }
-        });
+        this.applyProductToForm(res.data);
+        this.loadVariantBranchStocks(id);
       },
       error: (err) => {
         this.loading = false;
@@ -2473,14 +2204,10 @@ export class AdminProductFormComponent {
   }
 
   private applyProductToForm(p: ProductResponse): void {
-    // Convert arrays to FormArray for sizes and colors
-    const sizesArray = this.fb.array((Array.isArray(p?.sizes) ? p.sizes : []).map(s => this.fb.control(s)));
-    const colorsArray = this.fb.array((Array.isArray(p?.colors) ? p.colors : []).map(c => this.fb.control(c)));
+    // Convert arrays back to CSV strings for form inputs
+    const sizesCsv = (Array.isArray(p?.sizes) && p.sizes.length > 0) ? p.sizes.join(',') : '';
+    const colorsCsv = (Array.isArray(p?.colors) && p.colors.length > 0) ? p.colors.join(',') : '';
     
-    console.log('Product data from API:', p);
-    console.log('Category value from API:', p?.category);
-    console.log('CategoryIds from API:', p?.categoryIds);
-
     this.form.patchValue({
       name: p?.name || '',
       slug: p?.slug || '',
@@ -2489,33 +2216,17 @@ export class AdminProductFormComponent {
       brand: p?.brand || 'FashionHub',
       price: Number(p?.price || 0),
       oldPrice: p?.oldPrice != null ? Number(p.oldPrice) : null,
+      weightKg: p?.weightKg != null ? Number(p.weightKg) : null,
       stock: Number(p?.stock || 0),
       badge: p?.badge || '',
       discountPercent: p?.discountPercent ?? null,
       rating: p?.rating ?? null,
       soldCount: p?.soldCount ?? null,
-      sizesCsv: (Array.isArray(p?.sizes) ? p.sizes : []).join(', '),
-      colorsCsv: (Array.isArray(p?.colors) ? p.colors : []).join(', '),
       description: p?.description || '',
+      sizesCsv: sizesCsv,
+      colorsCsv: colorsCsv,
       active: p?.active !== false
     });
-    this.hydrateDescriptionBlocks(p?.description || '');
-
-    console.log('Form category after patch:', this.form.value.category);
-
-    console.log('Product weightKg from API:', p?.weightKg);
-    console.log('Form weightKg after patch: (removed from form - now handled in matrix)');
-
-    // Replace sizes and colors FormArray after patchValue
-    this.form.setControl('sizes', sizesArray);
-    this.form.setControl('colors', colorsArray);
-
-    // Load gender from product
-    if (p?.gender) {
-      this.selectedSizeGroupKeys.clear();
-      const genders = p.gender.split(',').map((g: string) => g.trim()).filter((g: string) => g);
-      genders.forEach((g: string) => this.selectedSizeGroupKeys.add(g));
-    }
 
     this.images.clear();
     const imgs = (Array.isArray(p?.images) && p.images.length > 0) ? p.images : (p?.imageUrl ? [p.imageUrl] : []);
@@ -2561,26 +2272,39 @@ export class AdminProductFormComponent {
     }
 
     this.recalculateTotalStock();
-    console.log('=== Before ensureVariantBranchRows ===');
-    console.log('SelectedBranchIds:', Array.from(this.selectedBranchIds));
-    console.log('SelectedSizeGroupKeys:', Array.from(this.selectedSizeGroupKeys));
-    console.log('Sizes:', (this.sizes?.controls || []).map(c => c.value));
-    console.log('Colors:', (this.colors?.controls || []).map(c => c.value));
-    console.log('VariantBranchCellByKey size:', this.variantBranchCellByKey.size);
-    
-    // Remap variantBranchCellByKey with correct gender keys after product data is loaded
-    this.remapVariantBranchCellsWithGender();
-    
     this.ensureVariantBranchRows();
-    console.log('=== After ensureVariantBranchRows ===');
-    console.log('VariantBranchRows count:', this.variantBranchRows.length);
+    this.hydrateDescriptionBlocks(p?.description);
+  }
+
+  private hydrateDescriptionBlocks(raw?: string | null): void {
+    const source = String(raw || '').trim();
+    this.descriptionBlocks = [];
+    if (!source) return;
+    try {
+      if (source.startsWith('{')) {
+        const parsed = JSON.parse(source);
+        if (parsed?.kind === 'blocks' && Array.isArray(parsed.blocks)) {
+          this.descriptionBlocks = parsed.blocks;
+          return;
+        }
+      }
+    } catch (e) {}
+    // If not JSON or not block format, treat as plain text paragraph
+    if (source) {
+      this.descriptionBlocks = [{
+        id: Date.now().toString(),
+        type: 'paragraph',
+        text: source,
+        imageUrl: '',
+        alt: ''
+      }];
+    }
   }
 
   submit(): void {
     if (this.saving) return;
     this.error = '';
     this.success = '';
-    this.syncDescriptionToForm();
 
     if (this.form.invalid) {
       this.error = 'Vui lòng điền đầy đủ thông tin bắt buộc (Tên, Slug, Danh mục, Giá).';
@@ -2598,12 +2322,8 @@ export class AdminProductFormComponent {
       active: val.active !== false,
       description: val.description,
       stock: val.stock || 0,
-      sizes: (this.sizes?.controls || [])
-        .map((c) => (c.value || '').toString().trim())
-        .filter(Boolean),
-      colors: (this.colors?.controls || [])
-        .map((c) => (c.value || '').toString().trim())
-        .filter(Boolean),
+      sizes: this.parseCsv(val.sizesCsv),
+      colors: this.parseCsv(val.colorsCsv),
       categoryIds: Array.from(this.selectedCategoryIds),
       images: (val.images || []).filter((img: string | null): img is string => !!img && img.trim() !== ''),
       variants: [] // Tạm thởi để trống hoặc xử lý sau
@@ -2617,12 +2337,8 @@ export class AdminProductFormComponent {
       return;
     }
 
-    const sizes = (this.sizes?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
-    const colors = (this.colors?.controls || [])
-      .map((c) => (c.value || '').toString().trim())
-      .filter(Boolean);
+    const sizes = this.parseCsv(this.form.value.sizesCsv);
+    const colors = this.parseCsv(this.form.value.colorsCsv);
 
     const images = this.images.controls
       .map((c) => (c.value || '').toString().trim())
@@ -2704,19 +2420,19 @@ export class AdminProductFormComponent {
       slug: this.form.value.slug,
       description: this.form.value.description,
       productTypeId: productTypeId,
-      categoryId: Array.from(this.selectedCategoryIds)[0] || null,
+      categoryId: null,
       categoryIds: Array.from(this.selectedCategoryIds),
       category: this.form.value.category,
       brand: this.form.value.brand,
       price: this.form.value.price,
       oldPrice: this.form.value.oldPrice,
+      weightKg: this.form.value.weightKg,
       stock: computedStock,
       imageUrl: images[0] || null,
       badge: this.form.value.badge || null,
       discountPercent: this.form.value.discountPercent,
       rating: this.form.value.rating,
       soldCount: this.form.value.soldCount,
-      gender: Array.from(this.selectedSizeGroupKeys).join(','),
       sizes: sizes,
       colors: colors,
       variants: variants,
@@ -2725,8 +2441,6 @@ export class AdminProductFormComponent {
 
     console.log('===== SUBMIT PAYLOAD =====');
     console.log('Payload:', payload);
-    console.log('Gender field:', payload.gender);
-    console.log('SelectedSizeGroupKeys:', Array.from(this.selectedSizeGroupKeys));
     console.log('Variants:', variants);
     console.log('Branch stocks rows:', this.variantBranchRows);
     console.log('==========================');
@@ -2750,8 +2464,7 @@ export class AdminProductFormComponent {
           color: r.color,
           size: r.size,
           stock: Math.max(0, Number(x.stock || 0)),
-          imageUrl: (r.imageUrl || '').toString().trim() || null,
-          weightKg: r.weightKg != null ? Number(r.weightKg) : null
+          imageUrl: (r.imageUrl || '').toString().trim() || null
         }))
       );
       return this.http.put<ApiResponse<AdminProductVariantBranchStockResponse[]>>(url, body);

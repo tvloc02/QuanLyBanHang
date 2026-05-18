@@ -78,6 +78,11 @@ import java.nio.file.StandardCopyOption;
 @RequestMapping("/api/admin")
 public class AdminDataController {
 
+    private static final String COUPON_TYPE_CUSTOMER_SEGMENT = "customer_segment";
+    private static final String COUPON_TYPE_CUSTOMER_SHIPPING = "customer_shipping";
+    private static final String COUPON_TYPE_CUSTOMER_SPECIFIC = "customer_specific";
+    private static final String COUPON_TYPE_ORDER_AMOUNT = "order_amount";
+
     private final OrderRepository orderRepository;
 
     private final CategoryRepository categoryRepository;
@@ -537,6 +542,15 @@ public class AdminDataController {
         return null;
     }
 
+    private static String normalizeCouponType(String rawType) {
+        if (rawType == null || rawType.isBlank()) return COUPON_TYPE_CUSTOMER_SEGMENT;
+        String type = rawType.trim();
+        if (COUPON_TYPE_CUSTOMER_SHIPPING.equalsIgnoreCase(type)) return COUPON_TYPE_CUSTOMER_SHIPPING;
+        if (COUPON_TYPE_CUSTOMER_SPECIFIC.equalsIgnoreCase(type)) return COUPON_TYPE_CUSTOMER_SPECIFIC;
+        if (COUPON_TYPE_ORDER_AMOUNT.equalsIgnoreCase(type)) return COUPON_TYPE_ORDER_AMOUNT;
+        return COUPON_TYPE_CUSTOMER_SEGMENT;
+    }
+
     @PostMapping("/coupons")
     public ResponseEntity<ApiResponse<AdminCouponResponse>> createCoupon(@RequestBody AdminCouponUpsertRequest req) {
         if (req == null || req.getCode() == null || req.getCode().trim().isEmpty()) {
@@ -550,12 +564,14 @@ public class AdminDataController {
         Coupon c = new Coupon();
         c.setCode(code);
         c.setDescription(req.getDescription());
+        c.setType(normalizeCouponType(req.getType()));
         c.setDiscountAmount(req.getDiscountAmount());
         c.setDiscountPercent(req.getDiscountPercent());
         c.setMinOrderAmount(req.getMinOrderAmount());
         c.setMaxDiscountAmount(req.getMaxDiscountAmount());
         c.setShippingDiscountAmount(req.getShippingDiscountAmount());
         c.setAllowedSegments(req.getAllowedSegments());
+        c.setTargetUserIds(req.getTargetUserIds());
         c.setUsageLimit(req.getUsageLimit());
         c.setUsedCount(0);
         c.setStartsAt(req.getStartsAt());
@@ -574,12 +590,14 @@ public class AdminDataController {
             saved.getId(),
             saved.getCode(),
             saved.getDescription(),
+            normalizeCouponType(saved.getType()),
             saved.getDiscountAmount(),
             saved.getDiscountPercent(),
             saved.getMinOrderAmount(),
             saved.getMaxDiscountAmount(),
             saved.getShippingDiscountAmount(),
             saved.getAllowedSegments(),
+            saved.getTargetUserIds(),
             saved.getUsageLimit(),
             saved.getUsedCount(),
             saved.getStartsAt(),
@@ -609,12 +627,14 @@ public class AdminDataController {
                 c.setCode(code);
             }
             if (req.getDescription() != null) c.setDescription(req.getDescription());
+            if (req.getType() != null) c.setType(normalizeCouponType(req.getType()));
             if (req.getDiscountAmount() != null) c.setDiscountAmount(req.getDiscountAmount());
             if (req.getDiscountPercent() != null) c.setDiscountPercent(req.getDiscountPercent());
             if (req.getMinOrderAmount() != null) c.setMinOrderAmount(req.getMinOrderAmount());
             if (req.getMaxDiscountAmount() != null) c.setMaxDiscountAmount(req.getMaxDiscountAmount());
             if (req.getShippingDiscountAmount() != null) c.setShippingDiscountAmount(req.getShippingDiscountAmount());
             if (req.getAllowedSegments() != null) c.setAllowedSegments(req.getAllowedSegments());
+            if (req.getTargetUserIds() != null) c.setTargetUserIds(req.getTargetUserIds());
             if (req.getUsageLimit() != null) c.setUsageLimit(req.getUsageLimit());
             if (req.getStartsAt() != null) c.setStartsAt(req.getStartsAt());
             if (req.getEndsAt() != null) c.setEndsAt(req.getEndsAt());
@@ -633,12 +653,14 @@ public class AdminDataController {
             saved.getId(),
             saved.getCode(),
             saved.getDescription(),
+            normalizeCouponType(saved.getType()),
             saved.getDiscountAmount(),
             saved.getDiscountPercent(),
             saved.getMinOrderAmount(),
             saved.getMaxDiscountAmount(),
             saved.getShippingDiscountAmount(),
             saved.getAllowedSegments(),
+            saved.getTargetUserIds(),
             saved.getUsageLimit(),
             saved.getUsedCount(),
             saved.getStartsAt(),
@@ -1265,12 +1287,14 @@ public class AdminDataController {
                 c.getId(),
                 c.getCode(),
                 c.getDescription(),
+                normalizeCouponType(c.getType()),
                 c.getDiscountAmount(),
                 c.getDiscountPercent(),
                 c.getMinOrderAmount(),
                 c.getMaxDiscountAmount(),
                 c.getShippingDiscountAmount(),
                 c.getAllowedSegments(),
+                c.getTargetUserIds(),
                 c.getUsageLimit(),
                 c.getUsedCount(),
                 c.getStartsAt(),
@@ -1289,33 +1313,36 @@ public class AdminDataController {
             h.createCell(0).setCellValue("code");
             h.createCell(1).setCellValue("description");
             h.createCell(2).setCellValue("discount_amount");
-            h.createCell(3).setCellValue("discount_percent");
-            h.createCell(4).setCellValue("min_order_amount");
-            h.createCell(5).setCellValue("max_discount_amount");
-            h.createCell(6).setCellValue("shipping_discount_amount");
-            h.createCell(7).setCellValue("allowed_segments_csv");
-            h.createCell(8).setCellValue("usage_limit");
-            h.createCell(9).setCellValue("starts_at_iso");
-            h.createCell(10).setCellValue("ends_at_iso");
-            h.createCell(11).setCellValue("active");
+            h.createCell(3).setCellValue("type");
+            h.createCell(4).setCellValue("discount_percent");
+            h.createCell(5).setCellValue("min_order_amount");
+            h.createCell(6).setCellValue("max_discount_amount");
+            h.createCell(7).setCellValue("shipping_discount_amount");
+            h.createCell(8).setCellValue("allowed_segments_csv");
+            h.createCell(9).setCellValue("usage_limit");
+            h.createCell(10).setCellValue("starts_at_iso");
+            h.createCell(11).setCellValue("ends_at_iso");
+            h.createCell(12).setCellValue("active");
 
             Row r1 = sheet.createRow(1);
             r1.createCell(0).setCellValue("SALE10");
             r1.createCell(1).setCellValue("Giảm 10% cho khách hàng thân thiết");
-            r1.createCell(3).setCellValue(10);
-            r1.createCell(7).setCellValue("THAN_THIET,VANG");
-            r1.createCell(8).setCellValue(100);
-            r1.createCell(11).setCellValue(true);
+            r1.createCell(3).setCellValue(COUPON_TYPE_CUSTOMER_SEGMENT);
+            r1.createCell(4).setCellValue(10);
+            r1.createCell(8).setCellValue("THAN_THIET,VANG");
+            r1.createCell(9).setCellValue(100);
+            r1.createCell(12).setCellValue(true);
 
             Row r2 = sheet.createRow(2);
             r2.createCell(0).setCellValue("SHIP30K");
             r2.createCell(1).setCellValue("Giảm 30000đ phí ship");
+            r2.createCell(3).setCellValue(COUPON_TYPE_CUSTOMER_SHIPPING);
+            r2.createCell(5).setCellValue(200000);
             r2.createCell(6).setCellValue(30000);
-            r2.createCell(4).setCellValue(200000);
-            r2.createCell(5).setCellValue(30000);
-            r2.createCell(11).setCellValue(true);
+            r2.createCell(7).setCellValue(30000);
+            r2.createCell(12).setCellValue(true);
 
-            for (int c = 0; c < 12; c++) sheet.autoSizeColumn(c);
+            for (int c = 0; c < 13; c++) sheet.autoSizeColumn(c);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             wb.write(baos);
@@ -1369,15 +1396,16 @@ public class AdminDataController {
                 }
 
                 BigDecimal discountAmount = cellBigDecimal(row.getCell(2));
-                Integer discountPercent = cellInteger(row.getCell(3));
-                BigDecimal minOrderAmount = cellBigDecimal(row.getCell(4));
-                BigDecimal maxDiscountAmount = cellBigDecimal(row.getCell(5));
-                BigDecimal shippingDiscountAmount = cellBigDecimal(row.getCell(6));
-                String allowedSegments = cellString(row.getCell(7));
-                Integer usageLimit = cellInteger(row.getCell(8));
-                Instant startsAt = cellInstant(row.getCell(9));
-                Instant endsAt = cellInstant(row.getCell(10));
-                Boolean active = cellBoolean(row.getCell(11));
+                String type = normalizeCouponType(cellString(row.getCell(3)));
+                Integer discountPercent = cellInteger(row.getCell(4));
+                BigDecimal minOrderAmount = cellBigDecimal(row.getCell(5));
+                BigDecimal maxDiscountAmount = cellBigDecimal(row.getCell(6));
+                BigDecimal shippingDiscountAmount = cellBigDecimal(row.getCell(7));
+                String allowedSegments = cellString(row.getCell(8));
+                Integer usageLimit = cellInteger(row.getCell(9));
+                Instant startsAt = cellInstant(row.getCell(10));
+                Instant endsAt = cellInstant(row.getCell(11));
+                Boolean active = cellBoolean(row.getCell(12));
 
                 String normCode = code.trim();
                 Optional<Coupon> opt = couponRepository.findByCode(normCode);
@@ -1385,6 +1413,7 @@ public class AdminDataController {
                     Coupon c = new Coupon();
                     c.setCode(normCode);
                     c.setDescription(description);
+                    c.setType(type);
                     c.setDiscountAmount(discountAmount);
                     c.setDiscountPercent(discountPercent);
                     c.setMinOrderAmount(minOrderAmount);
@@ -1401,6 +1430,7 @@ public class AdminDataController {
                 } else {
                     Coupon c = opt.get();
                     c.setDescription(description);
+                    c.setType(type);
                     c.setDiscountAmount(discountAmount);
                     c.setDiscountPercent(discountPercent);
                     c.setMinOrderAmount(minOrderAmount);

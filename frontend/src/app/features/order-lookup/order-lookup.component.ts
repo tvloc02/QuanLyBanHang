@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FooterComponent } from '../../shared/footer/footer.component';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
+import { FooterComponent } from '../../shared/footer/footer.component';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -13,7 +14,20 @@ interface ApiResponse<T> {
   data: T;
 }
 
-type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'PACKING' | 'SHIPPED' | 'SHIPPING' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'RETURNED' | 'REFUNDED' | string;
+type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'PACKING'
+  | 'SHIPPED'
+  | 'SHIPPING'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'RETURNED'
+  | 'REFUNDED'
+  | string;
+
 type LookupTab = 'all' | 'pending' | 'processing' | 'shipping' | 'delivered' | 'cancelled' | 'returned';
 
 interface OrderStatusLookupResponse {
@@ -69,8 +83,13 @@ interface ReviewResponse {
   userId?: number | null;
   rating?: number | null;
   comment?: string | null;
+  images?: string[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+}
+
+interface ReviewUploadResponse {
+  url?: string | null;
 }
 
 @Component({
@@ -80,7 +99,7 @@ interface ReviewResponse {
   templateUrl: './order-lookup.component.html',
   styleUrls: ['./order-lookup.component.scss']
 })
-export class OrderLookupComponent implements OnInit {
+export class OrderLookupComponent implements OnInit, OnDestroy {
   readonly tabs: Array<{ key: LookupTab; label: string }> = [
     { key: 'all', label: 'Tất cả đơn hàng' },
     { key: 'pending', label: 'Chờ thanh toán' },
@@ -107,6 +126,8 @@ export class OrderLookupComponent implements OnInit {
   reviewError = '';
   reviewRating = 5;
   reviewComment = '';
+  reviewImageFiles: File[] = [];
+  reviewImagePreviews: string[] = [];
   reviewTargetOrderId: number | null = null;
   reviewTargetProductId: number | null = null;
   reviewTargetProductName = '';
@@ -131,6 +152,10 @@ export class OrderLookupComponent implements OnInit {
     if (this.orderId && this.phone) {
       this.lookup();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.clearReviewPreviews();
   }
 
   formatMoney(v: any): string {
@@ -168,7 +193,7 @@ export class OrderLookupComponent implements OnInit {
   }
 
   get filteredOrders(): DisplayOrder[] {
-    const source = this.myOrders.length > 0 ? this.myOrders : (this.directLookupOrder ? [this.directLookupOrder] : []);
+    const source = this.myOrders.length > 0 ? this.myOrders : this.directLookupOrder ? [this.directLookupOrder] : [];
     if (this.activeTab === 'all') return source;
     return source.filter((order) => this.matchesTab(order.status, this.activeTab));
   }
@@ -191,9 +216,7 @@ export class OrderLookupComponent implements OnInit {
   }
 
   canReview(order: DisplayOrder, item: DisplayOrderItem): boolean {
-    return order?.source === 'user-list'
-      && String(order?.status || '').trim().toUpperCase() === 'COMPLETED'
-      && !!item?.productId;
+    return order?.source === 'user-list' && String(order?.status || '').trim().toUpperCase() === 'COMPLETED' && !!item?.productId;
   }
 
   reviewLabel(item: DisplayOrderItem): string {
@@ -294,6 +317,9 @@ export class OrderLookupComponent implements OnInit {
     this.reviewError = '';
     this.reviewRating = 5;
     this.reviewComment = '';
+    this.clearReviewPreviews();
+    this.reviewImageFiles = [];
+    this.reviewImagePreviews = [];
     this.reviewTargetOrderId = order.id;
     this.reviewTargetProductId = Number(item.productId);
     this.reviewTargetProductName = item.productName || 'Sản phẩm';
@@ -308,6 +334,9 @@ export class OrderLookupComponent implements OnInit {
     this.reviewTargetProductName = '';
     this.reviewComment = '';
     this.reviewRating = 5;
+    this.clearReviewPreviews();
+    this.reviewImageFiles = [];
+    this.reviewImagePreviews = [];
   }
 
   submitReview(): void {
@@ -319,35 +348,95 @@ export class OrderLookupComponent implements OnInit {
 
     this.reviewSaving = true;
     this.reviewError = '';
+    this.performReviewSubmit();
+  }
 
-    const requestOptions = this.buildAuthOptions();
-    this.http.post<ApiResponse<ReviewResponse>>(`${environment.apiBaseUrl}/api/reviews`, {
-      productId: this.reviewTargetProductId,
-      rating: this.reviewRating,
-      comment: this.reviewComment.trim()
-    }, requestOptions).subscribe({
-      next: (res) => {
-        this.reviewSaving = false;
-        if (!res?.success) {
-          this.reviewError = res?.message || 'Không thể gửi đánh giá.';
-          return;
-        }
+  onReviewImagesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const selectedFiles = Array.from(input?.files || []).filter((file) => file.type.startsWith('image/'));
+    const nextFiles = [...this.reviewImageFiles, ...selectedFiles].slice(0, 5);
 
-        for (const order of this.myOrders) {
-          if (order.id !== this.reviewTargetOrderId || !Array.isArray(order.items)) continue;
-          for (const item of order.items) {
-            if (Number(item.productId) === this.reviewTargetProductId) {
-              item.reviewed = true;
-            }
+    this.clearReviewPreviews();
+    this.reviewImageFiles = nextFiles;
+    this.reviewImagePreviews = nextFiles.map((file) => URL.createObjectURL(file));
+
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  removeReviewImage(index: number): void {
+    if (index < 0 || index >= this.reviewImageFiles.length) return;
+    const preview = this.reviewImagePreviews[index];
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+    this.reviewImageFiles.splice(index, 1);
+    this.reviewImagePreviews.splice(index, 1);
+  }
+
+  private async performReviewSubmit(): Promise<void> {
+    try {
+      const imageUrls = await this.performReviewImageUploads();
+      const requestOptions = this.buildAuthOptions();
+      const res = await firstValueFrom(
+        this.http.post<ApiResponse<ReviewResponse>>(
+          `${environment.apiBaseUrl}/api/reviews`,
+          {
+            productId: this.reviewTargetProductId,
+            rating: this.reviewRating,
+            comment: this.reviewComment.trim(),
+            images: imageUrls
+          },
+          requestOptions
+        )
+      );
+
+      this.reviewSaving = false;
+      if (!res?.success) {
+        this.reviewError = res?.message || 'Không thể gửi đánh giá.';
+        return;
+      }
+
+      for (const order of this.myOrders) {
+        if (order.id !== this.reviewTargetOrderId || !Array.isArray(order.items)) continue;
+        for (const item of order.items) {
+          if (Number(item.productId) === this.reviewTargetProductId) {
+            item.reviewed = true;
           }
         }
-        this.closeReview();
-      },
-      error: (err: any) => {
-        this.reviewSaving = false;
-        this.reviewError = err?.error?.message || 'Không thể gửi đánh giá.';
       }
-    });
+
+      this.closeReview();
+    } catch (err: any) {
+      this.reviewSaving = false;
+      this.reviewError = err?.error?.message || err?.message || 'Không thể gửi đánh giá.';
+    }
+  }
+
+  private async performReviewImageUploads(): Promise<string[]> {
+    if (!this.reviewImageFiles.length) {
+      return [];
+    }
+
+    const requestOptions = this.buildAuthOptions();
+    const urls: string[] = [];
+
+    for (const file of this.reviewImageFiles) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await firstValueFrom(
+        this.http.post<ApiResponse<ReviewUploadResponse>>(`${environment.apiBaseUrl}/api/reviews/uploads`, formData, requestOptions)
+      );
+
+      const url = String(res?.data?.url || '').trim();
+      if (!res?.success || !url) {
+        throw new Error(res?.message || 'Không thể upload ảnh minh chứng.');
+      }
+      urls.push(url);
+    }
+
+    return urls;
   }
 
   private loadMyOrders(): void {
@@ -417,6 +506,12 @@ export class OrderLookupComponent implements OnInit {
   private buildAuthOptions(): { headers?: HttpHeaders } {
     const token = this.auth.getToken();
     return token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : {};
+  }
+
+  private clearReviewPreviews(): void {
+    for (const preview of this.reviewImagePreviews) {
+      URL.revokeObjectURL(preview);
+    }
   }
 
   private matchesTab(status: OrderStatus, tab: LookupTab): boolean {

@@ -43,6 +43,7 @@ export class HeaderComponent implements OnInit {
   activeSuggestIndex = -1;
 
   cartCount = 0;
+  cartBadgeBump = false;
 
   openMegaRootId: number | null = null;
   userMenuOpen = false;
@@ -349,6 +350,18 @@ export class HeaderComponent implements OnInit {
   @HostListener('window:cart-updated')
   onCartUpdated(): void {
     this.refreshCartCount();
+    this.bumpCartBadge();
+  }
+
+  private bumpCartBadge(): void {
+    this.cartBadgeBump = false;
+    if (typeof window === 'undefined') return;
+    window.setTimeout(() => {
+      this.cartBadgeBump = true;
+      window.setTimeout(() => {
+        this.cartBadgeBump = false;
+      }, 520);
+    }, 16);
   }
 
   @HostListener('document:click')

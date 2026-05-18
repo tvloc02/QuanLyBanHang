@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AdminCouponResponse, AdminDataService } from '../../../core/services/admin-data.service';
+import { AdminCouponResponse, AdminDataService, AdminUserResponse } from '../../../core/services/admin-data.service';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -12,6 +12,12 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./admin-coupons.component.scss']
 })
 export class AdminCouponsComponent {
+  readonly couponTypes = [
+    { value: 'customer_segment' as const, label: 'Voucher tiền sản phẩm' },
+    { value: 'customer_shipping' as const, label: 'Voucher vận chuyển' },
+    { value: 'order_amount' as const, label: 'Voucher tiền sản phẩm theo đơn hàng' }
+  ];
+
   loading = false;
   error = '';
   rows: AdminCouponResponse[] = [];
@@ -36,18 +42,21 @@ export class AdminCouponsComponent {
     { value: 'KIM_CUONG', label: 'Kim cương' }
   ];
 
+  customerOptions: AdminUserResponse[] = [];
+
   createOpen = false;
   createLoading = false;
   form: {
     code: string;
     description?: string;
-    type?: 'customer_segment' | 'customer_shipping' | 'order_amount' | null;
+    type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null;
     discountAmount?: number | null;
     discountPercent?: number | null;
     minOrderAmount?: number | null;
     maxDiscountAmount?: number | null;
     shippingDiscountAmount?: number | null;
     allowedSegments?: string[] | null;
+    targetUserIds?: number[] | null;
     targetAudience?: string[] | null;
     usageLimit?: number | null;
     startsAt?: string | null;
@@ -63,6 +72,7 @@ export class AdminCouponsComponent {
     maxDiscountAmount: null,
     shippingDiscountAmount: null,
     allowedSegments: [],
+    targetUserIds: [],
     targetAudience: [],
     usageLimit: null,
     startsAt: null,
@@ -81,13 +91,14 @@ export class AdminCouponsComponent {
     id?: number;
     code: string;
     description?: string;
-    type?: 'customer_segment' | 'customer_shipping' | 'order_amount' | null;
+    type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null;
     discountAmount?: number | null;
     discountPercent?: number | null;
     minOrderAmount?: number | null;
     maxDiscountAmount?: number | null;
     shippingDiscountAmount?: number | null;
     allowedSegments?: string[] | null;
+    targetUserIds?: number[] | null;
     targetAudience?: string[] | null;
     usageLimit?: number | null;
     startsAt?: string | null;
@@ -104,6 +115,7 @@ export class AdminCouponsComponent {
     maxDiscountAmount: null,
     shippingDiscountAmount: null,
     allowedSegments: [],
+    targetUserIds: [],
     targetAudience: [],
     usageLimit: null,
     startsAt: null,
@@ -113,6 +125,7 @@ export class AdminCouponsComponent {
 
   constructor(private adminData: AdminDataService) {
     this.load();
+    this.loadCustomers();
   }
 
   private downloadBlob(blob: Blob, filename: string): void {
@@ -216,7 +229,7 @@ export class AdminCouponsComponent {
   getTabCount(tab: string): number {
     let types: string[] = [];
     if (tab === 'customer') {
-      types = ['customer_segment', 'customer_shipping'];
+      types = ['customer_segment', 'customer_specific', 'customer_shipping'];
     } else if (tab === 'order') {
       types = ['order_amount'];
     }
@@ -230,7 +243,7 @@ export class AdminCouponsComponent {
   getFilteredRows(): AdminCouponResponse[] {
     let types: string[] = [];
     if (this.activeTab === 'customer') {
-      types = ['customer_segment', 'customer_shipping'];
+      types = ['customer_segment', 'customer_specific', 'customer_shipping'];
     } else {
       types = ['order_amount'];
     }
@@ -255,6 +268,34 @@ export class AdminCouponsComponent {
     if (r.discountPercent != null) return `${r.discountPercent}%`;
     if (r.discountAmount != null) return this.formatVnd(r.discountAmount);
     return '0';
+  }
+
+  displayCouponType(type?: AdminCouponResponse['type']): string {
+    if (type === 'customer_shipping') return 'Vận chuyển';
+    return 'Tiền sản phẩm';
+  }
+
+  private normalizeCouponType(type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null) {
+    return type || (this.activeTab === 'order' ? 'order_amount' : 'customer_segment');
+  }
+
+  private sanitizeCouponPayload<T extends {
+    type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null;
+    discountAmount?: number | null;
+    discountPercent?: number | null;
+    shippingDiscountAmount?: number | null;
+    targetUserIds?: number[] | null;
+  }>(form: T) {
+    const type = this.normalizeCouponType(form.type);
+    const isShipping = type === 'customer_shipping';
+    const isSpecific = type === 'customer_specific';
+    return {
+      ...form,
+      type,
+      discountAmount: isShipping ? null : (form.discountAmount ?? null),
+      shippingDiscountAmount: isShipping ? (form.shippingDiscountAmount ?? null) : null,
+      targetUserIds: isSpecific ? (form.targetUserIds ?? []) : []
+    };
   }
 
   displaySegments(csv?: string | null): string {
@@ -291,6 +332,43 @@ export class AdminCouponsComponent {
     }
   }
 
+  toggleTargetUser(userId: number, event: any, mode: 'create' | 'edit'): void {
+    const checked = !!event?.target?.checked;
+    const target = mode === 'edit' ? this.editForm : this.form;
+    if (!target.targetUserIds) target.targetUserIds = [];
+    if (checked) {
+      if (!target.targetUserIds.includes(userId)) {
+        target.targetUserIds.push(userId);
+      }
+      return;
+    }
+    target.targetUserIds = target.targetUserIds.filter(id => id !== userId);
+  }
+
+  displayTargetUsers(csv?: string | null): string {
+    const ids = (csv || '')
+      .split(',')
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (!ids.length) return '-';
+    const names = ids
+      .map((id) => this.customerOptions.find((customer) => customer.id === id))
+      .filter((customer): customer is AdminUserResponse => !!customer)
+      .map((customer) => customer.fullName || customer.username || customer.email || `#${customer.id}`);
+    return names.length ? names.join(', ') : ids.map((id) => `#${id}`).join(', ');
+  }
+
+  private loadCustomers(): void {
+    this.adminData.getCustomers().subscribe({
+      next: (res) => {
+        this.customerOptions = Array.isArray(res?.data) ? res.data : [];
+      },
+      error: () => {
+        this.customerOptions = [];
+      }
+    });
+  }
+
   load(): void {
     this.error = '';
     this.loading = true;
@@ -314,12 +392,14 @@ export class AdminCouponsComponent {
     this.form = {
       code: '',
       description: '',
+      type: this.activeTab === 'order' ? 'order_amount' : 'customer_segment',
       discountAmount: null,
       discountPercent: null,
       minOrderAmount: null,
       maxDiscountAmount: null,
       shippingDiscountAmount: null,
       allowedSegments: null,
+      targetUserIds: [],
       usageLimit: null,
       startsAt: null,
       endsAt: null,
@@ -338,12 +418,16 @@ export class AdminCouponsComponent {
       return;
     }
 
-    const hasDiscount =
-      (this.form.discountAmount != null && this.form.discountAmount > 0) ||
-      (this.form.discountPercent != null && this.form.discountPercent > 0) ||
-      (this.form.shippingDiscountAmount != null && this.form.shippingDiscountAmount > 0);
+    const normalizedForm = this.sanitizeCouponPayload(this.form);
+    const hasDiscount = normalizedForm.type === 'customer_shipping'
+      ? (normalizedForm.discountPercent != null && normalizedForm.discountPercent > 0) ||
+        (normalizedForm.shippingDiscountAmount != null && normalizedForm.shippingDiscountAmount > 0)
+      : (normalizedForm.discountAmount != null && normalizedForm.discountAmount > 0) ||
+        (normalizedForm.discountPercent != null && normalizedForm.discountPercent > 0);
     if (!hasDiscount) {
-      this.error = 'Vui lòng nhập giảm % / giảm tiền / giảm phí ship.';
+      this.error = normalizedForm.type === 'customer_shipping'
+        ? 'Vui lòng nhập giảm % ship hoặc số tiền giảm ship.'
+        : 'Vui lòng nhập giảm % hoặc giảm tiền cho sản phẩm.';
       return;
     }
 
@@ -355,18 +439,21 @@ export class AdminCouponsComponent {
     const endsAtIso = this.form.endsAt ? new Date(this.form.endsAt).toISOString() : null;
 
     this.adminData.createCoupon({
-      code: this.form.code.trim(),
-      description: this.form.description?.trim() || undefined,
-      discountAmount: this.form.discountAmount ?? null,
-      discountPercent: this.form.discountPercent ?? null,
-      minOrderAmount: this.form.minOrderAmount ?? null,
-      maxDiscountAmount: this.form.maxDiscountAmount ?? null,
-      shippingDiscountAmount: this.form.shippingDiscountAmount ?? null,
-      allowedSegments: this.form.allowedSegments?.length ? this.form.allowedSegments.join(',') : null,
-      usageLimit: this.form.usageLimit ?? null,
+      code: normalizedForm.code.trim(),
+      description: normalizedForm.description?.trim() || undefined,
+      type: normalizedForm.type,
+      discountAmount: normalizedForm.discountAmount ?? null,
+      discountPercent: normalizedForm.discountPercent ?? null,
+      minOrderAmount: normalizedForm.minOrderAmount ?? null,
+      maxDiscountAmount: normalizedForm.maxDiscountAmount ?? null,
+      shippingDiscountAmount: normalizedForm.shippingDiscountAmount ?? null,
+      allowedSegments: normalizedForm.allowedSegments?.length ? normalizedForm.allowedSegments.join(',') : null,
+      targetUserIds: normalizedForm.targetUserIds?.length ? normalizedForm.targetUserIds.join(',') : null,
+      targetAudience: normalizedForm.targetAudience?.length ? normalizedForm.targetAudience.join(',') : null,
+      usageLimit: normalizedForm.usageLimit ?? null,
       startsAt: startsAtIso,
       endsAt: endsAtIso,
-      active: this.form.active ?? true
+      active: normalizedForm.active ?? true
     }).subscribe({
       next: (res) => {
         this.createLoading = false;
@@ -389,12 +476,14 @@ export class AdminCouponsComponent {
       id: row.id,
       code: row.code,
       description: row.description || '',
+      type: row.type || 'customer_segment',
       discountAmount: row.discountAmount ?? null,
       discountPercent: row.discountPercent ?? null,
       minOrderAmount: row.minOrderAmount ?? null,
       maxDiscountAmount: row.maxDiscountAmount ?? null,
       shippingDiscountAmount: row.shippingDiscountAmount ?? null,
-      allowedSegments: row.allowedSegments ? row.allowedSegments.split(',').map(s => s.trim()) : null,
+      allowedSegments: row.allowedSegments ? row.allowedSegments.split(',').map(s => s.trim()) : [],
+      targetUserIds: row.targetUserIds ? row.targetUserIds.split(',').map(s => Number(s.trim())).filter(v => Number.isFinite(v) && v > 0) : [],
       usageLimit: row.usageLimit ?? null,
       startsAt: row.startsAt ?? null,
       endsAt: row.endsAt ?? null,
@@ -414,12 +503,16 @@ export class AdminCouponsComponent {
       return;
     }
 
-    const hasDiscount =
-      (this.editForm.discountAmount != null && this.editForm.discountAmount > 0) ||
-      (this.editForm.discountPercent != null && this.editForm.discountPercent > 0) ||
-      (this.editForm.shippingDiscountAmount != null && this.editForm.shippingDiscountAmount > 0);
+    const normalizedForm = this.sanitizeCouponPayload(this.editForm);
+    const hasDiscount = normalizedForm.type === 'customer_shipping'
+      ? (normalizedForm.discountPercent != null && normalizedForm.discountPercent > 0) ||
+        (normalizedForm.shippingDiscountAmount != null && normalizedForm.shippingDiscountAmount > 0)
+      : (normalizedForm.discountAmount != null && normalizedForm.discountAmount > 0) ||
+        (normalizedForm.discountPercent != null && normalizedForm.discountPercent > 0);
     if (!hasDiscount) {
-      this.error = 'Vui lòng nhập giảm % / giảm tiền / giảm phí ship.';
+      this.error = normalizedForm.type === 'customer_shipping'
+        ? 'Vui lòng nhập giảm % ship hoặc số tiền giảm ship.'
+        : 'Vui lòng nhập giảm % hoặc giảm tiền cho sản phẩm.';
       return;
     }
 
@@ -431,18 +524,21 @@ export class AdminCouponsComponent {
     const endsAtIso = this.editForm.endsAt ? new Date(this.editForm.endsAt).toISOString() : null;
 
     this.adminData.updateCoupon(this.editForm.id, {
-      code: this.editForm.code.trim(),
-      description: this.editForm.description?.trim() || undefined,
-      discountAmount: this.editForm.discountAmount ?? null,
-      discountPercent: this.editForm.discountPercent ?? null,
-      minOrderAmount: this.editForm.minOrderAmount ?? null,
-      maxDiscountAmount: this.editForm.maxDiscountAmount ?? null,
-      shippingDiscountAmount: this.editForm.shippingDiscountAmount ?? null,
-      allowedSegments: this.editForm.allowedSegments?.length ? this.editForm.allowedSegments.join(',') : null,
-      usageLimit: this.editForm.usageLimit ?? null,
+      code: normalizedForm.code.trim(),
+      description: normalizedForm.description?.trim() || undefined,
+      type: normalizedForm.type,
+      discountAmount: normalizedForm.discountAmount ?? null,
+      discountPercent: normalizedForm.discountPercent ?? null,
+      minOrderAmount: normalizedForm.minOrderAmount ?? null,
+      maxDiscountAmount: normalizedForm.maxDiscountAmount ?? null,
+      shippingDiscountAmount: normalizedForm.shippingDiscountAmount ?? null,
+      allowedSegments: normalizedForm.allowedSegments?.length ? normalizedForm.allowedSegments.join(',') : null,
+      targetUserIds: normalizedForm.targetUserIds?.length ? normalizedForm.targetUserIds.join(',') : null,
+      targetAudience: normalizedForm.targetAudience?.length ? normalizedForm.targetAudience.join(',') : null,
+      usageLimit: normalizedForm.usageLimit ?? null,
       startsAt: startsAtIso,
       endsAt: endsAtIso,
-      active: this.editForm.active ?? true
+      active: normalizedForm.active ?? true
     }).subscribe({
       next: (res) => {
         this.editLoading = false;

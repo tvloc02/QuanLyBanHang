@@ -154,6 +154,10 @@
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12v13H6zM9 7V5a3 3 0 0 1 6 0v2" /></svg></span>
                 <span class="label">Sản phẩm</span>
               </a>
+              <a routerLink="/admin/reports" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" /></svg></span>
+                <span class="label">Báo cáo</span>
+              </a>
               <a routerLink="/admin/coupons" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M8 12h8M8 17h5M5 4h14v16H5z" /></svg></span>
                 <span class="label">Mã giảm giá</span>
@@ -203,6 +207,7 @@
               <a routerLink="/admin/shipping-settings" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3zM14 10h3l4 4v3h-7v-7Z" /></svg></span><span class="label">Cấu hình vận chuyển</span></a>
               <a routerLink="/admin/branches" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /></svg></span><span class="label">Chi nhánh</span></a>
               <a routerLink="/admin/settings/mail" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3zM3 7l9 6 9-6" /></svg></span><span class="label">Cấu hình mail</span></a>
+              <a routerLink="/admin/settings/payment" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v10H4zM4 11h16M8 16h2" /></svg></span><span class="label">Cấu hình thanh toán</span></a>
               <a routerLink="/admin/settings/notifications" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22a2.5 2.5 0 0 0 2.5-2.5h-5A2.5 2.5 0 0 0 12 22Zm7-5H5l1.5-1.5V11a5.5 5.5 0 1 1 11 0v4.5L19 17Z" /></svg></span><span class="label">Thông báo</span></a>
               <a routerLink="/admin/settings/home-sections" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5Z" /></svg></span><span class="label">Trang bán hàng</span></a>
             </div>
@@ -255,6 +260,23 @@
               <a routerLink="/admin/settings/news-banner" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
                 <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10h8M8 14h5" /></svg></span>
                 <span class="label">Tin tức</span>
+              </a>
+            </div>
+          </section>
+          <section class="nav-section" *ngIf="hasAnyRole(['ADMIN','MANAGER'])" [class.open]="isGroupOpen('reports')" [class.active]="activeGroup === 'reports'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('reports')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 19h16M7 16V9m5 7V5m5 11v-4" />
+                </svg>
+              </span>
+              <span class="label">Báo cáo</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/reports" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" /></svg></span>
+                <span class="label">Tổng hợp báo cáo</span>
               </a>
             </div>
           </section>

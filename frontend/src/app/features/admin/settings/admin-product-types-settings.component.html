@@ -128,8 +128,8 @@
     </div>
   </div>
 
-  <div class="overlay" *ngIf="createOpen">
-    <div class="modal wide" role="dialog" aria-modal="true" aria-label="Tạo loại sản phẩm">
+  <div class="overlay" *ngIf="createOpen" (click)="cancelCreate()">
+    <div class="modal wide product-type-modal" role="dialog" aria-modal="true" aria-label="Tạo loại sản phẩm" (click)="$event.stopPropagation()">
       <div class="modal-head">
         <div class="modal-title">Tạo loại sản phẩm</div>
         <button class="icon" type="button" (click)="cancelCreate()">✕</button>
@@ -286,8 +286,8 @@
     </div>
   </div>
 
-  <div class="overlay" *ngIf="editOpen">
-    <div class="modal wide" role="dialog" aria-modal="true" aria-label="Sửa loại sản phẩm">
+  <div class="overlay" *ngIf="editOpen" (click)="cancelEdit()">
+    <div class="modal wide product-type-modal" role="dialog" aria-modal="true" aria-label="Sửa loại sản phẩm" (click)="$event.stopPropagation()">
       <div class="modal-head">
         <div class="modal-title">Sửa loại sản phẩm</div>
         <button class="icon" type="button" (click)="cancelEdit()">✕</button>

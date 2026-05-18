@@ -146,6 +146,7 @@
           <tr class="divide-x divide-gray-200">
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 90px">ID</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 160px">Code</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 140px">Loại voucher</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Mô tả</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Giảm</th>
             <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 120px">Min đơn</th>
@@ -159,11 +160,12 @@
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
           <tr *ngIf="!loading && getFilteredRows().length === 0">
-            <td colspan="11" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có mã giảm giá</td>
+            <td colspan="12" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có mã giảm giá</td>
           </tr>
           <tr *ngFor="let r of getFilteredRows()" class="divide-x divide-gray-200 hover:bg-blue-50/40 transition-colors border-b border-gray-200 last:border-0">
             <td class="px-4 py-3 text-center font-extrabold text-gray-900">#{{ r.id }}</td>
             <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ r.code }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ displayCouponType(r.type) }}</td>
             <td class="px-4 py-3 text-center text-sm font-semibold text-gray-700">{{ r.description || '-' }}</td>
             <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ displayDiscount(r) }}</td>
             <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ formatVnd(r.minOrderAmount ?? 0) }}</td>
@@ -227,9 +229,10 @@
           <div class="field">
             <label class="label">Loại mã</label>
             <select class="input" [(ngModel)]="form.type">
-              <option *ngIf="activeTab === 'customer'" value="customer_segment">Khách hàng - Phân khúc</option>
-              <option *ngIf="activeTab === 'customer'" value="customer_shipping">Khách hàng - Vận chuyển</option>
-              <option *ngIf="activeTab === 'order'" value="order_amount">Đơn hàng</option>
+              <option *ngIf="activeTab === 'customer'" value="customer_segment">Voucher tiền sản phẩm</option>
+              <option *ngIf="activeTab === 'customer'" value="customer_specific">Voucher khách lẻ</option>
+              <option *ngIf="activeTab === 'customer'" value="customer_shipping">Voucher vận chuyển</option>
+              <option *ngIf="activeTab === 'order'" value="order_amount">Voucher tiền sản phẩm theo đơn hàng</option>
             </select>
           </div>
         </div>
@@ -243,7 +246,7 @@
 
         <!-- Loại: Khách hàng - Phân khúc -->
         <div *ngIf="form.type === 'customer_segment'" class="section">
-          <div class="section-title">Cài đặt giảm giá theo phân khúc</div>
+          <div class="section-title">Voucher tiền sản phẩm theo phân khúc</div>
           <div class="grid2">
             <div class="field">
               <label class="label">Giảm %</label>
@@ -256,7 +259,7 @@
           </div>
           <div class="grid2">
             <div class="field">
-              <label class="label">Giảm tối đa</label>
+              <label class="label">Max giảm tiền sản phẩm</label>
               <input class="input" type="number" [(ngModel)]="form.maxDiscountAmount" placeholder="VD: 100000" />
             </div>
             <div class="field">
@@ -279,12 +282,52 @@
         </div>
 
         <!-- Loại: Khách hàng - Vận chuyển -->
-        <div *ngIf="form.type === 'customer_shipping'" class="section">
-          <div class="section-title">Cài đặt giảm giá vận chuyển</div>
+        <div *ngIf="form.type === 'customer_specific'" class="section">
+          <div class="section-title">Voucher khách lẻ</div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Giảm %</label>
+              <input class="input" type="number" [(ngModel)]="form.discountPercent" placeholder="VD: 10" />
+            </div>
+            <div class="field">
+              <label class="label">Giảm tiền</label>
+              <input class="input" type="number" [(ngModel)]="form.discountAmount" placeholder="VD: 50000" />
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Max giảm tiền sản phẩm</label>
+              <input class="input" type="number" [(ngModel)]="form.maxDiscountAmount" placeholder="VD: 100000" />
+            </div>
+            <div class="field">
+              <label class="label">Đơn tối thiểu</label>
+              <input class="input" type="number" [(ngModel)]="form.minOrderAmount" placeholder="VD: 200000" />
+            </div>
+          </div>
           <div class="grid1">
+            <div class="field">
+              <label class="label">Chọn khách lẻ áp dụng</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item" *ngFor="let customer of customerOptions">
+                  <input type="checkbox" [checked]="(form.targetUserIds || []).includes(customer.id)" (change)="toggleTargetUser(customer.id, $event, 'create')" />
+                  <span>{{ customer.fullName || customer.username || customer.email || ('#' + customer.id) }}</span>
+                </label>
+              </div>
+              <small class="text-muted">Chỉ khách được chọn mới dùng được voucher này.</small>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="form.type === 'customer_shipping'" class="section">
+          <div class="section-title">Voucher vận chuyển</div>
+          <div class="grid2">
             <div class="field">
               <label class="label">Giảm phí vận chuyển (%)</label>
               <input class="input" type="number" [(ngModel)]="form.discountPercent" placeholder="VD: 100 để miễn phí vận chuyển" />
+            </div>
+            <div class="field">
+              <label class="label">Giảm phí vận chuyển (tiền)</label>
+              <input class="input" type="number" [(ngModel)]="form.shippingDiscountAmount" placeholder="VD: 30000" />
             </div>
           </div>
           <div class="grid2">
@@ -293,7 +336,7 @@
               <input class="input" type="number" [(ngModel)]="form.minOrderAmount" placeholder="VD: 200000" />
             </div>
             <div class="field">
-              <label class="label">Giảm tối đa</label>
+              <label class="label">Max giảm phí vận chuyển</label>
               <input class="input" type="number" [(ngModel)]="form.maxDiscountAmount" placeholder="VD: 100000" />
             </div>
           </div>
@@ -314,7 +357,7 @@
 
         <!-- Loại: Đơn hàng -->
         <div *ngIf="form.type === 'order_amount'" class="section">
-          <div class="section-title">Cài đặt giảm theo đơn hàng</div>
+          <div class="section-title">Voucher tiền sản phẩm theo đơn hàng</div>
           <div class="grid2">
             <div class="field">
               <label class="label">Giảm %</label>
@@ -331,7 +374,7 @@
               <input class="input" type="number" [(ngModel)]="form.minOrderAmount" placeholder="VD: 200000" />
             </div>
             <div class="field">
-              <label class="label">Giảm tối đa</label>
+              <label class="label">Max giảm tiền sản phẩm</label>
               <input class="input" type="number" [(ngModel)]="form.maxDiscountAmount" placeholder="VD: 100000" />
             </div>
           </div>
@@ -400,9 +443,10 @@
           <div class="field">
             <label class="label">Loại mã</label>
             <select class="input" [(ngModel)]="editForm.type" disabled>
-              <option value="customer_segment">Khách hàng - Phân khúc</option>
-              <option value="customer_shipping">Khách hàng - Vận chuyển</option>
-              <option value="order_amount">Đơn hàng</option>
+              <option value="customer_segment">Voucher tiền sản phẩm</option>
+              <option value="customer_specific">Voucher khách lẻ</option>
+              <option value="customer_shipping">Voucher vận chuyển</option>
+              <option value="order_amount">Voucher tiền sản phẩm theo đơn hàng</option>
             </select>
           </div>
         </div>
@@ -416,7 +460,7 @@
 
         <!-- Loại: Khách hàng - Phân khúc -->
         <div *ngIf="editForm.type === 'customer_segment'" class="section">
-          <div class="section-title">Cài đặt giảm giá theo phân khúc</div>
+          <div class="section-title">Voucher tiền sản phẩm theo phân khúc</div>
           <div class="grid2">
             <div class="field">
               <label class="label">Giảm %</label>
@@ -429,7 +473,7 @@
           </div>
           <div class="grid2">
             <div class="field">
-              <label class="label">Giảm tối đa</label>
+              <label class="label">Max giảm tiền sản phẩm</label>
               <input class="input" type="number" [(ngModel)]="editForm.maxDiscountAmount" placeholder="VD: 100000" />
             </div>
             <div class="field">
@@ -446,12 +490,52 @@
         </div>
 
         <!-- Loại: Khách hàng - Vận chuyển -->
-        <div *ngIf="editForm.type === 'customer_shipping'" class="section">
-          <div class="section-title">Cài đặt giảm giá vận chuyển</div>
+        <div *ngIf="editForm.type === 'customer_specific'" class="section">
+          <div class="section-title">Voucher khách lẻ</div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Giảm %</label>
+              <input class="input" type="number" [(ngModel)]="editForm.discountPercent" placeholder="VD: 10" />
+            </div>
+            <div class="field">
+              <label class="label">Giảm tiền</label>
+              <input class="input" type="number" [(ngModel)]="editForm.discountAmount" placeholder="VD: 50000" />
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Max giảm tiền sản phẩm</label>
+              <input class="input" type="number" [(ngModel)]="editForm.maxDiscountAmount" placeholder="VD: 100000" />
+            </div>
+            <div class="field">
+              <label class="label">Đơn tối thiểu</label>
+              <input class="input" type="number" [(ngModel)]="editForm.minOrderAmount" placeholder="VD: 200000" />
+            </div>
+          </div>
           <div class="grid1">
+            <div class="field">
+              <label class="label">Chọn khách lẻ áp dụng</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item" *ngFor="let customer of customerOptions">
+                  <input type="checkbox" [checked]="(editForm.targetUserIds || []).includes(customer.id)" (change)="toggleTargetUser(customer.id, $event, 'edit')" />
+                  <span>{{ customer.fullName || customer.username || customer.email || ('#' + customer.id) }}</span>
+                </label>
+              </div>
+              <small class="text-muted">Chỉ khách được chọn mới dùng được voucher này.</small>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="editForm.type === 'customer_shipping'" class="section">
+          <div class="section-title">Voucher vận chuyển</div>
+          <div class="grid2">
             <div class="field">
               <label class="label">Giảm phí vận chuyển (%)</label>
               <input class="input" type="number" [(ngModel)]="editForm.discountPercent" placeholder="VD: 100 để miễn phí vận chuyển" />
+            </div>
+            <div class="field">
+              <label class="label">Giảm phí vận chuyển (tiền)</label>
+              <input class="input" type="number" [(ngModel)]="editForm.shippingDiscountAmount" placeholder="VD: 30000" />
             </div>
           </div>
           <div class="grid2">
@@ -460,7 +544,7 @@
               <input class="input" type="number" [(ngModel)]="editForm.minOrderAmount" placeholder="VD: 200000" />
             </div>
             <div class="field">
-              <label class="label">Giảm tối đa</label>
+              <label class="label">Max giảm phí vận chuyển</label>
               <input class="input" type="number" [(ngModel)]="editForm.maxDiscountAmount" placeholder="VD: 100000" />
             </div>
           </div>
@@ -474,7 +558,7 @@
 
         <!-- Loại: Đơn hàng -->
         <div *ngIf="editForm.type === 'order_amount'" class="section">
-          <div class="section-title">Cài đặt giảm theo đơn hàng</div>
+          <div class="section-title">Voucher tiền sản phẩm theo đơn hàng</div>
           <div class="grid2">
             <div class="field">
               <label class="label">Giảm %</label>
@@ -491,7 +575,7 @@
               <input class="input" type="number" [(ngModel)]="editForm.minOrderAmount" placeholder="VD: 200000" />
             </div>
             <div class="field">
-              <label class="label">Giảm tối đa</label>
+              <label class="label">Max giảm tiền sản phẩm</label>
               <input class="input" type="number" [(ngModel)]="editForm.maxDiscountAmount" placeholder="VD: 100000" />
             </div>
           </div>

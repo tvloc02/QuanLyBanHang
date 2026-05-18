@@ -70,13 +70,14 @@ export interface AdminCouponResponse {
   id: number;
   code: string;
   description?: string | null;
-  type?: 'customer_segment' | 'customer_shipping' | 'order_amount' | null;
+  type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null;
   discountAmount?: number | null;
   discountPercent?: number | null;
   minOrderAmount?: number | null;
   maxDiscountAmount?: number | null;
   shippingDiscountAmount?: number | null;
   allowedSegments?: string | null;
+  targetUserIds?: string | null;
   targetAudience?: string | null;
   usageLimit?: number | null;
   usedCount?: number | null;
@@ -172,6 +173,11 @@ export interface AdminBranchStockResponse {
   productId: number;
   stock: number;
   updatedAt?: string | null;
+}
+
+export interface AdminProductStockSummaryResponse {
+  productId: number;
+  totalStock: number;
 }
 
 export interface AdminBranchStatsResponse {
@@ -318,14 +324,14 @@ export class AdminDataService {
     return this.http.get<ApiResponse<AdminCouponResponse[]>>(`${environment.apiBaseUrl}/api/admin/coupons`);
   }
 
-  createCoupon(data: { code: string; description?: string; discountAmount?: number | null; discountPercent?: number | null; minOrderAmount?: number | null; maxDiscountAmount?: number | null; shippingDiscountAmount?: number | null; allowedSegments?: string | null; usageLimit?: number | null; startsAt?: string | null; endsAt?: string | null; active?: boolean | null }) {
+  createCoupon(data: { code: string; description?: string; type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null; discountAmount?: number | null; discountPercent?: number | null; minOrderAmount?: number | null; maxDiscountAmount?: number | null; shippingDiscountAmount?: number | null; allowedSegments?: string | null; targetUserIds?: string | null; targetAudience?: string | null; usageLimit?: number | null; startsAt?: string | null; endsAt?: string | null; active?: boolean | null }) {
     return this.http.post<ApiResponse<AdminCouponResponse>>(
       `${environment.apiBaseUrl}/api/admin/coupons`,
       data
     );
   }
 
-  updateCoupon(id: number, data: { code?: string; description?: string; discountAmount?: number | null; discountPercent?: number | null; minOrderAmount?: number | null; maxDiscountAmount?: number | null; shippingDiscountAmount?: number | null; allowedSegments?: string | null; usageLimit?: number | null; startsAt?: string | null; endsAt?: string | null; active?: boolean | null }) {
+  updateCoupon(id: number, data: { code?: string; description?: string; type?: 'customer_segment' | 'customer_shipping' | 'customer_specific' | 'order_amount' | null; discountAmount?: number | null; discountPercent?: number | null; minOrderAmount?: number | null; maxDiscountAmount?: number | null; shippingDiscountAmount?: number | null; allowedSegments?: string | null; targetUserIds?: string | null; targetAudience?: string | null; usageLimit?: number | null; startsAt?: string | null; endsAt?: string | null; active?: boolean | null }) {
     return this.http.put<ApiResponse<AdminCouponResponse>>(
       `${environment.apiBaseUrl}/api/admin/coupons/${id}`,
       data
@@ -512,6 +518,10 @@ export class AdminDataService {
 
   getBranchStats(branchId: number) {
     return this.http.get<ApiResponse<AdminBranchStatsResponse>>(`${environment.apiBaseUrl}/api/admin/branches/${branchId}/stats`);
+  }
+
+  getProductStockSummary() {
+    return this.http.get<ApiResponse<AdminProductStockSummaryResponse[]>>(`${environment.apiBaseUrl}/api/admin/products/stock-summary`);
   }
 
   deleteUser(userId: number) {

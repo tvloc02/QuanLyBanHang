@@ -18,6 +18,8 @@ public class RegisterRequest {
     @NotBlank
     private String password;
 
+    private String phone;
+
     public RegisterRequest() {}
 
     public String getFullName() {
@@ -50,5 +52,13 @@ public class RegisterRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

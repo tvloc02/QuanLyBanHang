@@ -175,28 +175,28 @@
               <div class="text-base font-black text-[var(--fh-text)]">Chưa có sản phẩm sale</div>
             </div>
 
-            <div *ngIf="!block.loadingProducts && block.products.length > 0" class="grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12">
-              <div *ngFor="let p of block.products" class="group flex flex-col overflow-hidden transition-all duration-300">
-                <div class="relative w-full aspect-square overflow-hidden bg-[#f3f3f3]">
+            <div *ngIf="!block.loadingProducts && block.products.length > 0" class="sale-product-grid">
+              <div *ngFor="let p of block.products" class="sale-product-card group">
+                <div class="sale-product-media">
                   <button type="button" class="block w-full h-full" (click)="goToProduct(p)">
                     <img class="h-full w-full object-cover transition duration-500 group-hover:scale-105" [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onProductImageError(p)" />
                   </button>
-                  <div class="absolute bottom-0 left-0 right-0 bg-[#c1121f] text-white py-1 px-1.5 flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter">
+                  <div class="absolute bottom-0 left-0 right-0 bg-[#c1121f] text-white py-1.5 px-2 flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
                     <span>GIÁ TỐT</span>
                     <span>ĐỘC QUYỀN</span>
                   </div>
-                  <span *ngIf="p.badge" class="absolute left-1.5 top-1.5 inline-flex items-center rounded bg-black/80 px-1 py-0.5 text-[8px] font-bold text-white">{{ p.badge }}</span>
+                  <span *ngIf="p.badge" class="absolute left-2 top-2 inline-flex items-center rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-bold text-white">{{ p.badge }}</span>
                 </div>
 
-                <div class="flex flex-col pt-2 pb-1.5">
-                  <button type="button" class="line-clamp-2 text-left text-[12px] font-bold leading-tight text-gray-900 mb-1.5 hover:text-[#c1121f] transition-colors" (click)="goToProduct(p)">{{ p.name }}</button>
-                  <div class="flex flex-col gap-0.5">
-                    <div class="text-[13px] font-black text-[#c1121f]">{{ formatMoney(p.price) }}đ</div>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <span *ngIf="p.oldPrice" class="text-[11px] font-medium text-gray-400 line-through">{{ formatMoney(p.oldPrice) }}đ</span>
-                      <span *ngIf="getDiscountLabel(p)" class="text-[11px] font-black text-[#c1121f]">{{ getDiscountLabel(p) }}</span>
+                <div class="sale-product-content">
+                  <button type="button" class="sale-product-name" (click)="goToProduct(p)">{{ p.name }}</button>
+                  <div class="sale-product-pricing">
+                    <div class="sale-product-price">{{ formatMoney(p.price) }}đ</div>
+                    <div class="sale-product-meta">
+                      <span *ngIf="p.oldPrice" class="sale-product-old-price">{{ formatMoney(p.oldPrice) }}đ</span>
+                      <span *ngIf="getDiscountLabel(p)" class="sale-product-discount">{{ getDiscountLabel(p) }}</span>
                     </div>
-                    <div class="text-[10px] text-gray-500 font-medium" *ngIf="p.rating || p.soldCount">
+                    <div class="sale-product-extra" *ngIf="p.rating || p.soldCount">
                       <span *ngIf="p.rating">★ {{ p.rating }}</span>
                       <span *ngIf="p.rating && p.soldCount"> · </span>
                       <span *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
