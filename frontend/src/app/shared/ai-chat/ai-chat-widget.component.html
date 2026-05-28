@@ -1,0 +1,152 @@
+<div class="ai-chat" #wrap>
+  <div class="ai-chat__fab-ai">
+    <button type="button" class="ai-chat__fab is-ai" (click)="toggle()" aria-label="Chat AI">
+      <span class="ai-chat__fab-icon ai-icon-animated" aria-hidden="true">
+        <svg class="ai-robot" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+          <circle cx="12" cy="9" r="2" fill="currentColor" class="ai-eye-left"/>
+          <circle cx="15" cy="9" r="2" fill="currentColor" class="ai-eye-right"/>
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="currentColor"/>
+        </svg>
+      </span>
+    </button>
+  </div>
+
+  <div class="ai-chat__fab-support">
+    <button type="button" class="ai-chat__fab is-support" (click)="toggleSupport()" aria-label="Chat với nhân viên">
+      <span class="ai-chat__fab-icon" aria-hidden="true">
+        <svg class="staff-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12h-8v-2h8v2zm0-3h-8V9h8v2zm0-3H4V9h14v2z" fill="currentColor"/>
+        </svg>
+      </span>
+    </button>
+  </div>
+
+  <div class="ai-chat__panel ai-chat__panel-ai" *ngIf="open" (click)="$event.stopPropagation()">
+    <div class="ai-chat__head">
+      <div class="ai-chat__title">Chat AI</div>
+      <button type="button" class="ai-chat__close" (click)="close()" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="ai-chat__body" #list>
+      <div class="ai-chat__empty" *ngIf="messages.length === 0">
+        Hãy nhập câu hỏi để bắt đầu.
+      </div>
+
+      <div class="ai-chat__msg" *ngFor="let m of messages" [class.is-user]="m.role === 'user'" [class.is-ai]="m.role === 'ai'">
+        <div class="ai-chat__bubble">{{ m.text }}</div>
+      </div>
+
+      <div class="ai-chat__msg is-ai" *ngIf="sending">
+        <div class="ai-chat__bubble">Đang trả lời...</div>
+      </div>
+
+      <div class="ai-chat__error" *ngIf="error">{{ error }}</div>
+    </div>
+
+    <div class="ai-chat__foot">
+      <div class="ai-chat__quota" *ngIf="isGuestLimited()">
+        <ng-container *ngIf="!quotaLoading; else quotaLoadingTpl">
+          <span *ngIf="quotaRemaining != null">Khách: còn {{ quotaRemaining }}/{{ quotaLimit }} lượt hôm nay</span>
+          <span *ngIf="quotaRemaining == null">Khách: đang kiểm tra lượt...</span>
+        </ng-container>
+        <ng-template #quotaLoadingTpl>
+          <span>Khách: đang kiểm tra lượt...</span>
+        </ng-template>
+      </div>
+
+      <textarea
+        class="ai-chat__input"
+        rows="1"
+        [disabled]="!canSend()"
+        [(ngModel)]="input"
+        placeholder="Nhập câu hỏi..."
+        (keydown)="onInputKeydown($any($event))"
+      ></textarea>
+      <button type="button" class="ai-chat__send" [disabled]="!canSend()" (click)="send()">Gửi</button>
+    </div>
+  </div>
+
+  <div class="ai-chat__panel ai-chat__panel-support" *ngIf="supportOpen" (click)="$event.stopPropagation()">
+    <div class="ai-chat__head">
+      <div class="ai-chat__title">Chat với nhân viên</div>
+      <button type="button" class="ai-chat__close" (click)="closeSupport()" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="ai-chat__body" #supportList>
+      <div class="ai-chat__overlay" *ngIf="supportOrdersOpen" (click)="closeOrders()">
+        <div class="ai-chat__overlay-card" role="dialog" aria-modal="true" aria-label="Chọn đơn hàng" (click)="$event.stopPropagation()">
+          <div class="ai-chat__overlay-head">
+            <div class="ai-chat__overlay-title">Chọn đơn hàng</div>
+            <button type="button" class="ai-chat__close" (click)="closeOrders()" aria-label="Đóng">✕</button>
+          </div>
+
+          <div class="ai-chat__overlay-body">
+            <div class="ai-chat__empty" *ngIf="supportOrdersLoading">Đang tải đơn hàng...</div>
+            <div class="ai-chat__empty" *ngIf="!supportOrdersLoading && supportOrders.length === 0">Bạn chưa có đơn hàng nào.</div>
+
+            <button
+              type="button"
+              class="ai-chat__order-item"
+              *ngFor="let o of supportOrders"
+              (click)="selectOrder(o)"
+            >
+              <div class="ai-chat__order-top">
+                <div class="ai-chat__order-id">#{{ o.id }}</div>
+                <div class="ai-chat__order-status">{{ o.status }}</div>
+              </div>
+              <div class="ai-chat__order-sub">Tổng: {{ o.total }}</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-chat__empty" *ngIf="supportMessages.length === 0">
+        Hãy nhập tin nhắn để nhân viên hỗ trợ.
+      </div>
+
+      <div class="ai-chat__msg" *ngFor="let m of supportMessages" [class.is-user]="m.sender === 'CUSTOMER'" [class.is-ai]="m.sender === 'STAFF'">
+        <div class="ai-chat__bubble">{{ m.text }}</div>
+      </div>
+
+      <div class="ai-chat__msg is-ai" *ngIf="supportSending">
+        <div class="ai-chat__bubble">Đang gửi...</div>
+      </div>
+
+      <div class="ai-chat__error" *ngIf="supportError">{{ supportError }}</div>
+    </div>
+
+    <div class="ai-chat__foot">
+      <div class="ai-chat__support-actions">
+        <button type="button" class="ai-chat__icon-btn" (click)="toggleSupportAttachMenu()" aria-label="Tùy chọn đính kèm">＋</button>
+
+        <div class="ai-chat__attach-menu" *ngIf="supportAttachMenuOpen">
+          <button type="button" class="ai-chat__attach-item" (click)="pickSupportImage()">Đính kèm ảnh</button>
+          <button type="button" class="ai-chat__attach-item" (click)="openMyOrders()" [disabled]="!isAuthenticated()">Đơn hàng của tôi</button>
+        </div>
+
+        <input
+          #supportFile
+          type="file"
+          accept="image/*"
+          class="ai-chat__file"
+          (change)="onSupportFileChange($any($event))"
+        />
+      </div>
+
+      <div class="ai-chat__attach-preview" *ngIf="supportPendingImageName">
+        <span class="ai-chat__attach-name">{{ supportPendingImageName }}</span>
+        <button type="button" class="ai-chat__attach-remove" (click)="clearSupportPendingImage()" aria-label="Bỏ ảnh">✕</button>
+      </div>
+
+      <textarea
+        class="ai-chat__input"
+        rows="1"
+        [disabled]="supportSending"
+        [(ngModel)]="supportInput"
+        placeholder="Nhập tin nhắn cho nhân viên..."
+        (keydown)="onSupportInputKeydown($any($event))"
+      ></textarea>
+      <button type="button" class="ai-chat__send" [disabled]="supportSending" (click)="sendSupport()">Gửi</button>
+    </div>
+  </div>
+</div>

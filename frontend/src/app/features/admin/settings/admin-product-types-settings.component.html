@@ -1,0 +1,446 @@
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 2a1 1 0 0 0-1 1v1H6a2 2 0 0 0-2 2v2H3a1 1 0 0 0 0 2h1v2a2 2 0 0 0 2 2h2v1a1 1 0 0 0 2 0v-1h2a2 2 0 0 0 2-2v-2h1a1 1 0 1 0 0-2h-1V7a2 2 0 0 0-2-2h-2V3a1 1 0 0 0-1-1Zm1 5H6v6h4V7Zm2 0v6h2V7h-2Z" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Loại sản phẩm</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Cấu hình các trường (fields) hiển thị khi thêm/sửa sản phẩm theo loại</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="downloadProductTypesTemplateExcel()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Tải file mẫu</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="exportProductTypesExcel()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Export Excel</span>
+        </button>
+
+        <input class="file-input" type="file" accept=".xlsx,.xls" id="ptImportExcel" (change)="importProductTypesExcel($any($event.target).files?.[0]); $any($event.target).value = null" />
+        <label
+          for="ptImportExcel"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+          [class.opacity-60]="loading || saving"
+          [class.pointer-events-none]="loading || saving"
+        >
+          <span>Import Excel</span>
+        </label>
+
+        <button
+          type="button"
+          (click)="openCreate()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>Thêm loại</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+    {{ error }}
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gradient-to-r from-blue-50 to-sky-50">
+          <tr class="divide-x divide-gray-200">
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 90px">STT</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 160px">Code</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Tên</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider">Giới tính</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 140px">Trạng thái</th>
+            <th class="px-4 py-3 text-center text-xs font-extrabold text-gray-700 uppercase tracking-wider" style="width: 180px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 bg-white">
+          <tr *ngIf="!loading && rows.length === 0">
+            <td colspan="6" class="px-6 py-10 text-center text-gray-600 font-semibold">Chưa có loại sản phẩm.</td>
+          </tr>
+          <tr *ngFor="let r of rows; let i = index" class="hover:bg-blue-50/40 transition-colors divide-x divide-gray-200">
+            <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ i + 1 }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ r.code }}</td>
+            <td class="px-4 py-3 text-center font-extrabold text-gray-900">{{ r.name }}</td>
+            <td class="px-4 py-3 text-center text-sm font-extrabold text-gray-900">{{ gendersLabelOfRow(r) }}</td>
+            <td class="px-4 py-3 text-center">
+              <span
+                class="inline-flex px-3 py-1 rounded-full text-xs font-extrabold"
+                [class.bg-green-100]="r.active !== false"
+                [class.text-green-700]="r.active !== false"
+                [class.bg-red-100]="r.active === false"
+                [class.text-red-700]="r.active === false"
+              >
+                {{ r.active === false ? 'Tắt' : 'Bật' }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <div class="inline-flex items-center justify-center gap-1">
+                <button
+                  class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 transition-colors"
+                  type="button"
+                  (click)="openEdit(r)"
+                  [disabled]="saving"
+                  aria-label="Sửa"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>
+                </button>
+                <button
+                  class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                  type="button"
+                  (click)="onDelete(r)"
+                  [disabled]="saving"
+                  aria-label="Xóa"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="overlay" *ngIf="createOpen" (click)="cancelCreate()">
+    <div class="modal wide product-type-modal" role="dialog" aria-modal="true" aria-label="Tạo loại sản phẩm" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">Tạo loại sản phẩm</div>
+        <button class="icon" type="button" (click)="cancelCreate()">✕</button>
+      </div>
+      <div class="form" style="padding:16px">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Code *</label>
+            <input class="input" [(ngModel)]="form.code" placeholder="VD: clothing" />
+          </div>
+          <div class="field">
+            <label class="label">Tên *</label>
+            <input class="input" [(ngModel)]="form.name" placeholder="VD: Thời trang" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" [(ngModel)]="form.active">
+              <option [ngValue]="true">Bật</option>
+              <option [ngValue]="false">Tắt</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Bảng size</label>
+          <div class="text-xs font-semibold text-gray-600" style="margin-top:-6px;margin-bottom:10px">
+            Nhập size và bấm Thêm. Ví dụ: XS, S, M, L, XL, 39, 40...
+          </div>
+
+          <div class="size-actions" style="margin-bottom:10px">
+            <label class="inline-flex items-center gap-2 text-sm font-extrabold text-gray-900">
+              <input type="checkbox" class="accent-blue-600" [ngModel]="splitSizesByGender" (ngModelChange)="toggleSplitSizesByGender($event)" />
+              <span>Chia theo giới tính</span>
+            </label>
+
+            <div class="size-file">
+              <span class="text-sm font-extrabold text-gray-900">Import Excel</span>
+              <input type="file" accept=".xlsx,.xls" (change)="onImportExcel($any($event.target).files?.[0])" />
+              <button type="button" class="btn ghost" (click)="downloadSizeTemplate()">Tải file mẫu</button>
+            </div>
+          </div>
+
+          <div class="group-actions" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <div class="group-add">
+              <input class="input" [(ngModel)]="groupDraft" placeholder="Thêm nhóm (VD: Bé trai, Bé gái...)" />
+              <button type="button" class="btn" (click)="addGroup()">Thêm nhóm</button>
+            </div>
+          </div>
+
+          <div class="group-tabs" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <button
+              *ngFor="let g of groups"
+              type="button"
+              class="btn ghost"
+              [class.active]="groupTab === g.key"
+              (click)="groupTab = g.key">
+              <span>{{ g.label }}</span>
+              <button
+                *ngIf="!g.builtIn"
+                type="button"
+                class="group-x"
+                (click)="$event.stopPropagation(); removeGroup(g.key)">
+                ✕
+              </button>
+            </button>
+          </div>
+
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
+              <div class="text-sm font-extrabold text-gray-900">Ma trận size</div>
+              <div class="text-xs font-semibold text-gray-600">Size + khoảng chiều cao/cân nặng (min-max)</div>
+            </div>
+
+            <div class="p-4">
+              <div class="matrix-add">
+                <input class="input" [(ngModel)]="rowDraft.size" placeholder="Size (VD: M)" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMin" placeholder="Cao từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMax" placeholder="Cao đến" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMin" placeholder="Nặng từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMax" placeholder="Nặng đến" />
+                <button type="button" class="btn" (click)="addRow()">Thêm</button>
+              </div>
+
+              <div class="mt-3" *ngIf="currentRows.length === 0">
+                <div class="text-sm font-semibold text-gray-600">Chưa có dòng nào.</div>
+              </div>
+
+              <div class="matrix-table" *ngIf="currentRows.length">
+                <div class="matrix-head">
+                  <div>Size</div>
+                  <div>Cao từ</div>
+                  <div>Cao đến</div>
+                  <div>Nặng từ</div>
+                  <div>Nặng đến</div>
+                  <div></div>
+                </div>
+                <div class="matrix-row" *ngFor="let r of currentRows; let i = index">
+                  <div class="cell">
+                    <input
+                      class="input"
+                      [ngModel]="r.size"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { size: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMax: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMax: $event })" />
+                  </div>
+                  <div class="cell actions">
+                    <button type="button" class="btn ghost" (click)="removeRow(i)">Xóa</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="cancelCreate()">Hủy</button>
+          <button class="btn" type="button" (click)="submitCreate()" [disabled]="saving">{{ saving ? 'Đang lưu...' : 'Tạo' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" *ngIf="editOpen" (click)="cancelEdit()">
+    <div class="modal wide product-type-modal" role="dialog" aria-modal="true" aria-label="Sửa loại sản phẩm" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">Sửa loại sản phẩm</div>
+        <button class="icon" type="button" (click)="cancelEdit()">✕</button>
+      </div>
+      <div class="form" style="padding:16px">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Code *</label>
+            <input class="input" [(ngModel)]="form.code" placeholder="VD: clothing" />
+          </div>
+          <div class="field">
+            <label class="label">Tên *</label>
+            <input class="input" [(ngModel)]="form.name" placeholder="VD: Thời trang" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" [(ngModel)]="form.active">
+              <option [ngValue]="true">Bật</option>
+              <option [ngValue]="false">Tắt</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Bảng size</label>
+          <div class="text-xs font-semibold text-gray-600" style="margin-top:-6px;margin-bottom:10px">
+            Nhập size và bấm Thêm. Ví dụ: XS, S, M, L, XL, 39, 40...
+          </div>
+
+          <div class="size-actions" style="margin-bottom:10px">
+            <label class="inline-flex items-center gap-2 text-sm font-extrabold text-gray-900">
+              <input type="checkbox" class="accent-blue-600" [ngModel]="splitSizesByGender" (ngModelChange)="toggleSplitSizesByGender($event)" />
+              <span>Chia theo giới tính</span>
+            </label>
+
+            <div class="size-file">
+              <span class="text-sm font-extrabold text-gray-900">Import Excel</span>
+              <input type="file" accept=".xlsx,.xls" (change)="onImportExcel($any($event.target).files?.[0])" />
+              <button type="button" class="btn ghost" (click)="downloadSizeTemplate()">Tải file mẫu</button>
+            </div>
+          </div>
+
+          <div class="group-actions" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <div class="group-add">
+              <input class="input" [(ngModel)]="groupDraft" placeholder="Thêm nhóm (VD: Bé trai, Bé gái...)" />
+              <button type="button" class="btn" (click)="addGroup()">Thêm nhóm</button>
+            </div>
+          </div>
+
+          <div class="group-tabs" *ngIf="splitSizesByGender" style="margin-bottom:10px">
+            <button
+              *ngFor="let g of groups"
+              type="button"
+              class="btn ghost"
+              [class.active]="groupTab === g.key"
+              (click)="groupTab = g.key">
+              <span>{{ g.label }}</span>
+              <button
+                *ngIf="!g.builtIn"
+                type="button"
+                class="group-x"
+                (click)="$event.stopPropagation(); removeGroup(g.key)">
+                ✕
+              </button>
+            </button>
+          </div>
+
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
+              <div class="text-sm font-extrabold text-gray-900">Ma trận size</div>
+              <div class="text-xs font-semibold text-gray-600">Size + khoảng chiều cao/cân nặng (min-max)</div>
+            </div>
+
+            <div class="p-4">
+              <div class="matrix-add">
+                <input class="input" [(ngModel)]="rowDraft.size" placeholder="Size (VD: M)" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMin" placeholder="Cao từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.heightMax" placeholder="Cao đến" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMin" placeholder="Nặng từ" />
+                <input class="input" type="number" [(ngModel)]="rowDraft.weightMax" placeholder="Nặng đến" />
+                <button type="button" class="btn" (click)="addRow()">Thêm</button>
+              </div>
+
+              <div class="mt-3" *ngIf="currentRows.length === 0">
+                <div class="text-sm font-semibold text-gray-600">Chưa có dòng nào.</div>
+              </div>
+
+              <div class="matrix-table" *ngIf="currentRows.length">
+                <div class="matrix-head">
+                  <div>Size</div>
+                  <div>Cao từ</div>
+                  <div>Cao đến</div>
+                  <div>Nặng từ</div>
+                  <div>Nặng đến</div>
+                  <div></div>
+                </div>
+                <div class="matrix-row" *ngFor="let r of currentRows; let i = index">
+                  <div class="cell">
+                    <input
+                      class="input"
+                      [ngModel]="r.size"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { size: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.heightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { heightMax: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMin"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMin: $event })" />
+                  </div>
+                  <div class="cell">
+                    <input
+                      class="input"
+                      type="number"
+                      [ngModel]="r.weightMax"
+                      [ngModelOptions]="{standalone:true}"
+                      (ngModelChange)="updateRow(i, { weightMax: $event })" />
+                  </div>
+                  <div class="cell actions">
+                    <button type="button" class="btn ghost" (click)="removeRow(i)">Xóa</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="cancelEdit()">Hủy</button>
+          <button class="btn" type="button" (click)="submitEdit()" [disabled]="saving">{{ saving ? 'Đang lưu...' : 'Lưu' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

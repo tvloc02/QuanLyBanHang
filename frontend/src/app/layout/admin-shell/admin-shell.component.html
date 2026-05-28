@@ -1,0 +1,309 @@
+<div class="adm-layout" [class.sidebar-collapsed]="sidebarCollapsed">
+  <header class="adm-topbar">
+    <div class="topbar-brand">
+      <button
+        class="toggle-btn"
+        type="button"
+        (click)="toggleSidebar()"
+        [attr.aria-label]="sidebarCollapsed ? 'Mở menu' : 'Thu gọn menu'"
+      >
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h16M4 12h16M4 17h10" />
+        </svg>
+      </button>
+
+      <a class="adm-brand" routerLink="/admin" [class.brand-switched]="brandSwitched">
+        <span class="logo logo-swap">
+          <span class="logo-fh">FH</span>
+          <span class="logo-levent">L</span>
+        </span>
+
+        <span class="text">
+          <span class="name name-swap">
+            <span class="name-fh">FashionHub Admin</span>
+            <span class="name-levent" aria-label="L.event">
+              <span class="levent-l">L</span><span class="levent-rest">.event</span>
+            </span>
+          </span>
+          <span class="sub">Bảng điều khiển quản trị hệ thống</span>
+        </span>
+      </a>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="topbar-chip">
+        <span class="chip-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+          </svg>
+        </span>
+        <span class="chip-text">
+          <strong>{{ currentTimeLabel }}</strong>
+          <small>{{ currentDateLabel }}</small>
+        </span>
+      </div>
+
+      <div class="relative">
+        <button
+          class="notification-btn"
+          type="button"
+          aria-label="Thông báo"
+          (click)="toggleNotificationPanel()"
+        >
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9" />
+          </svg>
+          <span class="notification-badge">{{ notifications.length }}</span>
+        </button>
+
+        <div class="notification-panel" *ngIf="notificationPanelOpen">
+          <div class="notification-header">
+            <div>
+              <h3>Thông báo</h3>
+              <p *ngIf="notifications.length">{{ notifications.length }} mục mới</p>
+            </div>
+            <button type="button" class="close-btn" (click)="closeNotificationPanel()">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="notification-list">
+            <div *ngFor="let notif of notifications" class="notification-item" [class.unread]="!notif.read">
+              <div class="notif-dot" *ngIf="!notif.read"></div>
+              <div class="notif-content">
+                <div class="notif-title">{{ notif.title }}</div>
+                <div class="notif-message">{{ notif.message }}</div>
+                <div class="notif-time">{{ notif.time }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="notification-footer">
+            <a href="#">Xem tất cả</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-wrap" #userWrap>
+        <button class="user-btn" type="button" (click)="toggleUserMenu()">
+          <span class="avatar">{{ avatarInitial }}</span>
+          <div class="user-info">
+            <div class="user-role">{{ displayName }}</div>
+            <div class="user-name">{{ roleLabel }}</div>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+
+        <div class="menu" *ngIf="userMenuOpen">
+          <div class="menu-head">
+            <div class="menu-title">{{ displayName }}</div>
+            <div class="menu-sub">{{ roleLabel }}</div>
+          </div>
+          <a class="menu-item" routerLink="/admin/profile" (click)="closeUserMenu()">Thông tin tài khoản</a>
+          <a class="menu-item" routerLink="/admin/settings/mail" (click)="closeUserMenu()">Cài đặt hệ thống</a>
+          <button class="menu-item danger" type="button" (click)="logout()">Đăng xuất</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="adm-body">
+    <aside class="adm-sidebar" [class.collapsed]="sidebarCollapsed">
+      <div class="adm-search" [class.hidden]="sidebarCollapsed">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none">
+          <path d="m21 21-4.3-4.3m2.3-5.7a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+        </svg>
+        <input class="adm-search-input" placeholder="Tìm kiếm menu..." [disabled]="sidebarCollapsed" />
+      </div>
+
+      <nav class="adm-nav">
+        <div class="nav-accordion">
+          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5Z" />
+              </svg>
+            </span>
+            <span class="label">Trang chủ</span>
+          </a>
+
+          <section class="nav-section" *ngIf="hasAnyRole(['ADMIN','MANAGER'])" [class.open]="isGroupOpen('sales')" [class.active]="activeGroup === 'sales'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('sales')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6h15l-1.5 8h-9L6 4H3m6 14a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
+                </svg>
+              </span>
+              <span class="label">Quản lý bán hàng</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/categories" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z" /></svg></span>
+                <span class="label">Danh mục</span>
+              </a>
+              <a routerLink="/admin/settings/product-types" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" /></svg></span>
+                <span class="label">Loại sản phẩm</span>
+              </a>
+              <a routerLink="/admin/products" routerLinkActive="active" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 7h12v13H6zM9 7V5a3 3 0 0 1 6 0v2" /></svg></span>
+                <span class="label">Sản phẩm</span>
+              </a>
+              <a routerLink="/admin/reports" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" /></svg></span>
+                <span class="label">Báo cáo</span>
+              </a>
+              <a routerLink="/admin/coupons" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M8 12h8M8 17h5M5 4h14v16H5z" /></svg></span>
+                <span class="label">Mã giảm giá</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="nav-section" [class.open]="isGroupOpen('orders')" [class.active]="activeGroup === 'orders'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('orders')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 4h14v12H5zM8 20h8M10 16v4m4-4v4" />
+                </svg>
+              </span>
+              <span class="label">Đơn hàng</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'NEW' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 8v8m-4-4h8" /></svg></span><span class="label">Đơn hàng mới</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'APPROVED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" /></svg></span><span class="label">Đã duyệt</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'PACKING' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7l8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7" /></svg></span><span class="label">Đang đóng gói</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'SHIPPING' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3zM14 10h3l4 4v3h-7v-7Zm2 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" /></svg></span><span class="label">Đang giao</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'DELIVERED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" /></svg></span><span class="label">Đã nhận hàng</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'CANCELLED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" /></svg></span><span class="label">Đã hủy</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'REJECTED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 19 19 5M19 5H9m10 0v10" /></svg></span><span class="label">Đã từ chối</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RATED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z" /></svg></span><span class="label">Đã đánh giá</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'REFUNDED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6" /></svg></span><span class="label">Hoàn tiền</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_PENDING' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5m0 0-4 4m4-4 4 4" /></svg></span><span class="label">Trả hàng chờ duyệt</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_APPROVED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" /></svg></span><span class="label">Trả hàng đã duyệt</span></a>
+              <a routerLink="/admin/orders" routerLinkActive="active" [queryParams]="{ view: 'RETURN_REJECTED' }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" /></svg></span><span class="label">Trả hàng từ chối</span></a>
+            </div>
+          </section>
+
+          <section class="nav-section" *ngIf="hasRole('ADMIN')" [class.open]="isGroupOpen('system')" [class.active]="activeGroup === 'system'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('system')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8 4 2 1-2 1a8.8 8.8 0 0 1-.7 1.7l.8 2.1-2.1.8A8.8 8.8 0 0 1 17 20l-1 2-1-2a8.8 8.8 0 0 1-1.7.7l-2.1.8-.8-2.1A8.8 8.8 0 0 1 8 18l-2 1-1-2 1-1a8.8 8.8 0 0 1-.7-1.7L3 13l2-1a8.8 8.8 0 0 1 .7-1.7L5 8.2 7.1 7.4A8.8 8.8 0 0 1 8 6l1-2 1 2a8.8 8.8 0 0 1 1.7-.7l2.1-.8.8 2.1A8.8 8.8 0 0 1 16 8l2-1 1 2-1 1c.3.5.5 1.1.7 1.7Z" />
+                </svg>
+              </span>
+              <span class="label">Cấu hình hệ thống</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/users" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M16 19a4 4 0 1 0-8 0M12 12a4 4 0 1 0 0-8" /></svg></span><span class="label">Người dùng</span></a>
+              <a routerLink="/admin/settings" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 8a4 4 0 1 0 0 8" /></svg></span><span class="label">Cấu hình chat bot</span></a>
+              <a routerLink="/admin/shipping-settings" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h11v10H3zM14 10h3l4 4v3h-7v-7Z" /></svg></span><span class="label">Cấu hình vận chuyển</span></a>
+              <a routerLink="/admin/branches" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.3 7-11a7 7 0 1 0-14 0c0 5.7 7 11 7 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /></svg></span><span class="label">Chi nhánh</span></a>
+              <a routerLink="/admin/settings/mail" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18v12H3zM3 7l9 6 9-6" /></svg></span><span class="label">Cấu hình mail</span></a>
+              <a routerLink="/admin/settings/payment" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16v10H4zM4 11h16M8 16h2" /></svg></span><span class="label">Cấu hình thanh toán</span></a>
+              <a routerLink="/admin/settings/notifications" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22a2.5 2.5 0 0 0 2.5-2.5h-5A2.5 2.5 0 0 0 12 22Zm7-5H5l1.5-1.5V11a5.5 5.5 0 1 1 11 0v4.5L19 17Z" /></svg></span><span class="label">Thông báo</span></a>
+              <a routerLink="/admin/settings/home-sections" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5Z" /></svg></span><span class="label">Trang bán hàng</span></a>
+            </div>
+          </section>
+
+          <section class="nav-section" [class.open]="isGroupOpen('customers')" [class.active]="activeGroup === 'customers'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('customers')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M17 20a4 4 0 0 0-8 0M13 12a4 4 0 1 0 0-8M5 20a3 3 0 0 1 3-3m-3-5a3 3 0 1 0 0-6" />
+                </svg>
+              </span>
+              <span class="label">Khách hàng</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/customers" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M17 20a4 4 0 0 0-8 0M13 12a4 4 0 1 0 0-8" /></svg></span><span class="label">Khách hàng</span></a>
+              <a routerLink="/admin/support-chat" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H7l-3 3V5Z" /></svg></span><span class="label">Chat hỗ trợ</span></a>
+              <a routerLink="/admin/reviews" routerLinkActive="active" class="item"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z" /></svg></span><span class="label">Đánh giá</span></a>
+            </div>
+          </section>
+
+          <section class="nav-section" *ngIf="hasAnyRole(['ADMIN','MANAGER'])" [class.open]="isGroupOpen('storefront')" [class.active]="activeGroup === 'storefront'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('storefront')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 7h16M6 3h12l1 4H5l1-4Zm0 4v12h12V7" />
+                </svg>
+              </span>
+              <span class="label">Trang bán hàng</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/sale-page" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM9 9h6M9 13h4" /></svg></span>
+                <span class="label">Quản lý trang sale</span>
+              </a>
+
+              <div class="category-section" *ngIf="!categoriesLoading && rootCategories.length > 0">
+                <a *ngFor="let category of rootCategories" [routerLink]="getCategoryConfigUrl(category)" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item category-item">
+                  <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" /></svg></span>
+                  <span class="label">{{ category.name }}</span>
+                </a>
+              </div>
+
+              <div class="category-loading" *ngIf="categoriesLoading">
+                <span class="loading-text">Đang tải danh mục...</span>
+              </div>
+
+              <a routerLink="/admin/settings/news-banner" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4zM8 10h8M8 14h5" /></svg></span>
+                <span class="label">Tin tức</span>
+              </a>
+            </div>
+          </section>
+          <section class="nav-section" *ngIf="hasAnyRole(['ADMIN','MANAGER'])" [class.open]="isGroupOpen('reports')" [class.active]="activeGroup === 'reports'">
+            <button class="nav-head" type="button" (click)="onGroupHeaderClick('reports')">
+              <span class="ic">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 19h16M7 16V9m5 7V5m5 11v-4" />
+                </svg>
+              </span>
+              <span class="label">Báo cáo</span>
+              <span class="chev"></span>
+            </button>
+            <div class="nav-body">
+              <a routerLink="/admin/reports" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="item">
+                <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" /></svg></span>
+                <span class="label">Tổng hợp báo cáo</span>
+              </a>
+            </div>
+          </section>
+        </div>
+      </nav>
+
+      <div class="adm-footer">
+        <button class="collapse-btn" type="button" (click)="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" [class.rotated]="sidebarCollapsed">
+            <path d="m15 6-6 6 6 6" />
+          </svg>
+          <span class="label">{{ sidebarCollapsed ? 'Mở rộng' : 'Thu gọn' }}</span>
+        </button>
+
+        <a class="back-link" routerLink="/sale">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M15 18 9 12l6-6" />
+          </svg>
+          <span class="label">Về trang bán hàng</span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="adm-main">
+      <main class="adm-content">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</div>

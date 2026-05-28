@@ -1,162 +1,110 @@
-<div class="topbar">
-  <div class="container">
-   <div class="topbar-text">{{ cfg.topBarText }}</div>
- </div>
-</div>
-
-<button
-  type="button"
-  class="scroll-top"
-  *ngIf="showScrollTop"
-  (click)="scrollToTop()"
-  aria-label="Về đầu trang"
->
-  ↑
-</button>
-
-<header class="header" (click)="closeAccount()">
-  <div class="container header-inner">
-    <a class="brand" routerLink="/">{{ cfg.brandText }}</a>
-
-    <div class="search">
-      <div class="search-wrap" (click)="$event.stopPropagation()">
-        <input
-          type="text"
-          placeholder="Tìm kiếm..."
-          [value]="searchQuery"
-          (focus)="onSearchFocus()"
-          (input)="onSearchInput($any($event.target).value)"
-          (keydown)="onSearchKeydown($any($event))"
-        />
-      </div>
-
-      <button type="button" aria-label="Search" (click)="submitSearch()">🔍</button>
-
-      <div class="search-suggest" *ngIf="showSearchSuggest && searchSuggest.length > 0" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="suggest-item"
-          *ngFor="let s of searchSuggest; let i = index"
-          (click)="selectSuggestion(s.route)"
-          (mouseenter)="activeSuggestIndex = i"
-          [class.active]="i === activeSuggestIndex"
-        >
-          {{ s.label }}
-        </button>
-      </div>
-    </div>
-
-    <div class="actions">
-      <button type="button" class="icon-btn badge" (click)="go('/wishlist')" aria-label="Yêu thích">
-        ❤
-        <span class="badge-count" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
-      </button>
-
-      <button type="button" class="icon-btn badge" (click)="go('/cart')" aria-label="Giỏ hàng">
-        🛒
-        <span class="badge-count" *ngIf="cartCount > 0">{{ cartCount }}</span>
-      </button>
-
-      <div class="action account" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="icon-btn"
-          (click)="$event.stopPropagation(); toggleAccount()"
-          aria-label="Tài khoản"
-        >
-          👤
-        </button>
-        <div class="dropdown" *ngIf="accountOpen" (click)="$event.stopPropagation()">
-          <button type="button" class="dropdown-item" (click)="go('/login')">Đăng nhập</button>
-          <button type="button" class="dropdown-item" (click)="go('/register')">Đăng ký</button>
-        </div>
-      </div>
-    </div>
-
-    <nav class="nav">
-      <button
-        type="button"
-        class="nav-item"
-        *ngFor="let item of cfg.nav"
-        (click)="onNavClick(item)"
-      >
-        {{ item.label }}
-      </button>
-    </nav>
-  </div>
-</header>
-
-<div class="page-header">
+﻿<div class="page-header" *ngIf="!isRootCategoryPage">
   <div class="container">
     <nav class="breadcrumb">
-      <a routerLink="/">Trang chủ</a>
-      <span class="sep">›</span>
+      <a routerLink="/sale">Trang chủ</a>
+      <span class="sep">/</span>
       <span class="current">{{ categoryName }}</span>
     </nav>
     <h1 class="page-title">{{ categoryName }}</h1>
   </div>
 </div>
 
-<div class="container">
+<section class="category-hero" *ngIf="isRootCategoryPage && categoryHeroEnabled && categoryHeroBanners.length > 0">
+  <div class="container">
+    <div class="category-hero-card">
+      <img class="category-hero-image" [src]="categoryHeroBanners[0].imageUrl" [alt]="categoryHeroBanners[0].alt" />
+    </div>
+  </div>
+</section>
+
+<section class="category-vouchers" *ngIf="isRootCategoryPage && categoryVouchersEnabled && categoryVouchers.length > 0">
+  <div class="container">
+    <div class="category-section-head category-section-head--sale">
+      <h2>{{ categoryVouchersTitle }}</h2>
+      <div class="category-section-line"></div>
+    </div>
+    <div class="category-voucher-shell">
+      <div class="category-voucher-track">
+        <div class="category-voucher-card voucher-card" *ngFor="let voucher of categoryVouchers">
+          <span class="notch-top"></span>
+          <span class="notch-bottom"></span>
+
+          <div class="category-voucher-copy">
+            <div class="category-voucher-code">Mã: {{ voucher.code }}</div>
+            <div class="category-voucher-title">Nhập mã {{ voucher.code }}</div>
+            <div class="category-voucher-note" *ngIf="voucher.minOrderAmount > 0">
+              Đơn từ {{ voucher.minOrderAmount | number:'1.0-0' }}đ
+            </div>
+            <div class="category-voucher-note" *ngIf="voucher.minOrderAmount <= 0 && voucher.note">{{ voucher.note }}</div>
+          </div>
+
+          <div class="category-voucher-action">
+            <button type="button" class="category-voucher-btn" (click)="copyVoucher(voucher.code)">Sao chép mã</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="category-voucher-footer">
+      <a class="category-voucher-more" routerLink="/sale">Xem thêm</a>
+    </div>
+  </div>
+</section>
+
+<div class="container" *ngIf="!isRootCategoryPage; else rootCategoryView">
   <div class="layout">
-    <!-- Sidebar filters -->
     <aside class="sidebar">
       <div class="filter-section">
         <div class="filter-head">
-          <h3 class="filter-title">Khoảng giá</h3>
+          <h3 class="filter-title">Sắp xếp khoảng giá</h3>
           <button type="button" class="filter-reset" (click)="resetPrice()">Xóa</button>
         </div>
-        <div class="price-range">
-          <select class="price-input" [value]="minPrice" (change)="minPrice = +$any($event.target).value; onPriceRangeChange()">
-            <option *ngFor="let p of priceSteps" [value]="p">{{ formatPriceOption(p) }}</option>
-          </select>
-          <span>-</span>
-          <select class="price-input" [value]="maxPrice" (change)="maxPrice = +$any($event.target).value; onPriceRangeChange()">
-            <option *ngFor="let p of priceSteps" [value]="p">{{ formatPriceOption(p) }}</option>
-          </select>
+        <div class="price-slider">
+          <input
+            class="price-range-input"
+            type="range"
+            [min]="0"
+            [max]="priceMax"
+            [value]="maxPrice"
+            (input)="maxPrice = +$any($event.target).value"
+            (change)="onPriceRangeChange()"
+          />
+          <div class="price-slider-meta">
+            <span>0</span>
+            <span>{{ formatPriceOption(maxPrice) }}</span>
+          </div>
         </div>
       </div>
 
       <div class="filter-section">
-        <h3 class="filter-title">Kích cỡ</h3>
-        <div class="size-list">
-          <label class="size-item" *ngFor="let size of allSizes">
-            <input type="checkbox" [checked]="selectedSizes.includes(size)" (change)="onSizeChange(size, $any($event.target).checked)" />
-            <span class="size-label">{{ size }}</span>
+        <h3 class="filter-title">Màu sắc</h3>
+        <div class="color-swatches">
+          <label class="swatch" *ngFor="let c of allColors" [title]="c">
+            <input type="checkbox" [checked]="selectedColors.includes(c)" (change)="onColorChange(c, $any($event.target).checked)" />
+            <span class="swatch-dot" [style.background]="c"></span>
           </label>
         </div>
       </div>
 
       <div class="filter-section">
         <h3 class="filter-title">Danh mục</h3>
-        <div class="color-list">
-          <label class="color-item" *ngFor="let sub of allSubCategories">
+        <div class="category-list">
+          <label class="category-item" *ngFor="let sub of allSubCategories">
             <input type="checkbox" [checked]="selectedSubCategories.includes(sub)" (change)="onSubCategoryChange(sub, $any($event.target).checked)" />
-            <span class="color-name">{{ sub }}</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="filter-section">
-        <h3 class="filter-title">Đối tượng</h3>
-        <div class="color-list">
-          <label class="color-item" *ngFor="let t of allTargets">
-            <input type="checkbox" [checked]="selectedTargets.includes(t)" (change)="onTargetChange(t, $any($event.target).checked)" />
-            <span class="color-name">{{ t }}</span>
+            <span class="category-name">{{ sub }}</span>
           </label>
         </div>
       </div>
     </aside>
 
-    <!-- Main content -->
     <main class="main">
-      <!-- Toolbar -->
+      <div class="category-section-head category-product-head" *ngIf="configuredProductsTitle">
+        <h2>{{ configuredProductsTitle }}</h2>
+      </div>
+
       <div class="toolbar">
-        <div class="results-count">
-          {{ total }} sản phẩm
-        </div>
         <div class="sort">
-          <label for="sort-select">Sắp xếp:</label>
+          <label for="sort-select">Sắp xếp theo</label>
           <select
             id="sort-select"
             class="sort-select"
@@ -171,7 +119,6 @@
         </div>
       </div>
 
-      <!-- Loading / Error -->
       <div class="status" *ngIf="loading">
         <div class="spinner"></div>
         <span>Đang tải...</span>
@@ -180,11 +127,10 @@
         {{ error }}
       </div>
 
-      <!-- Product grid -->
       <div class="product-grid" *ngIf="!loading && !error">
         <a class="product-card" *ngFor="let p of products" [routerLink]="['/product', p.slug]">
           <div class="card-img-wrap">
-            <img class="card-img" [src]="p.imageUrl" [alt]="p.name" />
+            <img class="card-img" [src]="p.imageUrl" [alt]="p.name" (error)="onProductImageError(p)" />
             <span class="card-badge" *ngIf="p.badge">{{ p.badge }}</span>
             <span class="card-discount" *ngIf="p.discount">-{{ p.discount }}%</span>
           </div>
@@ -206,7 +152,6 @@
         </a>
       </div>
 
-      <!-- Pagination -->
       <div class="pagination" *ngIf="totalPages > 1">
         <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">Đầu</button>
         <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
@@ -218,4 +163,81 @@
   </div>
 </div>
 
-<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>
+<ng-template #rootCategoryView>
+  <div class="container">
+    <main class="root-category-main">
+      <section class="category-round-cats" *ngIf="categoryRoundCategoriesEnabled && rootRoundCategories.length > 0">
+        <div class="category-section-head category-section-head--sale">
+          <h2>{{ categoryRoundCategoriesTitle }}</h2>
+          <div class="category-section-line"></div>
+        </div>
+        <div class="sale-quick-tiles-scroll root-round-grid">
+          <a class="sale-quick-tile" *ngFor="let cat of rootRoundCategories | slice:0:12" [routerLink]="['/category', cat.slug]">
+            <div class="sale-quick-tile-img root-round-media">
+              <img *ngIf="cat.imageUrl" [src]="cat.imageUrl" [alt]="cat.name" />
+              <span *ngIf="!cat.imageUrl" class="root-round-fallback">{{ cat.initial }}</span>
+            </div>
+            <span class="sale-quick-tile-label">{{ cat.name }}</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="root-products-shell" *ngIf="categoryProductsEnabled && (products.length || loading || error)">
+        <div class="category-section-head category-section-head--sale" *ngIf="configuredProductsTitle">
+          <h2>{{ configuredProductsTitle }}</h2>
+          <div class="category-section-line"></div>
+        </div>
+
+        <div class="status root-status" *ngIf="loading">
+          <div class="spinner"></div>
+          <span>Đang tải...</span>
+        </div>
+        <div class="status error root-status" *ngIf="error">
+          {{ error }}
+        </div>
+
+        <div class="root-product-grid sale-grid" *ngIf="!loading && !error">
+          <a class="root-product-card sale-product-card" *ngFor="let p of products" [routerLink]="['/product', p.slug]">
+            <div class="root-product-media sale-product-media">
+              <img class="root-product-image sale-product-image" [src]="p.imageUrl" [alt]="p.name" (error)="onProductImageError(p)" />
+              <div class="root-product-offer-bar">
+                <div class="root-product-offer-left">
+                  <span class="root-product-offer-label">Voucher đến</span>
+                  <span class="root-product-offer-value" *ngIf="p.discount">{{ (p.price * p.discount / 100 / 1000) | number:'1.0-0' }}K</span>
+                  <span class="root-product-offer-value" *ngIf="!p.discount">200K</span>
+                </div>
+                <div class="root-product-offer-right">
+                  <span class="root-product-offer-code">Nhập {{ p.badge || 'NICE4U' }}</span>
+                  <span class="root-product-offer-note">Khi đặt hàng online</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="root-product-body sale-product-body">
+              <h3 class="root-product-name sale-product-name">{{ p.name }}</h3>
+
+              <div class="root-product-meta sale-product-meta">
+                <span class="root-product-sold" *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
+                <span *ngIf="p.rating">★ {{ p.rating }}</span>
+              </div>
+
+              <div class="root-product-price sale-product-price">
+                <span class="root-product-price-now sale-product-price-now">{{ p.priceText }}</span>
+                <span class="root-product-price-old sale-product-price-old" *ngIf="p.discount">{{ p.oldPrice || Math.round(p.price / (1 - p.discount / 100)) }}đ</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)">Đầu</button>
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
+        <button class="page-btn" *ngFor="let page of getVisiblePages()" [class.active]="page === currentPage" (click)="goToPage(page)">{{ page }}</button>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">›</button>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">Cuối</button>
+      </div>
+    </main>
+  </div>
+</ng-template>
+

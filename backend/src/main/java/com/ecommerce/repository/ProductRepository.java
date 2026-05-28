@@ -18,11 +18,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryId(Long categoryId);
 
     @Query("SELECT p FROM Product p WHERE " +
-           "(:category IS NULL OR p.category = :category) AND " +
+           "(:category IS NULL OR LOWER(TRIM(p.category)) = LOWER(TRIM(:category)) OR " +
+           "(:categoryId IS NOT NULL AND (p.categoryId = :categoryId OR :categoryId member of p.categoryIds))) AND " +
            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
+           "(:sizes IS NULL OR EXISTS (SELECT s FROM p.sizes s WHERE s IN :sizes)) AND " +
+           "(:colors IS NULL OR EXISTS (SELECT c FROM p.colors c WHERE c IN :colors)) AND " +
            "p.active = true")
     Page<Product> searchByFilters(@Param("category") String category,
+                                @Param("categoryId") Long categoryId,
                                 @Param("minPrice") BigDecimal minPrice,
                                 @Param("maxPrice") BigDecimal maxPrice,
                                 @Param("sizes") List<String> sizes,
@@ -46,6 +50,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "WHEN :sort = 'bestselling' THEN p.soldCount END DESC, " +
            "p.createdAt DESC")
     Page<Product> findAllWithSort(@Param("sort") String sort, Pageable pageable);
+
+    Optional<Product> findTopBySkuStartingWithOrderBySkuDesc(String prefix);
+
+    Optional<Product> findBySku(String sku);
+
+    boolean existsBySku(String sku);
 
     Optional<Product> findBySlug(String slug);
 }

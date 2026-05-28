@@ -1,0 +1,143 @@
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 4h16v16H4V4Z" />
+            <path d="m22 6-10 7L2 6" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Cấu hình mail</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Thiết lập SMTP để hệ thống gửi email (xác nhận đơn hàng, thông báo...)</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
+        >
+          <span>{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+    {{ error }}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="lg:col-span-8 space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-sky-50">
+          <div class="text-sm font-extrabold text-gray-900">SMTP</div>
+          <div class="text-xs font-semibold text-gray-600 mt-1">Thông tin máy chủ SMTP và thông tin người gửi</div>
+        </div>
+
+        <div class="p-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">Bật gửi mail</label>
+              <select class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.enabled">
+                <option [ngValue]="true">Bật</option>
+                <option [ngValue]="false">Tắt</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">TLS</label>
+              <select class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.useTls">
+                <option [ngValue]="true">Bật TLS</option>
+                <option [ngValue]="false">Không TLS</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">SMTP Host</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.smtpHost" placeholder="smtp.gmail.com" />
+            </div>
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">SMTP Port</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" type="number" [(ngModel)]="form.smtpPort" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">SMTP Username</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.smtpUsername" placeholder="example@gmail.com" />
+            </div>
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">SMTP Password</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" type="password" [(ngModel)]="form.smtpPassword" placeholder="Chỉ nhập khi muốn đổi" />
+              <label class="mt-2 inline-flex items-center gap-2 text-xs font-bold text-gray-600">
+                <input type="checkbox" class="w-4 h-4 accent-blue-600" [(ngModel)]="form.clearPassword" />
+                <span>Xóa mật khẩu đang lưu</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">From Email</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.fromEmail" placeholder="no-reply@yourdomain.com" />
+            </div>
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">From Name</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.fromName" placeholder="FashionHub" />
+            </div>
+          </div>
+
+          <div class="mt-4 text-xs font-semibold text-gray-600">
+            Mật khẩu SMTP không được hiển thị lại. Bạn có thể để trống nếu không muốn thay đổi.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-sky-50">
+          <div class="text-sm font-extrabold text-gray-900">Trạng thái</div>
+          <div class="text-xs font-semibold text-gray-600 mt-1">Tóm tắt cấu hình hiện tại</div>
+        </div>
+
+        <div class="p-5">
+          <div *ngIf="settings" class="space-y-3">
+            <div class="flex items-center justify-between gap-4">
+              <div class="text-sm font-semibold text-gray-600">Gửi mail</div>
+              <span *ngIf="settings.enabled" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700">Đang bật</span>
+              <span *ngIf="!settings.enabled" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700">Đang tắt</span>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="text-sm font-semibold text-gray-600">Mật khẩu</div>
+              <span *ngIf="settings.hasPassword" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700">Đã cấu hình</span>
+              <span *ngIf="!settings.hasPassword" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700">Chưa cấu hình</span>
+            </div>
+            <div class="flex items-center justify-between gap-4" *ngIf="settings.updatedAt">
+              <div class="text-sm font-semibold text-gray-600">Cập nhật</div>
+              <div class="text-sm font-extrabold text-gray-900">{{ settings.updatedAt }}</div>
+            </div>
+          </div>
+
+          <div *ngIf="!settings" class="text-sm font-semibold text-gray-700">Chưa có dữ liệu</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

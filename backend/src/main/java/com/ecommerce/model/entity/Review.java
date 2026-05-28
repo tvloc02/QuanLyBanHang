@@ -1,11 +1,17 @@
  package com.ecommerce.model.entity;
  
  import jakarta.persistence.Entity;
+ import jakarta.persistence.CollectionTable;
+ import jakarta.persistence.Column;
+ import jakarta.persistence.ElementCollection;
  import jakarta.persistence.GeneratedValue;
  import jakarta.persistence.GenerationType;
  import jakarta.persistence.Id;
+ import jakarta.persistence.JoinColumn;
  import jakarta.persistence.Table;
  import java.time.Instant;
+ import java.util.ArrayList;
+ import java.util.List;
  
  @Entity
  @Table(name = "reviews")
@@ -22,6 +28,11 @@
      private Integer rating;
  
      private String comment;
+
+     @ElementCollection
+     @CollectionTable(name = "review_images", joinColumns = @JoinColumn(name = "review_id"))
+     @Column(name = "image_url")
+     private List<String> images = new ArrayList<>();
  
      private Instant createdAt;
  
@@ -83,5 +94,13 @@
  
      public void setUpdatedAt(Instant updatedAt) {
          this.updatedAt = updatedAt;
+     }
+
+     public List<String> getImages() {
+         return images;
+     }
+
+     public void setImages(List<String> images) {
+         this.images = images;
      }
  }

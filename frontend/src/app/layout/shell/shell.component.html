@@ -1,0 +1,19 @@
+<app-header></app-header>
+
+<div class="fh-entry-overlay" *ngIf="popupOpen" (click)="closePopup()">
+  <div class="fh-entry-modal" role="dialog" aria-modal="true" aria-label="Thông báo" (click)="$event.stopPropagation()">
+    <button class="fh-entry-close" type="button" (click)="closePopup()" aria-label="Đóng">✕</button>
+    <a *ngIf="popupRoute" [routerLink]="popupRoute" (click)="closePopup()" class="fh-entry-link">
+      <img [src]="popupImageUrl" [alt]="popupTitle" class="fh-entry-img" />
+    </a>
+    <div *ngIf="!popupRoute" class="fh-entry-link">
+      <img [src]="popupImageUrl" [alt]="popupTitle" class="fh-entry-img" />
+    </div>
+  </div>
+</div>
+
+<router-outlet></router-outlet>
+
+<app-footer></app-footer>
+
+<app-ai-chat-widget></app-ai-chat-widget>

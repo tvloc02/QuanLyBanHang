@@ -1,5 +1,6 @@
 package com.ecommerce.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -31,11 +32,22 @@ public class ProductUpsertRequest {
 
     private Long categoryId;
 
+    private Long productTypeId;
+
+    private String gender;
+
+    private String attributesJson;
+
+    private List<Long> categoryIds = new ArrayList<>();
+
     @NotBlank
     private String category;
 
     @NotBlank
     private String brand;
+
+    @PositiveOrZero
+    private Double weightKg;
 
     private String imageUrl;
 
@@ -47,11 +59,24 @@ public class ProductUpsertRequest {
 
     private Long soldCount;
 
+    private Boolean promoEnabled;
+
+    private String promoLabel;
+
+    private String promoValue;
+
+    private String promoCode;
+
+    private String promoNote;
+
     private List<String> sizes = new ArrayList<>();
 
     private List<String> colors = new ArrayList<>();
 
     private List<String> images = new ArrayList<>();
+
+    @Valid
+    private List<ProductVariantUpsertRequest> variants = new ArrayList<>();
 
     private Boolean active;
 
@@ -121,6 +146,38 @@ public class ProductUpsertRequest {
         this.categoryId = categoryId;
     }
 
+    public Long getProductTypeId() {
+        return productTypeId;
+    }
+
+    public void setProductTypeId(Long productTypeId) {
+        this.productTypeId = productTypeId;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAttributesJson() {
+        return attributesJson;
+    }
+
+    public void setAttributesJson(String attributesJson) {
+        this.attributesJson = attributesJson;
+    }
+
+    public List<Long> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(List<Long> categoryIds) {
+        this.categoryIds = categoryIds;
+    }
+
     public String getCategory() {
         return category;
     }
@@ -135,6 +192,14 @@ public class ProductUpsertRequest {
 
     public void setBrand(String brand) {
         this.brand = brand;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public String getImageUrl() {
@@ -177,6 +242,46 @@ public class ProductUpsertRequest {
         this.soldCount = soldCount;
     }
 
+    public Boolean getPromoEnabled() {
+        return promoEnabled;
+    }
+
+    public void setPromoEnabled(Boolean promoEnabled) {
+        this.promoEnabled = promoEnabled;
+    }
+
+    public String getPromoLabel() {
+        return promoLabel;
+    }
+
+    public void setPromoLabel(String promoLabel) {
+        this.promoLabel = promoLabel;
+    }
+
+    public String getPromoValue() {
+        return promoValue;
+    }
+
+    public void setPromoValue(String promoValue) {
+        this.promoValue = promoValue;
+    }
+
+    public String getPromoCode() {
+        return promoCode;
+    }
+
+    public void setPromoCode(String promoCode) {
+        this.promoCode = promoCode;
+    }
+
+    public String getPromoNote() {
+        return promoNote;
+    }
+
+    public void setPromoNote(String promoNote) {
+        this.promoNote = promoNote;
+    }
+
     public List<String> getSizes() {
         return sizes;
     }
@@ -199,6 +304,14 @@ public class ProductUpsertRequest {
 
     public void setImages(List<String> images) {
         this.images = images;
+    }
+
+    public List<ProductVariantUpsertRequest> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantUpsertRequest> variants) {
+        this.variants = variants;
     }
 
     public Boolean getActive() {

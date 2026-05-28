@@ -1,0 +1,214 @@
+<main class="bg-[var(--fh-bg)] mb-32" [style.fontFamily]="saleFontFamily || null" [style.--fh-primary]="salePrimaryColor || null">
+  <section *ngIf="loading" class="w-full py-10">
+    <div class="container">
+      <div class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
+        <div class="text-sm font-black text-[var(--fh-text)]">Đang tải...</div>
+      </div>
+    </div>
+  </section>
+
+  <section *ngIf="!loading && error" class="w-full py-10">
+    <div class="container">
+      <div class="rounded-2xl border border-[rgba(193,18,31,0.22)] bg-[rgba(193,18,31,0.06)] p-4 text-sm font-extrabold text-[var(--fh-primary)]">
+        {{ error }}
+      </div>
+    </div>
+  </section>
+
+  <ng-container *ngIf="!loading && !error">
+    <ng-container *ngFor="let block of blocks">
+      <ng-container [ngSwitch]="block.type">
+        <ng-container *ngSwitchCase="'HERO'">
+        <section class="w-full pt-6 pb-12" [id]="blockAnchorId(block)" *ngIf="block.enabled && block.heroSlides.length > 0">
+          <div class="container">
+            <div class="relative w-full overflow-hidden border border-[var(--fh-border)] bg-black shadow-sm">
+              <div
+                [id]="heroSliderId(block)"
+                class="flex h-auto aspect-[21/9] snap-x snap-mandatory overflow-x-auto scroll-smooth"
+                (scroll)="onHeroScroll(block)"
+              >
+                <div *ngFor="let slide of block.heroSlides; let i = index" class="relative w-full shrink-0 snap-start">
+                  <img class="h-full w-full object-cover" [src]="slide.imageUrl" [alt]="slide.title || block.title" />
+
+                </div>
+              </div>
+
+              <button
+                *ngIf="block.heroSlides.length > 1"
+                type="button"
+                class="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/25 bg-black/25 text-white backdrop-blur transition hover:bg-black/35"
+                (click)="prevHero(block)"
+                aria-label="Prev"
+              >
+                ‹
+              </button>
+              <button
+                *ngIf="block.heroSlides.length > 1"
+                type="button"
+                class="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/25 bg-black/25 text-white backdrop-blur transition hover:bg-black/35"
+                (click)="nextHero(block)"
+                aria-label="Next"
+              >
+                ›
+              </button>
+
+              <div *ngIf="block.heroSlides.length > 1" class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
+                <button
+                  *ngFor="let slide of block.heroSlides; let i = index"
+                  type="button"
+                  class="h-2 w-2 rounded-full bg-white/50 transition"
+                  [class.bg-white]="i === (activeHeroIndexes[block.id] || 0)"
+                  (click)="scrollHeroTo(block, i)"
+                ></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'VOUCHERS'">
+        <section class="w-full py-12" [id]="blockAnchorId(block)" *ngIf="block.enabled && block.vouchers.length > 0">
+          <div class="container px-0">
+            <div class="mb-6 flex items-center justify-between px-4 md:px-0 relative">
+              <button
+                *ngIf="block.vouchers.length > 3"
+                type="button"
+                class="w-12 h-12 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-400 hover:text-[#c1121f] hover:border-[#c1121f] transition-all"
+                (click)="scrollVouchers(block, 'left')"
+              >
+                ‹
+              </button>
+
+              <div class="text-center flex-1">
+                <h2 class="text-[24px] font-bold tracking-widest text-[#c1121f] uppercase">{{ block.title }}</h2>
+                <div class="w-20 h-1 bg-[#c1121f] mx-auto mt-2"></div>
+              </div>
+
+              <button
+                *ngIf="block.vouchers.length > 3"
+                type="button"
+                class="w-12 h-12 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-400 hover:text-[#c1121f] hover:border-[#c1121f] transition-all"
+                (click)="scrollVouchers(block, 'right')"
+              >
+                ›
+              </button>
+            </div>
+
+            <div class="relative">
+              <div [id]="voucherTrackId(block)" class="flex gap-2 overflow-x-auto pb-8 scrollbar-hide px-0 scroll-smooth">
+                <div *ngFor="let v of block.vouchers" class="flex-none w-[calc((100%-24px)/4)] voucher-card relative flex items-center bg-white rounded-sm border border-gray-200 shadow-sm overflow-visible h-28">
+                  <div class="flex-grow p-3 pr-1">
+                    <div class="text-[#c1121f] text-[16px] font-bold leading-tight mb-1">
+                      {{ v.title }}
+                    </div>
+                    <div class="text-gray-900 text-[13px] font-bold mb-1">
+                      Nhập mã <span class="uppercase tracking-wide">{{ v.code }}</span>
+                    </div>
+                    <div class="text-gray-500 text-[12px] font-medium">
+                      Đơn từ {{ formatMoney(v.minOrderAmount || 0) }}đ
+                    </div>
+                  </div>
+
+                  <div class="h-full border-l border-dashed border-gray-300 relative mx-0 flex items-center">
+                    <div class="notch-top w-5 h-2.5 -top-1.5"></div>
+                    <div class="notch-bottom w-5 h-2.5 -bottom-1.5"></div>
+                  </div>
+
+                  <div class="w-[100px] flex items-center justify-center p-2">
+                    <button
+                      type="button"
+                      class="w-full py-2 text-white text-[11px] font-bold rounded-sm transition-colors uppercase tracking-tight"
+                      [class.bg-[#c1121f]]="!isVoucherCopied(v.code)"
+                      [class.hover:bg-[#a4131b]]="!isVoucherCopied(v.code)"
+                      [class.bg-gray-400]="isVoucherCopied(v.code)"
+                      (click)="copyVoucher(v.code)"
+                    >
+                      {{ isVoucherCopied(v.code) ? 'Đã sao chép' : (v.buttonText || 'Sao chép mã') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'ROUND_CATEGORIES'">
+        <section class="w-full py-12" [id]="blockAnchorId(block)" *ngIf="block.enabled && block.categories.length > 0">
+          <div class="container">
+            <div class="text-center mb-12">
+              <h2 class="text-2xl font-bold tracking-widest text-[#c1121f] uppercase mb-2">{{ block.title }}</h2>
+              <div class="w-20 h-1 bg-[#c1121f] mx-auto"></div>
+            </div>
+
+            <div class="sale-quick-tiles-scroll px-0">
+              <a
+                class="sale-quick-tile"
+                *ngFor="let cat of block.categories | slice:0:12"
+                [routerLink]="['/category', cat.slug]"
+                [attr.aria-label]="cat.label"
+              >
+                <div class="sale-quick-tile-img bg-white">
+                  <img [src]="cat.imageUrl" alt="" (error)="onCategoryTileImageError(cat)" />
+                </div>
+                <div class="sale-quick-tile-label">{{ cat.label }}</div>
+              </a>
+            </div>
+          </div>
+        </section>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'PRODUCTS'">
+        <section class="w-full pt-8" [id]="blockAnchorId(block)" *ngIf="block.enabled">
+          <div class="container">
+            <div class="flex items-end justify-between gap-3 mb-4">
+              <div>
+                <div class="text-2xl font-black tracking-tight text-[var(--fh-text)]">{{ block.title }}</div>
+              </div>
+            </div>
+
+            <div *ngIf="block.loadingProducts" class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
+              <div class="text-sm font-black text-[var(--fh-text)]">Đang tải sản phẩm...</div>
+            </div>
+
+            <div *ngIf="!block.loadingProducts && block.products.length === 0" class="rounded-2xl border border-[var(--fh-border)] bg-white p-5 shadow-sm">
+              <div class="text-base font-black text-[var(--fh-text)]">Chưa có sản phẩm sale</div>
+            </div>
+
+            <div *ngIf="!block.loadingProducts && block.products.length > 0" class="sale-product-grid">
+              <div *ngFor="let p of block.products" class="sale-product-card group">
+                <div class="sale-product-media">
+                  <button type="button" class="block w-full h-full" (click)="goToProduct(p)">
+                    <img class="h-full w-full object-cover transition duration-500 group-hover:scale-105" [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onProductImageError(p)" />
+                  </button>
+                  <div class="absolute bottom-0 left-0 right-0 bg-[#c1121f] text-white py-1.5 px-2 flex justify-between items-center text-[10px] font-bold uppercase tracking-tight">
+                    <span>GIÁ TỐT</span>
+                    <span>ĐỘC QUYỀN</span>
+                  </div>
+                  <span *ngIf="p.badge" class="absolute left-2 top-2 inline-flex items-center rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-bold text-white">{{ p.badge }}</span>
+                </div>
+
+                <div class="sale-product-content">
+                  <button type="button" class="sale-product-name" (click)="goToProduct(p)">{{ p.name }}</button>
+                  <div class="sale-product-pricing">
+                    <div class="sale-product-price">{{ formatMoney(p.price) }}đ</div>
+                    <div class="sale-product-meta">
+                      <span *ngIf="p.oldPrice" class="sale-product-old-price">{{ formatMoney(p.oldPrice) }}đ</span>
+                      <span *ngIf="getDiscountLabel(p)" class="sale-product-discount">{{ getDiscountLabel(p) }}</span>
+                    </div>
+                    <div class="sale-product-extra" *ngIf="p.rating || p.soldCount">
+                      <span *ngIf="p.rating">★ {{ p.rating }}</span>
+                      <span *ngIf="p.rating && p.soldCount"> · </span>
+                      <span *ngIf="p.soldCount">Đã bán {{ p.soldCount }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+</main>

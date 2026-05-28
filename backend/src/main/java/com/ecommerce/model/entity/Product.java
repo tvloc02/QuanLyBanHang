@@ -23,6 +23,8 @@ public class Product {
     @Column(unique = true, nullable = false, length = 255)
     private String slug;
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String description;
 
     @Column(nullable = false)
@@ -34,6 +36,20 @@ public class Product {
     private Integer stock;
 
     private Long categoryId;
+
+    private Long productTypeId;
+
+    @Column(length = 32)
+    private String gender;
+
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String attributesJson;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_category_ids", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "category_id")
+    private List<Long> categoryIds = new ArrayList<>();
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -50,11 +66,29 @@ public class Product {
     @Column(name = "sold_count")
     private Long soldCount;
 
+    @Column(name = "promo_enabled")
+    private Boolean promoEnabled;
+
+    @Column(name = "promo_label")
+    private String promoLabel;
+
+    @Column(name = "promo_value")
+    private String promoValue;
+
+    @Column(name = "promo_code")
+    private String promoCode;
+
+    @Column(name = "promo_note")
+    private String promoNote;
+
     @Column(nullable = false)
     private String brand;
 
     @Column(nullable = false)
     private String category;
+
+    @Column(name = "weight_kg")
+    private Double weightKg;
 
     @ElementCollection
     @CollectionTable(name = "product_sizes", joinColumns = @JoinColumn(name = "product_id"))
@@ -65,6 +99,14 @@ public class Product {
     @CollectionTable(name = "product_colors", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "color")
     private List<String> colors = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "image_url")
+    private List<String> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<ProductVariant> variants = new ArrayList<>();
 
     private Boolean active = true;
 
@@ -102,6 +144,33 @@ public class Product {
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 
+    public Long getProductTypeId() {
+        return productTypeId;
+    }
+
+    public void setProductTypeId(Long productTypeId) {
+        this.productTypeId = productTypeId;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAttributesJson() {
+        return attributesJson;
+    }
+
+    public void setAttributesJson(String attributesJson) {
+        this.attributesJson = attributesJson;
+    }
+
+    public List<Long> getCategoryIds() { return categoryIds; }
+    public void setCategoryIds(List<Long> categoryIds) { this.categoryIds = categoryIds; }
+
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
@@ -117,17 +186,41 @@ public class Product {
     public Long getSoldCount() { return soldCount; }
     public void setSoldCount(Long soldCount) { this.soldCount = soldCount; }
 
+    public Boolean getPromoEnabled() { return promoEnabled; }
+    public void setPromoEnabled(Boolean promoEnabled) { this.promoEnabled = promoEnabled; }
+
+    public String getPromoLabel() { return promoLabel; }
+    public void setPromoLabel(String promoLabel) { this.promoLabel = promoLabel; }
+
+    public String getPromoValue() { return promoValue; }
+    public void setPromoValue(String promoValue) { this.promoValue = promoValue; }
+
+    public String getPromoCode() { return promoCode; }
+    public void setPromoCode(String promoCode) { this.promoCode = promoCode; }
+
+    public String getPromoNote() { return promoNote; }
+    public void setPromoNote(String promoNote) { this.promoNote = promoNote; }
+
     public String getBrand() { return brand; }
     public void setBrand(String brand) { this.brand = brand; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
+    public Double getWeightKg() { return weightKg; }
+    public void setWeightKg(Double weightKg) { this.weightKg = weightKg; }
+
     public List<String> getSizes() { return sizes; }
     public void setSizes(List<String> sizes) { this.sizes = sizes; }
 
     public List<String> getColors() { return colors; }
     public void setColors(List<String> colors) { this.colors = colors; }
+
+    public List<String> getImages() { return images; }
+    public void setImages(List<String> images) { this.images = images; }
+
+    public List<ProductVariant> getVariants() { return variants; }
+    public void setVariants(List<ProductVariant> variants) { this.variants = variants; }
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }

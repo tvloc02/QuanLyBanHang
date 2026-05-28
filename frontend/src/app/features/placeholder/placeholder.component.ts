@@ -7,7 +7,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <div class="page">
-      <a routerLink="/" class="back">← Về trang chủ</a>
+      <a routerLink="/sale" class="back">← Về trang chủ</a>
       <h1>Trang đang xây dựng</h1>
       <p>Route: <b>{{ path }}</b></p>
       <p>Slug: <b>{{ slug || '-' }}</b></p>

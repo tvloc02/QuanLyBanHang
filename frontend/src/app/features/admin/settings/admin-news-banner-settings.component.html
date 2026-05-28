@@ -1,0 +1,173 @@
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 4h16v16H4V4Z" />
+            <path d="M7 8h10" />
+            <path d="M7 12h10" />
+            <path d="M7 16h7" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Tin tức - Banner</h1>
+          <p class="text-blue-100 text-sm sm:text-base">Cấu hình nhiều banner hiển thị trên trang Tin tức và chọn 1 banner chính để bật popup</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="save()"
+          [disabled]="loading || saving"
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
+        >
+          <span>{{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl font-semibold">
+    {{ error }}
+  </div>
+
+  <div *ngIf="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl font-semibold">
+    {{ success }}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="lg:col-span-7 space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-sky-50">
+          <div class="text-sm font-extrabold text-gray-900">Cấu hình</div>
+          <div class="text-xs font-semibold text-gray-600 mt-1">Lưu vào sectionKey: <span class="font-extrabold">NEWS_BANNER</span></div>
+        </div>
+
+        <div class="p-5 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">Bật section</label>
+              <select class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.enabled">
+                <option [ngValue]="true">Bật</option>
+                <option [ngValue]="false">Tắt</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-extrabold text-gray-900 mb-2">Tiêu đề (tuỳ chọn)</label>
+              <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="form.title" placeholder="Banner tin tức" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3 pt-1">
+            <div class="text-sm font-semibold text-gray-700">Danh sách banner</div>
+            <button
+              type="button"
+              (click)="addItem()"
+              class="px-3 py-2 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700 text-sm"
+            >
+              + Thêm banner
+            </button>
+          </div>
+
+          <div class="space-y-3" *ngIf="(form.items || []).length > 0">
+            <div class="rounded-2xl border border-gray-100 overflow-hidden" *ngFor="let it of form.items; let i = index">
+              <div class="p-4 bg-gradient-to-r from-blue-50 to-sky-50 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-sm font-extrabold text-gray-900 truncate">{{ it.title || ('Banner #' + (i + 1)) }}</div>
+                  <div class="text-xs font-semibold text-gray-600 truncate">{{ it.route || '/news' }}</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button type="button" class="px-2 py-1 rounded-lg border border-gray-200 bg-white text-sm font-extrabold" (click)="up(i)" [disabled]="i === 0">↑</button>
+                  <button type="button" class="px-2 py-1 rounded-lg border border-gray-200 bg-white text-sm font-extrabold" (click)="down(i)" [disabled]="i === (form.items.length - 1)">↓</button>
+                  <button type="button" class="px-2 py-1 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-extrabold" (click)="removeItem(i)">Xóa</button>
+                </div>
+              </div>
+
+              <div class="p-4 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-extrabold text-gray-900 mb-2">Trạng thái</label>
+                    <select class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="it.enabled">
+                      <option [ngValue]="true">Bật</option>
+                      <option [ngValue]="false">Tắt</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-extrabold text-gray-900 mb-2">Tiêu đề banner</label>
+                    <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="it.title" placeholder="Tin tức" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-extrabold text-gray-900 mb-2">Nội dung (hiển thị ở /news)</label>
+                  <textarea class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" rows="3" [(ngModel)]="it.description" placeholder="Nhập nội dung ngắn..." ></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-extrabold text-gray-900 mb-2">URL hình banner</label>
+                  <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="it.imageUrl" placeholder="https://..." />
+                  <div class="mt-2 text-xs font-semibold text-gray-600">Khuyến nghị ảnh ngang, tỷ lệ ~ 21:9 hoặc 16:9.</div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-extrabold text-gray-900 mb-2">Link khi bấm banner</label>
+                  <input class="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm font-semibold placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400" [(ngModel)]="it.route" placeholder="/news" />
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                  <label class="inline-flex items-center gap-2 text-sm font-extrabold text-gray-800">
+                    <input type="radio" name="primaryPopup" class="w-4 h-4" [checked]="it.primaryPopup" (change)="setPrimary(i)" />
+                    <span>Đặt làm banner chính (Popup)</span>
+                  </label>
+                  <span *ngIf="it.primaryPopup" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800">Popup</span>
+                </div>
+
+                <div class="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
+                  <div class="relative w-full aspect-[16/9] bg-gray-100">
+                    <img *ngIf="it.imageUrl" [src]="it.imageUrl" alt="banner" class="absolute inset-0 w-full h-full object-cover" />
+                    <div *ngIf="!it.imageUrl" class="absolute inset-0 flex items-center justify-center text-sm font-semibold text-gray-500">Chưa có ảnh</div>
+                    <div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/65 via-black/20 to-transparent">
+                      <div class="text-white text-lg font-extrabold leading-tight">{{ it.title || 'Tin tức' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5 space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-sky-50">
+          <div class="text-sm font-extrabold text-gray-900">Ghi chú</div>
+          <div class="text-xs font-semibold text-gray-600 mt-1">Hiển thị trên trang Tin tức và popup vào web</div>
+        </div>
+
+        <div class="p-5 space-y-3 text-sm font-semibold text-gray-700">
+          <div>
+            - Danh sách banner sẽ hiển thị trên <span class="font-extrabold">/news</span>.
+          </div>
+          <div>
+            - Banner có tag <span class="font-extrabold">Popup</span> sẽ hiện 1 lần khi vào web (mỗi phiên).
+          </div>
+          <div>
+            - Nếu không chọn banner popup, website sẽ không hiển thị popup.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

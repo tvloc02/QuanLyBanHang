@@ -1,81 +1,3 @@
-<div class="topbar">
-  <div class="container">
-    <div class="topbar-text">{{ cfg.topBarText }}</div>
-  </div>
-</div>
-
-<header class="header">
-  <div class="container header-inner">
-    <div class="brand" (click)="scrollTo('hero')">{{ cfg.brandText }}</div>
-
-    <div class="search">
-      <div class="search-wrap" (click)="$event.stopPropagation()">
-        <input
-          type="text"
-          placeholder="Tìm kiếm..."
-          [value]="searchQuery"
-          (focus)="onSearchFocus()"
-          (input)="onSearchInput($any($event.target).value)"
-          (keydown)="onSearchKeydown($any($event))"
-        />
-      </div>
-
-      <button type="button" aria-label="Search" (click)="submitSearch()">🔍</button>
-
-      <div class="search-suggest" *ngIf="showSearchSuggest && searchSuggest.length > 0" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="suggest-item"
-          *ngFor="let s of searchSuggest; let i = index"
-          (click)="selectSuggestion(s.route)"
-          (mouseenter)="activeSuggestIndex = i"
-          [class.active]="i === activeSuggestIndex"
-        >
-          {{ s.label }}
-        </button>
-      </div>
-    </div>
-
-    <div class="actions">
-      <button type="button" class="icon-btn badge" (click)="go('/wishlist')" aria-label="Yêu thích">
-        ❤
-        <span class="badge-count" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
-      </button>
-
-      <button type="button" class="icon-btn badge" (click)="go('/cart')" aria-label="Giỏ hàng">
-        🛒
-        <span class="badge-count" *ngIf="cartCount > 0">{{ cartCount }}</span>
-      </button>
-
-      <div class="action account" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="icon-btn"
-          (click)="$event.stopPropagation(); toggleAccount()"
-          aria-label="Tài khoản"
-        >
-          👤
-        </button>
-        <div class="dropdown" *ngIf="accountOpen" (click)="$event.stopPropagation()">
-          <button type="button" class="dropdown-item" (click)="go('/login')">Đăng nhập</button>
-          <button type="button" class="dropdown-item" (click)="go('/register')">Đăng ký</button>
-        </div>
-      </div>
-    </div>
-
-    <nav class="nav">
-      <button
-        type="button"
-        class="nav-item"
-        *ngFor="let item of cfg.nav"
-        (click)="onNavClick(item)"
-      >
-        {{ item.label }}
-      </button>
-    </nav>
-  </div>
-</header>
-
 <div class="dot-nav">
   <button
     type="button"
@@ -135,7 +57,7 @@
   ></button>
 </div>
 
-<main class="page">
+<main class="page mb-32">
   <section id="hero" class="section hero">
     <div class="container hero-inner">
       <div class="hero-copy">
@@ -149,11 +71,38 @@
     </div>
   </section>
 
+  <section id="cart-saving" class="section" *ngIf="cartSavingLinks.length > 0 || cartSavingProducts.length > 0">
+    <div class="container">
+      <h2 class="section-title">{{ cartSavingTitle }}</h2>
+
+      <div class="cart-saving-grid" *ngIf="cartSavingLinks.length > 0">
+        <a class="saving-link" *ngFor="let l of cartSavingLinks" [routerLink]="l.route">
+          <div class="saving-main">
+            <div class="saving-title">{{ l.title }}</div>
+            <div class="saving-desc" *ngIf="l.description">{{ l.description }}</div>
+          </div>
+          <div class="saving-cta">{{ l.buttonText || 'Xem ngay' }}</div>
+        </a>
+      </div>
+
+      <div class="card-grid" *ngIf="cartSavingProducts.length > 0">
+        <a class="card" *ngFor="let p of cartSavingProducts" [routerLink]="p.route">
+          <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
+          <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
+          <div class="card-body">
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-price" *ngIf="p.priceText">{{ p.priceText }}</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <section id="vouchers" class="section">
     <div class="container">
-      <h2 class="section-title">{{ cfg.vouchersTitle }}</h2>
+      <h2 class="section-title">{{ vouchersTitle }}</h2>
       <div class="voucher-grid">
-        <div class="voucher" *ngFor="let v of cfg.vouchers">
+        <div class="voucher" *ngFor="let v of vouchers">
           <div class="voucher-main">
             <div class="voucher-title">{{ v.title }}</div>
             <div class="voucher-code">Mã: <b>{{ v.code }}</b></div>
@@ -204,8 +153,12 @@
   <section id="featured" class="section">
     <div class="container">
       <h2 class="section-title">{{ cfg.featuredTitle }}</h2>
+      <div class="status" *ngIf="loadingProducts && featuredProducts.length === 0">
+        <div class="spinner"></div>
+        <span>Đang tải...</span>
+      </div>
       <div class="card-grid">
-        <a class="card" *ngFor="let p of cfg.featuredProducts" [routerLink]="p.route">
+        <a class="card" *ngFor="let p of featuredProducts" [routerLink]="p.route">
           <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
           <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
           <div class="card-body">
@@ -224,8 +177,12 @@
   <section id="hot" class="section">
     <div class="container">
       <h2 class="section-title">{{ cfg.hotTitle }}</h2>
+      <div class="status" *ngIf="loadingProducts && hotProducts.length === 0">
+        <div class="spinner"></div>
+        <span>Đang tải...</span>
+      </div>
       <div class="card-grid">
-        <a class="card" *ngFor="let p of cfg.hotProducts" [routerLink]="p.route">
+        <a class="card" *ngFor="let p of hotProducts" [routerLink]="p.route">
           <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
           <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
           <div class="card-body">
@@ -244,8 +201,12 @@
   <section id="exclusive" class="section">
     <div class="container">
       <h2 class="section-title">{{ cfg.exclusiveTitle }}</h2>
+      <div class="status" *ngIf="loadingProducts && exclusiveProducts.length === 0">
+        <div class="spinner"></div>
+        <span>Đang tải...</span>
+      </div>
       <div class="card-grid">
-        <a class="card" *ngFor="let p of cfg.exclusiveProducts" [routerLink]="p.route">
+        <a class="card" *ngFor="let p of exclusiveProducts" [routerLink]="p.route">
           <div class="card-tag" *ngIf="p.tag">{{ p.tag }}</div>
           <img class="card-img" [src]="p.imageUrl" [alt]="p.title" />
           <div class="card-body">
@@ -263,9 +224,9 @@
 
   <section id="news" class="section">
     <div class="container">
-      <h2 class="section-title">{{ cfg.newsTitle }}</h2>
+      <h2 class="section-title">{{ newsTitle }}</h2>
       <div class="news-grid">
-        <a class="news" *ngFor="let n of cfg.news" [routerLink]="n.route">
+        <a class="news" *ngFor="let n of newsItems" [routerLink]="n.route">
           <img class="news-img" [src]="n.imageUrl" [alt]="n.title" />
           <div class="news-body">
             <div class="news-title">{{ n.title }}</div>
@@ -275,8 +236,6 @@
       </div>
     </div>
   </section>
-
-  <app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>
 </main>
 
 <button

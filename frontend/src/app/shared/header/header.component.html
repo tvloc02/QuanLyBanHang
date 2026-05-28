@@ -1,0 +1,138 @@
+<div class="tl-topbar">
+  <button type="button" class="tl-topbar__arrow" aria-label="Prev">‹</button>
+  <div class="tl-topbar__text">{{ promoText }}</div>
+  <button type="button" class="tl-topbar__arrow" aria-label="Next">›</button>
+</div>
+
+<header class="tl-header" (click)="showSuggest = false">
+  <div class="container tl-header__inner">
+    <a class="tl-header__brand" routerLink="/sale" aria-label="Home">
+      <span class="tl-header__brand-text">
+        <span class="tl-header__brand-l">L</span><span class="tl-header__brand-rest">.event</span>
+      </span>
+    </a>
+
+    <div class="tl-header__search" (click)="$event.stopPropagation()">
+      <input
+        class="tl-header__search-input"
+        type="text"
+        placeholder="Tìm kiếm..."
+        [value]="searchQuery"
+        (focus)="onSearchFocus()"
+        (input)="onSearchInput($any($event.target).value)"
+        (keydown)="onSearchKeydown($any($event))"
+      />
+      <button type="button" class="tl-header__search-btn" aria-label="Search" (click)="submitSearch()">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M10.5 3a7.5 7.5 0 1 1 0 15a7.5 7.5 0 0 1 0-15Zm0 2a5.5 5.5 0 1 0 0 11a5.5 5.5 0 0 0 0-11Zm7.76 11.35l2.39 2.39a1 1 0 0 1-1.41 1.41l-2.39-2.39a1 1 0 0 1 1.41-1.41Z"
+          />
+        </svg>
+      </button>
+
+      <div class="tl-header__suggest" *ngIf="showSuggest && suggest.length > 0">
+        <button
+          type="button"
+          class="tl-header__suggest-item"
+          *ngFor="let s of suggest; let i = index"
+          (click)="selectSuggestion(s.slug)"
+          (mouseenter)="activeSuggestIndex = i"
+          [class.active]="i === activeSuggestIndex"
+        >
+          {{ s.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="tl-header__icons">
+      <a class="tl-header__icon" routerLink="/cart" aria-label="Cart" data-cart-icon [class.is-bump]="cartBadgeBump">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 6h15l-1.5 8.5a2 2 0 0 1-2 1.7H8.4a2 2 0 0 1-2-1.7L5 3H2" />
+          <path d="M8 20a1 1 0 1 0 0 2a1 1 0 0 0 0-2Zm10 0a1 1 0 1 0 0 2a1 1 0 0 0 0-2Z" />
+        </svg>
+        <span class="tl-header__badge" *ngIf="cartCount > 0">{{ cartCount }}</span>
+      </a>
+
+      <a class="tl-header__icon" routerLink="/pages/yeu-thich" aria-label="Yêu thích">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 21s-7-4.5-9.5-8.6C0.9 9.2 2.6 5.8 6 5.3c1.9-.3 3.7.5 4.8 2c1.1-1.5 2.9-2.3 4.8-2c3.4.5 5.1 3.9 3.5 7.1C19 16.5 12 21 12 21Z" />
+        </svg>
+      </a>
+
+      <ng-container *ngIf="isAuthenticated(); else guestAccount">
+        <div class="tl-header__account" (click)="$event.stopPropagation()">
+          <button
+            class="tl-header__avatar is-logged"
+            type="button"
+            aria-label="Tài khoản"
+            [attr.title]="userDisplayName"
+            (click)="toggleUserMenu($any($event))"
+          >
+            <span class="tl-header__avatar-initial" aria-hidden="true">{{ userInitial }}</span>
+            <span class="tl-header__avatar-dot" aria-hidden="true"></span>
+          </button>
+          <div class="tl-header__menu" *ngIf="userMenuOpen">
+            <div class="tl-header__menu-head">
+              <div class="tl-header__menu-avatar" aria-hidden="true">{{ userInitial }}</div>
+              <div class="tl-header__menu-meta">
+                <div class="tl-header__menu-name">{{ userDisplayName }}</div>
+              </div>
+            </div>
+            <div class="tl-header__menu-sep" aria-hidden="true"></div>
+            <a class="tl-header__menu-item" routerLink="/profile" (click)="userMenuOpen = false">Thông tin cá nhân</a>
+            <a class="tl-header__menu-item" routerLink="/cart" (click)="userMenuOpen = false">Giỏ hàng</a>
+            <a *ngIf="isInternal()" class="tl-header__menu-item" routerLink="/admin" (click)="userMenuOpen = false">Quản lý hệ thống</a>
+            <button class="tl-header__menu-item danger" type="button" (click)="logout()">Đăng xuất</button>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #guestAccount>
+        <a class="tl-header__icon" routerLink="/login" aria-label="Account">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 21a8 8 0 0 0-16 0" />
+            <path d="M12 11a4 4 0 1 0-4-4a4 4 0 0 0 4 4Z" />
+          </svg>
+        </a>
+      </ng-template>
+    </div>
+  </div>
+
+  <nav class="tl-nav" (mouseenter)="onNavAreaEnter()" (mouseleave)="onNavAreaLeave()">
+    <div class="container tl-nav__inner">
+      <a class="tl-nav__item" routerLink="/sale" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" aria-label="Sale">Sale</a>
+      <div class="tl-nav__group" *ngFor="let root of categoryTree" [class.is-open]="openMegaRootId === root.id">
+        <a
+          class="tl-nav__item"
+          [routerLink]="['/category', root.slug]"
+          routerLinkActive="is-active"
+          (mouseenter)="onRootHover(root)"
+          (click)="onRootCategoryClick(root, $any($event))"
+        >
+          {{ root.name }}
+        </a>
+      </div>
+      <a class="tl-nav__item" routerLink="/news" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Tin tức</a>
+      <a class="tl-nav__item" routerLink="/order-lookup" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Tra cứu đơn hàng</a>
+    </div>
+
+    <ng-container *ngIf="getOpenRoot() as root">
+      <div
+        class="tl-nav__panel"
+        *ngIf="root.children && root.children.length > 0"
+        (mouseenter)="onNavAreaEnter()"
+        (mouseleave)="onNavAreaLeave()"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="container tl-nav__panel-inner">
+          <div class="tl-nav__panel-col" *ngFor="let lv2 of root.children">
+            <a class="tl-nav__panel-title" [routerLink]="['/category', lv2.slug]">{{ lv2.name }}</a>
+            <a class="tl-nav__panel-link" *ngFor="let lv3 of (lv2.children || [])" [routerLink]="['/category', lv3.slug]">
+              {{ lv3.name }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </nav>
+</header>

@@ -3,148 +3,112 @@
     <div class="steps">
       <div class="step done" (click)="backToCart()" role="button" tabindex="0">
         <span class="dot"></span>
-        <span class="label">GIỎ HÀNG</span>
+        <span class="label">Giỏ hàng</span>
       </div>
       <div class="divider"></div>
       <div class="step active">
         <span class="dot"></span>
-        <span class="label">ĐẶT HÀNG</span>
+        <span class="label">Xác nhận đơn</span>
       </div>
       <div class="divider"></div>
       <div class="step">
         <span class="dot"></span>
-        <span class="label">HOÀN THÀNH ĐƠN HÀNG</span>
+        <span class="label">Hoàn tất</span>
       </div>
     </div>
 
     <div class="empty" *ngIf="items.length === 0">
       <div class="empty-illu">🧾</div>
-      <div class="empty-title">Giỏ hàng trống</div>
-      <div class="empty-text">Vui lòng quay lại giỏ hàng để thêm sản phẩm.</div>
-      <button type="button" class="primary" (click)="backToCart()">QUAY LẠI GIỎ HÀNG</button>
+      <div class="empty-title">Không có dữ liệu thanh toán</div>
+      <div class="empty-text">Quay lại giỏ hàng để chọn sản phẩm, địa chỉ, giao hàng và thanh toán trước khi đặt đơn.</div>
+      <button type="button" class="primary" (click)="backToCart()">Quay lại giỏ hàng</button>
     </div>
 
     <div class="layout" *ngIf="items.length > 0">
       <section class="panel">
-        <div class="panel-title">Thông tin giao hàng</div>
+        <div class="panel-title">Thông tin đơn hàng</div>
 
-        <div class="addr-mode" (click)="$event.stopPropagation()">
-          <button
-            type="button"
-            class="mode-btn"
-            [class.active]="addressMode === 'after_merge'"
-            (click)="onAddressModeChange('after_merge')"
-          >
-            Sau sáp nhập
-          </button>
-          <button
-            type="button"
-            class="mode-btn"
-            [class.active]="addressMode === 'before_merge'"
-            (click)="onAddressModeChange('before_merge')"
-          >
-            Trước sáp nhập
-          </button>
+        <div class="info-block">
+          <div class="info-block__title">Mã đơn tổng</div>
+          <div class="order-code-main">{{ mainOrderCode }}</div>
+          <div class="info-note">Đơn hàng được gộp chung một mã tổng. Mỗi chi nhánh sẽ có mã nhánh riêng bằng cách nối thêm mã chi nhánh ở cuối để theo dõi giao hàng, nhận hàng và đánh giá riêng.</div>
         </div>
 
-        <div class="grid">
-          <div class="field">
-            <div class="label">Họ tên</div>
-            <input class="input" [(ngModel)]="fullName" placeholder="Nhập họ tên người nhận" />
-          </div>
-
-          <div class="field">
-            <div class="label">Số điện thoại</div>
-            <input class="input" [(ngModel)]="phone" placeholder="Nhập số điện thoại" />
-          </div>
-
-          <div class="field">
-            <div class="label">Tỉnh/Thành phố</div>
-            <div class="suggest-wrap" (click)="$event.stopPropagation()">
-              <input
-                class="input"
-                [value]="provinceQuery"
-                (focus)="focusSuggest('province')"
-                (input)="onProvinceInput($any($event.target).value)"
-                placeholder="VD: Hà Nội"
-              />
-              <div class="suggest" *ngIf="activeSuggest === 'province' && provinceSuggest.length">
-                <button type="button" class="suggest-item" *ngFor="let s of provinceSuggest" (click)="selectProvince(s)">
-                  {{ s }}
-                </button>
-              </div>
+        <div class="info-block">
+          <div class="info-block__title">Người nhận</div>
+          <div class="info-grid">
+            <div class="info-row">
+              <span>Họ tên</span>
+              <strong>{{ fullName || '-' }}</strong>
             </div>
-          </div>
-
-          <div class="field">
-            <div class="label">Quận/Huyện</div>
-            <div class="suggest-wrap" (click)="$event.stopPropagation()">
-              <input
-                class="input"
-                [value]="districtQuery"
-                [disabled]="!canPickDistrict"
-                (focus)="focusSuggest('district')"
-                (input)="onDistrictInput($any($event.target).value)"
-                placeholder="VD: Quận 1"
-              />
-              <div class="suggest" *ngIf="activeSuggest === 'district' && districtSuggest.length">
-                <button type="button" class="suggest-item" *ngFor="let s of districtSuggest" (click)="selectDistrict(s)">
-                  {{ s }}
-                </button>
-              </div>
+            <div class="info-row">
+              <span>Số điện thoại</span>
+              <strong>{{ phone || '-' }}</strong>
             </div>
-          </div>
-
-          <div class="field">
-            <div class="label">Phường/Xã</div>
-            <div class="suggest-wrap" (click)="$event.stopPropagation()">
-              <input
-                class="input"
-                [value]="wardQuery"
-                [disabled]="!canPickWard"
-                (focus)="focusSuggest('ward')"
-                (input)="onWardInput($any($event.target).value)"
-                placeholder="VD: Phường Bến Nghé"
-              />
-              <div class="suggest" *ngIf="activeSuggest === 'ward' && wardSuggest.length">
-                <button type="button" class="suggest-item" *ngFor="let s of wardSuggest" (click)="selectWard(s)">
-                  {{ s }}
-                </button>
-              </div>
+            <div class="info-row info-row--full">
+              <span>Địa chỉ giao hàng</span>
+              <strong>{{ shippingAddressSummary || '-' }}</strong>
             </div>
-          </div>
-
-          <div class="field full">
-            <div class="label">Địa chỉ chi tiết</div>
-            <input class="input" [(ngModel)]="addressDetail" placeholder="Số nhà, tên đường, ..." />
-          </div>
-
-          <div class="field full">
-            <div class="label">Ghi chú (tuỳ chọn)</div>
-            <textarea class="textarea" [(ngModel)]="note" rows="3" placeholder="Ghi chú cho người giao hàng..."></textarea>
           </div>
         </div>
 
-        <div class="panel-title" style="margin-top: 16px;">Thanh toán</div>
-        <div class="pay">
-          <label class="pay-item">
-            <input type="radio" name="pm" [checked]="paymentMethod === 'cod'" (change)="paymentMethod = 'cod'" />
-            <div class="pay-main">
-              <div class="pay-name">COD</div>
-              <div class="pay-desc">Thanh toán khi nhận hàng</div>
-            </div>
-          </label>
-          <label class="pay-item">
-            <input type="radio" name="pm" [checked]="paymentMethod === 'bank'" (change)="paymentMethod = 'bank'" />
-            <div class="pay-main">
-              <div class="pay-name">Chuyển khoản</div>
-              <div class="pay-desc">Chuyển khoản ngân hàng (demo)</div>
-            </div>
-          </label>
+        <div class="info-block">
+          <div class="info-block__title">Đơn theo chi nhánh</div>
+          <div class="shipment-readonly-list" *ngIf="checkoutShipments.length > 0; else noShipmentSnapshot">
+            <article class="shipment-readonly" *ngFor="let shipment of checkoutShipments">
+              <div class="shipment-readonly__head">
+                <div class="shipment-readonly__titles">
+                  <div class="shipment-readonly__branch">{{ shipment.branchName || 'Chi nhánh chưa rõ' }}</div>
+                  <div class="shipment-readonly__code">{{ shipment.displayOrderCode }}</div>
+                </div>
+                <div class="shipment-readonly__qty">{{ formatShipmentQuantity(shipment) }} SP</div>
+              </div>
+
+              <div class="shipment-readonly__address" *ngIf="shipment.branchAddress">{{ shipment.branchAddress }}</div>
+
+              <div class="shipment-product-list" *ngIf="shipment.items?.length">
+                <div class="shipment-product" *ngFor="let item of shipment.items">
+                  <div class="shipment-product__info">
+                    <strong>{{ item.name || 'Sản phẩm' }}</strong>
+                    <span *ngIf="item.size || item.color">
+                      {{ item.size ? ('Size ' + item.size) : '' }}{{ item.size && item.color ? ' · ' : '' }}{{ item.color ? ('Màu ' + item.color) : '' }}
+                    </span>
+                  </div>
+                  <div class="shipment-product__meta">
+                    <span>x{{ item.quantity || 0 }}</span>
+                    <b>{{ formatMoney((item.price || 0) * (item.quantity || 0)) }}đ</b>
+                  </div>
+                </div>
+              </div>
+
+              <div class="shipment-readonly__meta">
+                <span>{{ shipment.selectedOption?.label || '-' }}</span>
+                <span>Nhận hàng: {{ formatShippingDays(shipment.selectedOption?.minDays, shipment.selectedOption?.maxDays) }}</span>
+                <strong>{{ formatMoney(shipment.selectedOption?.fee || 0) }}đ</strong>
+              </div>
+
+              <div class="shipment-readonly__subtotal">
+                <span>Tạm tính chi nhánh</span>
+                <strong>{{ formatMoney(formatShipmentSubtotal(shipment)) }}đ</strong>
+              </div>
+            </article>
+          </div>
+
+          <ng-template #noShipmentSnapshot>
+            <div class="info-note">Không có nhóm giao hàng từ giỏ hàng.</div>
+          </ng-template>
+        </div>
+
+        <div class="info-block">
+          <div class="info-block__title">Thanh toán</div>
+          <div class="payment-readonly">
+            <div class="payment-readonly__name">{{ paymentMethodName }}</div>
+            <div class="payment-readonly__desc">{{ paymentMethodDescription }}</div>
+          </div>
         </div>
 
         <div class="error" *ngIf="error">{{ error }}</div>
-        <div class="success" *ngIf="placed">Đặt hàng thành công! Đang chuyển về trang chủ...</div>
+        <div class="success" *ngIf="placed">Đặt hàng thành công. Đang chuyển về trang chủ...</div>
       </section>
 
       <aside class="summary">
@@ -173,16 +137,20 @@
           <span>Vận chuyển</span>
           <b>{{ formatMoney(shippingFee) }}đ</b>
         </div>
+        <div class="sum-row">
+          <span>Giảm giá</span>
+          <b>{{ discountAmount > 0 ? '-' + formatMoney(discountAmount) + 'đ' : '0đ' }}</b>
+        </div>
         <div class="sum-row total">
           <span>Tổng cộng</span>
           <b>{{ formatMoney(total) }}đ</b>
         </div>
 
-        <button type="button" class="primary" [disabled]="placed" (click)="placeOrder()">ĐẶT HÀNG</button>
+        <button type="button" class="primary" [disabled]="placed || placing" (click)="placeOrder()">
+          {{ placing ? 'Đang xử lý...' : 'Hoàn tất thanh toán' }}
+        </button>
         <button type="button" class="ghost" (click)="backToCart()">← Quay lại giỏ hàng</button>
       </aside>
     </div>
   </div>
 </main>
-
-<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>

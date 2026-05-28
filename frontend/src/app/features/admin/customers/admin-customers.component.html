@@ -1,0 +1,256 @@
+<div class="customers-page space-y-6">
+  <div class="page-hero text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="hero-icon flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">Khách hàng</h1>
+          <p class="text-blue-100 text-sm sm:text-base">
+            Quản lý tài khoản khách hàng, xử lý khóa, xóa, đổi mật khẩu và chuyển vai trò hệ thống.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          (click)="load()"
+          [disabled]="loading"
+          class="flex items-center gap-2 px-3 py-2 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+        >
+          <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="rounded-xl border-2 border-red-200 bg-red-50 text-red-700 px-4 py-3 font-semibold">
+    {{ error }}
+  </div>
+
+  <div class="stats grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+    <div class="stat">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng khách hàng</div>
+      <div class="mt-1 text-2xl font-extrabold text-gray-900">{{ totalCustomers }}</div>
+    </div>
+    <div class="stat">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Đang hoạt động</div>
+      <div class="mt-1 text-2xl font-extrabold text-green-600">{{ activeCustomers }}</div>
+    </div>
+    <div class="stat">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Đang khóa</div>
+      <div class="mt-1 text-2xl font-extrabold text-red-600">{{ lockedCustomers }}</div>
+    </div>
+    <div class="stat">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">Yêu cầu xóa</div>
+      <div class="mt-1 text-2xl font-extrabold text-amber-600">{{ pendingDeleteRequests }}</div>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="table-shell overflow-x-auto">
+      <table class="customers-table min-w-full">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Khách hàng</th>
+            <th>Email</th>
+            <th>SĐT</th>
+            <th>Phân khúc</th>
+            <th>TB/tháng (6T)</th>
+            <th>Chi tiêu (6T)</th>
+            <th>Tuổi TK</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="10" class="state-cell">Đang tải dữ liệu...</td>
+          </tr>
+          <tr *ngIf="!loading && rows.length === 0">
+            <td colspan="10" class="state-cell">Chưa có khách hàng.</td>
+          </tr>
+          <tr *ngFor="let row of rows">
+            <td class="text-center strong">#{{ row.id }}</td>
+            <td>
+              <div class="customer-cell">
+                <div class="avatar-chip">
+                  {{ (row.fullName || row.username || row.email || 'K').toString().trim().charAt(0).toUpperCase() }}
+                </div>
+                <div class="customer-meta">
+                  <div class="customer-name">{{ row.fullName || '-' }}</div>
+                  <div class="customer-user">{{ row.username || '-' }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ row.email || '-' }}</td>
+            <td>{{ row.phone || '-' }}</td>
+            <td class="text-center strong">{{ segmentLabel(row.customerSegment) }}</td>
+            <td class="text-right strong">{{ formatVnd(row.avgMonthlySpendLast6Months || 0) }}</td>
+            <td class="text-right strong">{{ formatVnd(row.totalSpendLast6Months || 0) }}</td>
+            <td class="text-center">{{ accountAgeLabel(row.accountAgeMonths) }}</td>
+            <td class="text-center">
+              <span
+                class="status-pill"
+                [ngClass]="row.enabled === false ? 'is-locked' : 'is-active'"
+              >
+                {{ row.enabled === false ? 'Khóa' : 'Hoạt động' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="actions">
+                <button type="button" (click)="openEdit(row)" title="Sửa" class="action action-edit">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+                  </svg>
+                </button>
+                <button type="button" (click)="onResetPassword(row)" title="Đổi mật khẩu" class="action action-blue">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 11V7a4 4 0 0 1 8 0v4" />
+                    <rect x="3" y="11" width="14" height="10" rx="2" />
+                    <path d="M7 15h6" />
+                  </svg>
+                </button>
+                <button type="button" (click)="openConvert(row)" title="Chuyển thành tài khoản hệ thống" class="action action-purple">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m16 3 5 5-5 5" />
+                    <path d="M21 8H9" />
+                    <path d="M8 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
+                  </svg>
+                </button>
+                <button type="button" (click)="approveDeleteRequest(row)" title="Duyệt yêu cầu xóa" class="action action-amber">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  (click)="onToggleEnabled(row)"
+                  [title]="row.enabled === false ? 'Mở khóa' : 'Khóa'"
+                  class="action"
+                  [ngClass]="row.enabled === false ? 'action-emerald' : 'action-violet'"
+                >
+                  <svg *ngIf="row.enabled !== false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <svg *ngIf="row.enabled === false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V9a5 5 0 0 1 7.5-4.33" />
+                  </svg>
+                </button>
+                <button type="button" (click)="onDelete(row)" title="Xóa" class="action action-delete">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="overlay" *ngIf="editOpen">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Sửa khách hàng">
+      <div class="modal-head">
+        <div class="modal-title">Sửa khách hàng</div>
+        <button class="icon" type="button" (click)="closeEdit()">×</button>
+      </div>
+      <div class="form p-4">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Họ tên</label>
+            <input class="input" [(ngModel)]="editForm.fullName" placeholder="VD: Nguyễn Văn A" />
+          </div>
+          <div class="field">
+            <label class="label">Email</label>
+            <input class="input" type="email" [(ngModel)]="editForm.email" placeholder="name@domain.com" />
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Username</label>
+            <input class="input" [(ngModel)]="editForm.username" placeholder="username" />
+          </div>
+          <div class="field">
+            <label class="label">Số điện thoại</label>
+            <input class="input" [(ngModel)]="editForm.phone" placeholder="0987..." />
+          </div>
+        </div>
+        <div class="grid1">
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" [(ngModel)]="editForm.enabled">
+              <option [ngValue]="true">Hoạt động</option>
+              <option [ngValue]="false">Khóa</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="closeEdit()">Hủy</button>
+          <button class="btn" type="button" (click)="submitEdit()" [disabled]="editLoading">
+            {{ editLoading ? 'Đang lưu...' : 'Lưu thay đổi' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" *ngIf="convertOpen && convertTarget">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Chuyển tài khoản khách hàng">
+      <div class="modal-head">
+        <div class="modal-title">Chuyển thành tài khoản hệ thống</div>
+        <button class="icon" type="button" (click)="closeConvert()">×</button>
+      </div>
+      <div class="form p-4">
+        <div class="notice-box">
+          Khách hàng <strong>{{ convertTarget.fullName || convertTarget.email || ('#' + convertTarget.id) }}</strong> sẽ được chuyển thành tài khoản quản lý trong hệ thống.
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Vai trò mới</label>
+            <select class="input" [(ngModel)]="convertForm.role" (ngModelChange)="suggestConvertUsername()">
+              <option value="STAFF">Nhân viên</option>
+              <option value="MANAGER">Quản lý</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">Chi nhánh</label>
+            <select class="input" [(ngModel)]="convertForm.branchId" (ngModelChange)="suggestConvertUsername()">
+              <option [ngValue]="null">-- Chọn chi nhánh --</option>
+              <option *ngFor="let branch of branches" [ngValue]="branch.id">{{ branch.code }} - {{ branch.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid1">
+          <div class="field">
+            <label class="label">Username hệ thống</label>
+            <input class="input" [(ngModel)]="convertForm.username" placeholder="NV_CN_0001" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="closeConvert()">Hủy</button>
+          <button class="btn" type="button" (click)="submitConvert()" [disabled]="convertLoading">
+            {{ convertLoading ? 'Đang chuyển...' : 'Chuyển tài khoản' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -11,6 +11,8 @@ public class CouponDto {
 
     private String description;
 
+    private String type;
+
     private BigDecimal discountAmount;
 
     private Integer discountPercent;
@@ -18,6 +20,10 @@ public class CouponDto {
     private BigDecimal minOrderAmount;
 
     private BigDecimal maxDiscountAmount;
+
+    private BigDecimal shippingDiscountAmount;
+
+    private String targetUserIds;
 
     private Integer usageLimit;
 
@@ -55,6 +61,14 @@ public class CouponDto {
         this.description = description;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
     public BigDecimal getDiscountAmount() {
         return discountAmount;
     }
@@ -85,6 +99,22 @@ public class CouponDto {
 
     public void setMaxDiscountAmount(BigDecimal maxDiscountAmount) {
         this.maxDiscountAmount = maxDiscountAmount;
+    }
+
+    public BigDecimal getShippingDiscountAmount() {
+        return shippingDiscountAmount;
+    }
+
+    public void setShippingDiscountAmount(BigDecimal shippingDiscountAmount) {
+        this.shippingDiscountAmount = shippingDiscountAmount;
+    }
+
+    public String getTargetUserIds() {
+        return targetUserIds;
+    }
+
+    public void setTargetUserIds(String targetUserIds) {
+        this.targetUserIds = targetUserIds;
     }
 
     public Integer getUsageLimit() {

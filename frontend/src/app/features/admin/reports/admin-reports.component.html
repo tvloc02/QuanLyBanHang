@@ -1,0 +1,196 @@
+<div class="reports-page">
+  <section class="reports-hero">
+    <div class="reports-hero__icon">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4 19h16M7 16V9m5 7V5m5 11v-4" />
+      </svg>
+    </div>
+    <div class="reports-hero__content">
+      <h1>Báo cáo</h1>
+      <p>Thống kê sản phẩm đã bán, tồn kho, doanh thu, tỷ lệ đơn hủy và tỷ lệ giao thành công theo tháng hoặc theo quý.</p>
+    </div>
+    <div class="reports-hero__actions">
+      <button type="button" class="ghost-button" (click)="exportExcel()">Xuất Excel</button>
+      <button type="button" class="ghost-button" (click)="exportPdf()">Xuất PDF</button>
+    </div>
+  </section>
+
+  <div *ngIf="error" class="reports-alert">{{ error }}</div>
+
+  <section class="filter-card">
+    <div class="filter-grid">
+      <label class="field">
+        <span>Chế độ báo cáo</span>
+        <select [(ngModel)]="reportMode" (ngModelChange)="onModeChange()">
+          <option *ngFor="let option of modeOptions" [ngValue]="option.value">{{ option.label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Năm</span>
+        <select [(ngModel)]="selectedYear" (ngModelChange)="applyFilters()">
+          <option *ngFor="let year of yearOptions" [ngValue]="year">{{ year }}</option>
+        </select>
+      </label>
+
+      <label class="field" *ngIf="reportMode === 'month'">
+        <span>Tháng</span>
+        <select [(ngModel)]="selectedMonth" (ngModelChange)="applyFilters()">
+          <option *ngFor="let month of monthOptions" [ngValue]="month.value">{{ month.label }}</option>
+        </select>
+      </label>
+
+      <label class="field" *ngIf="reportMode === 'quarter'">
+        <span>Quý</span>
+        <select [(ngModel)]="selectedQuarter" (ngModelChange)="applyFilters()">
+          <option *ngFor="let quarter of quarterOptions" [ngValue]="quarter.value">{{ quarter.label }}</option>
+        </select>
+      </label>
+
+      <div class="field field--meta">
+        <span>Kỳ đang xem</span>
+        <strong>{{ periodLabel }}</strong>
+        <small>{{ rangeLabel }}</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="metric-grid" *ngIf="!loading">
+    <article class="metric-card">
+      <span class="metric-card__label">Doanh thu</span>
+      <strong class="metric-card__value">{{ formatMoney(totalRevenue) }}</strong>
+    </article>
+    <article class="metric-card">
+      <span class="metric-card__label">Tổng đơn hàng</span>
+      <strong class="metric-card__value">{{ formatInt(totalOrders) }}</strong>
+    </article>
+    <article class="metric-card">
+      <span class="metric-card__label">Sản phẩm đã bán</span>
+      <strong class="metric-card__value">{{ formatInt(totalSoldQty) }}</strong>
+    </article>
+    <article class="metric-card">
+      <span class="metric-card__label">Tồn hiện tại</span>
+      <strong class="metric-card__value">{{ formatInt(totalCurrentStock) }}</strong>
+    </article>
+    <article class="metric-card metric-card--danger">
+      <span class="metric-card__label">Tỷ lệ đơn hủy</span>
+      <strong class="metric-card__value">{{ cancelRate }}%</strong>
+    </article>
+    <article class="metric-card metric-card--success">
+      <span class="metric-card__label">Tỷ lệ giao thành công</span>
+      <strong class="metric-card__value">{{ successRate }}%</strong>
+    </article>
+  </section>
+
+  <section class="chart-grid" *ngIf="!loading">
+    <article class="chart-card">
+      <div class="chart-card__head">
+        <h2>Biểu đồ doanh thu</h2>
+        <span>{{ periodLabel }}</span>
+      </div>
+      <div class="bar-chart-stack" *ngIf="chartRevenueBars.length > 0; else emptyRevenueChart">
+        <div class="bar-chart" *ngFor="let chunk of revenueChartChunks">
+          <div class="bar-chart__item" *ngFor="let point of chunk">
+            <div class="bar-chart__value">{{ formatMoney(point.revenue) }}</div>
+            <div class="bar-chart__track">
+              <div class="bar-chart__bar bar-chart__bar--revenue" [style.height.%]="point.heightPct"></div>
+            </div>
+            <div class="bar-chart__label">{{ point.label }}</div>
+          </div>
+        </div>
+      </div>
+      <ng-template #emptyRevenueChart>
+        <div class="chart-empty">Chưa có doanh thu trong kỳ đã chọn.</div>
+      </ng-template>
+    </article>
+
+    <article class="chart-card">
+      <div class="chart-card__head">
+        <h2>Biểu đồ số đơn</h2>
+        <span>{{ periodLabel }}</span>
+      </div>
+      <div class="bar-chart-stack" *ngIf="chartOrderBars.length > 0; else emptyOrderChart">
+        <div class="bar-chart" *ngFor="let chunk of orderChartChunks">
+          <div class="bar-chart__item" *ngFor="let point of chunk">
+            <div class="bar-chart__value">{{ formatInt(point.orders) }}</div>
+            <div class="bar-chart__track">
+              <div class="bar-chart__bar bar-chart__bar--orders" [style.height.%]="point.heightPct"></div>
+            </div>
+            <div class="bar-chart__label">{{ point.label }}</div>
+          </div>
+        </div>
+      </div>
+      <ng-template #emptyOrderChart>
+        <div class="chart-empty">Chưa có đơn hàng trong kỳ đã chọn.</div>
+      </ng-template>
+    </article>
+  </section>
+
+  <section class="top-card" *ngIf="!loading">
+    <div class="top-card__head">
+      <h2>Top sản phẩm bán chạy trong kỳ</h2>
+      <span>{{ detailsLoading ? 'Đang tải chi tiết đơn...' : (topProductBars.length + ' sản phẩm') }}</span>
+    </div>
+    <div class="top-list" *ngIf="topProductBars.length > 0; else emptyTopProducts">
+      <div class="top-list__row" *ngFor="let row of topProductBars">
+        <div class="top-list__meta">
+          <strong>{{ row.name }}</strong>
+          <span>{{ row.category || 'Chưa phân loại' }}</span>
+        </div>
+        <div class="top-list__bar">
+          <div class="top-list__fill" [style.width.%]="row.widthPct"></div>
+        </div>
+        <div class="top-list__value">{{ formatInt(row.soldQty) }} SP</div>
+      </div>
+    </div>
+    <ng-template #emptyTopProducts>
+      <div class="chart-empty">Không có sản phẩm bán ra trong kỳ đã chọn.</div>
+    </ng-template>
+  </section>
+
+  <section class="table-card" *ngIf="!loading">
+    <div class="table-card__head">
+      <div>
+        <h2>Bảng thống kê sản phẩm</h2>
+        <p>Đã bán trong kỳ, tồn hiện tại và doanh thu theo sản phẩm.</p>
+      </div>
+      <div class="table-card__meta">
+        <span>{{ productRows.length }} sản phẩm</span>
+      </div>
+    </div>
+
+    <div class="table-shell" *ngIf="!detailsLoading; else loadingDetails">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>SKU</th>
+            <th>Sản phẩm</th>
+            <th>Danh mục</th>
+            <th>Đã bán</th>
+            <th>Tồn hiện tại</th>
+            <th>Doanh thu</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="productRows.length === 0">
+            <td colspan="7" class="empty-cell">Không có dữ liệu sản phẩm cho kỳ đã chọn.</td>
+          </tr>
+          <tr *ngFor="let row of productRows; let i = index; trackBy: trackByProductId">
+            <td>{{ i + 1 }}</td>
+            <td>{{ row.sku }}</td>
+            <td class="is-left">{{ row.name }}</td>
+            <td>{{ row.category }}</td>
+            <td>{{ formatInt(row.soldQty) }}</td>
+            <td>{{ formatInt(row.currentStock) }}</td>
+            <td class="is-right">{{ formatMoney(row.revenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #loadingDetails>
+      <div class="chart-empty">Đang tổng hợp chi tiết sản phẩm từ đơn hàng...</div>
+    </ng-template>
+  </section>
+</div>

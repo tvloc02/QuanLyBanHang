@@ -30,10 +30,20 @@
      public ResponseEntity<ApiResponse<List<CategoryResponse>>> list() {
          return ResponseEntity.ok(ApiResponse.ok(categoryService.list()));
      }
+
+     @GetMapping("/tree")
+     public ResponseEntity<ApiResponse<List<CategoryResponse>>> tree() {
+         return ResponseEntity.ok(ApiResponse.ok(categoryService.listTree()));
+     }
  
      @GetMapping("/{id}")
      public ResponseEntity<ApiResponse<CategoryResponse>> get(@PathVariable Long id) {
          return ResponseEntity.ok(ApiResponse.ok(categoryService.get(id)));
+     }
+
+     @GetMapping("/slug/{slug}")
+     public ResponseEntity<ApiResponse<CategoryResponse>> getBySlug(@PathVariable String slug) {
+         return ResponseEntity.ok(ApiResponse.ok(categoryService.getBySlug(slug)));
      }
  
      @PostMapping

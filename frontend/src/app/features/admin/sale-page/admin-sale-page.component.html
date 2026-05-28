@@ -1,0 +1,418 @@
+<div class="sale-config-page">
+  <div class="sale-config-hero">
+    <div class="sale-config-hero__left">
+      <div class="sale-config-hero__icon">▦</div>
+      <div>
+        <h1>{{ pageTitle }}</h1>
+        <p>{{ pageDescription }}</p>
+      </div>
+    </div>
+
+    <div class="sale-config-hero__actions">
+      <button class="hero-btn hero-btn--ghost" type="button" (click)="load()" [disabled]="loading || saving">
+        {{ loading ? 'Đang tải' : 'Làm mới' }}
+      </button>
+      <button class="hero-btn" type="button" (click)="save()" [disabled]="loading || saving">
+        {{ saving ? 'Đang lưu' : 'Lưu cấu hình' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="sale-config-alert" *ngIf="error">{{ error }}</div>
+
+  <div class="add-block-bar">
+    <button class="add-block-btn" type="button" (click)="addBlock('HERO')">+ Banner</button>
+    <button class="add-block-btn" type="button" (click)="addBlock('VOUCHERS')">+ Voucher</button>
+    <button class="add-block-btn" type="button" (click)="addBlock('ROUND_CATEGORIES')">+ Danh mục tròn</button>
+    <button class="add-block-btn" type="button" (click)="addBlock('PRODUCTS')">+ Sản phẩm</button>
+  </div>
+
+  <div class="sale-config-list">
+    <section class="section-card" *ngFor="let block of blocks; let i = index; trackBy: trackByBlock">
+        <div class="section-card__head">
+          <div class="section-card__title">{{ typeLabel(block.type) }}</div>
+          <div class="section-card__head-actions">
+            <label class="switch"><input type="checkbox" [(ngModel)]="block.enabled" /> Hiện</label>
+            <button class="icon-btn" type="button" (click)="moveBlockUp(i)" [disabled]="i === 0">↑</button>
+            <button class="icon-btn" type="button" (click)="moveBlockDown(i)" [disabled]="i === blocks.length - 1">↓</button>
+            <button class="icon-btn icon-btn--danger" type="button" (click)="removeBlock(i)">Xóa</button>
+          </div>
+      </div>
+
+      <div class="section-card__body">
+        <ng-container [ngSwitch]="block.type">
+          <ng-container *ngSwitchCase="'HERO'">
+            <div class="hero-editor" *ngIf="block.heroItems.length > 0">
+              <div class="hero-editor__panel">
+                <div class="field">
+                  <label>Loại mục</label>
+                  <select class="input" [ngModel]="block.type" (ngModelChange)="changeBlockType(block, $event)">
+                    <option [ngValue]="'HERO'">Banner (Hero)</option>
+                    <option [ngValue]="'VOUCHERS'">Voucher</option>
+                    <option [ngValue]="'ROUND_CATEGORIES'">Danh mục tròn</option>
+                    <option [ngValue]="'PRODUCTS'">Sản phẩm</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Trạng thái</label>
+                  <select class="input" [(ngModel)]="block.enabled">
+                    <option [ngValue]="true">Bật</option>
+                    <option [ngValue]="false">Tắt</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="hero-preview hero-preview--solo">
+                <img *ngIf="block.heroItems[0].imageUrl" [src]="resolveImageUrl(block.heroItems[0].imageUrl)" alt="" />
+                <div class="hero-preview__empty" *ngIf="!block.heroItems[0].imageUrl">Chưa có ảnh</div>
+
+                <div class="hero-preview__overlay">
+                  <div class="hero-preview__content hero-preview__content--hidden"></div>
+                  <div class="hero-preview__tools">
+                    <input
+                      class="file-input"
+                      type="file"
+                      accept="image/*"
+                      [id]="'saleHeroFile' + block.id + '-0'"
+                      (change)="onHeroFileSelect(block, 0, $event)"
+                    />
+                    <label class="hero-preview__tool" [attr.for]="'saleHeroFile' + block.id + '-0'">+ Thêm ảnh</label>
+                    <button class="hero-preview__tool hero-preview__tool--danger" type="button" (click)="clearHeroImage(block, 0)">Xóa</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'VOUCHERS'">
+            <div class="section-form-grid">
+              <div class="field">
+                <label>Loại mục</label>
+                <select class="input" [ngModel]="block.type" (ngModelChange)="changeBlockType(block, $event)">
+                  <option [ngValue]="'HERO'">Banner (Hero)</option>
+                  <option [ngValue]="'VOUCHERS'">Voucher</option>
+                  <option [ngValue]="'ROUND_CATEGORIES'">Danh mục tròn</option>
+                  <option [ngValue]="'PRODUCTS'">Sản phẩm</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Tiêu đề (tùy chọn)</label>
+                <input class="input" [(ngModel)]="block.title" />
+              </div>
+
+              <div class="field">
+                <label>Trạng thái</label>
+                <select class="input" [(ngModel)]="block.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="inline-tools" *ngIf="block.type === 'VOUCHERS'">
+              <div></div>
+              <div class="inline-tools__actions">
+                <button class="soft-btn" type="button" (click)="openVoucherPicker(block)">Chọn voucher hiển thị</button>
+                <button class="soft-btn" type="button" (click)="fillAllVouchers(block)">Tự động lấy tất cả</button>
+              </div>
+            </div>
+
+            <div class="voucher-preview-grid">
+              <div class="voucher-preview-card" *ngFor="let it of block.voucherItems.slice(0, 4); let j = index">
+                <div class="voucher-preview-card__main">
+                  <strong>Mã: {{ couponCode(it.refId) || ('VOUCHER' + (j + 1)) }}</strong>
+                  <div>Nhập mã {{ couponCode(it.refId) || 'VOUCHER' }}</div>
+                  <small>{{ couponMinOrderText(it.refId) }}</small>
+                </div>
+                <div class="voucher-preview-card__side">
+                  <button class="voucher-copy-btn" type="button">{{ it.buttonText || 'Sao chép mã' }}</button>
+                  <select class="input input--compact" [(ngModel)]="it.refId">
+                    <option [ngValue]="null">-- Chọn voucher --</option>
+                    <option *ngFor="let c of coupons" [ngValue]="c.id">{{ c.code }}</option>
+                  </select>
+                  <label class="switch compact"><input type="checkbox" [(ngModel)]="it.enabled" /> Hiện</label>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'ROUND_CATEGORIES'">
+            <div class="section-form-grid section-form-grid--round">
+              <div class="field">
+                <label>Loại mục</label>
+                <select class="input" [ngModel]="block.type" (ngModelChange)="changeBlockType(block, $event)">
+                  <option [ngValue]="'HERO'">Banner (Hero)</option>
+                  <option [ngValue]="'VOUCHERS'">Voucher</option>
+                  <option [ngValue]="'ROUND_CATEGORIES'">Danh mục tròn</option>
+                  <option [ngValue]="'PRODUCTS'">Sản phẩm</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Tiêu đề (tùy chọn)</label>
+                <input class="input" [(ngModel)]="block.title" />
+              </div>
+
+              <div class="field">
+                <label>Trạng thái</label>
+                <select class="input" [(ngModel)]="block.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+
+              <div class="field field--action">
+                <button class="soft-btn" type="button" (click)="openRoundPicker(block)">Chọn danh mục tròn</button>
+              </div>
+            </div>
+
+            <div class="preview-title-row">
+              <span>Danh mục đang hiển thị</span>
+              <span class="counter-pill">{{ block.categoryItems.length }} mục</span>
+            </div>
+
+            <div class="round-categories-layout">
+              <div class="round-categories-preview">
+                <div class="round-preview-head">
+                  <h3>{{ block.title || 'HÔM NAY SALE GÌ?' }}</h3>
+                  <p>Khám phá ngay các danh mục sản phẩm đang có ưu đãi hấp dẫn</p>
+                  <span></span>
+                </div>
+
+                <div class="round-preview-nav">
+                  <button class="round-nav-btn" type="button">‹</button>
+                  <div>1/2</div>
+                  <button class="round-nav-btn" type="button">›</button>
+                </div>
+
+                <div class="round-preview-grid">
+                  <button
+                    class="round-preview-item"
+                    type="button"
+                    *ngFor="let item of visibleRoundCategoryItems(block); let j = index"
+                    [class.active]="selectedRoundCategory(block) === item"
+                    (click)="setActiveRoundCategory(block, j)"
+                  >
+                    <div class="round-preview-item__circle">
+                      <img *ngIf="item.imageUrl" [src]="resolveImageUrl(item.imageUrl)" alt="" />
+                      <span *ngIf="!item.imageUrl">{{ (item.label || '?').charAt(0) }}</span>
+                    </div>
+                    <strong>{{ item.label || 'Danh mục' }}</strong>
+                    <small>{{ item.slug }}</small>
+                  </button>
+                </div>
+              </div>
+
+              <div class="round-categories-editor" *ngIf="selectedRoundCategory(block) as current">
+                <div class="round-editor-head">
+                  <div>
+                    <h4>Cài đặt danh mục</h4>
+                    <p>Bấm vào từng danh mục bên trái để đổi tên hiển thị và hình ảnh.</p>
+                  </div>
+                  <span class="counter-pill">#{{ (activeCategoryEditorIndex[block.id] ?? 0) + 1 }}</span>
+                </div>
+
+                <div class="field">
+                  <label>Tên hiển thị</label>
+                  <input class="input" [(ngModel)]="current.label" />
+                </div>
+
+                <div class="field">
+                  <label>Slug danh mục</label>
+                  <select class="input" [(ngModel)]="current.slug" (ngModelChange)="onCategoryChoiceChange(current)">
+                    <option value="">-- Chọn danh mục --</option>
+                    <option *ngFor="let c of categoryOptions" [value]="c.slug">{{ c.label }}</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Trạng thái</label>
+                  <select class="input" [(ngModel)]="current.enabled">
+                    <option [ngValue]="true">Bật</option>
+                    <option [ngValue]="false">Tắt</option>
+                  </select>
+                </div>
+
+                <div class="image-dropzone">
+                  <img *ngIf="current.imageUrl" [src]="resolveImageUrl(current.imageUrl)" alt="" />
+                  <span *ngIf="!current.imageUrl">Chưa có ảnh</span>
+                </div>
+
+                <div class="editor-actions-row">
+                  <div class="file-trigger">
+                    <button class="soft-btn" type="button">T?i ?nh l?n</button>
+                    <input class="file-input-native" type="file" accept="image/*" (change)="onRoundCategoryFileSelect(block, activeCategoryEditorIndex[block.id] ?? 0, $event)" />
+                  </div>
+                  <button class="soft-btn" type="button" (click)="current.imageUrl = null">Xóa ảnh</button>
+                </div>
+
+                <div class="editor-actions-row editor-actions-row--footer">
+                  <label class="switch compact"><input type="checkbox" [(ngModel)]="current.enabled" /> Hiện</label>
+                  <button class="icon-btn" type="button" (click)="moveRoundCategory(block, -1)">←</button>
+                  <button class="icon-btn" type="button" (click)="moveRoundCategory(block, 1)">→</button>
+                  <button class="icon-btn" type="button" (click)="moveBlockUp(i)" [disabled]="i === 0">↑</button>
+                  <button class="icon-btn" type="button" (click)="moveBlockDown(i)" [disabled]="i === blocks.length - 1">↓</button>
+                  <button class="icon-btn icon-btn--danger" type="button" (click)="removeRoundCategory(block, activeCategoryEditorIndex[block.id] ?? 0)">Xóa</button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'PRODUCTS'">
+            <div class="section-form-grid section-form-grid--with-action">
+              <div class="field">
+                <label>Loại mục</label>
+                <select class="input" [ngModel]="block.type" (ngModelChange)="changeBlockType(block, $event)">
+                  <option [ngValue]="'HERO'">Banner (Hero)</option>
+                  <option [ngValue]="'VOUCHERS'">Voucher</option>
+                  <option [ngValue]="'ROUND_CATEGORIES'">Danh mục tròn</option>
+                  <option [ngValue]="'PRODUCTS'">Sản phẩm</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Tiêu đề (tùy chọn)</label>
+                <input class="input" [(ngModel)]="block.title" />
+              </div>
+
+              <div class="field">
+                <label>Trạng thái</label>
+                <select class="input" [(ngModel)]="block.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+
+              <div class="field field--action">
+                <button class="soft-btn" type="button" (click)="openProductPicker(block)">Chọn danh mục hiển thị</button>
+              </div>
+            </div>
+
+            <div class="compact-hint">Chọn danh mục nào thì ngoài trang bán hàng sẽ hiện toàn bộ sản phẩm của các danh mục đó.</div>
+            <div class="empty-state compact">{{ selectedProductCategorySummary(block) }}</div>
+          </ng-container>
+        </ng-container>
+      </div>
+    </section>
+  </div>
+
+  <div class="floating-add">
+    <button class="add-floating-btn" type="button" (click)="addBlock('HERO')">+ Mục</button>
+  </div>
+
+  <div class="picker-backdrop">
+    <div class="picker-overlay" *ngIf="activeVoucherPickerBlock() as block">
+      <div class="picker-modal">
+        <div class="picker-modal__head">
+          <h3>Chọn voucher để hiển thị</h3>
+          <button class="soft-btn" type="button" (click)="closeVoucherPicker()">Đóng</button>
+        </div>
+
+        <div class="picker-modal__body">
+          <div class="field-inline-search">
+            <div class="field">
+              <label>Tìm voucher</label>
+              <input class="input" [(ngModel)]="voucherPickerQuery" placeholder="Nhập mã voucher..." />
+            </div>
+            <button class="soft-btn" type="button" (click)="applyVoucherPicker(block)">Áp dụng</button>
+          </div>
+
+          <div class="picker-list">
+            <label class="picker-item" *ngFor="let item of filteredCoupons()">
+              <input
+                type="checkbox"
+                [checked]="voucherPickerTempIds.includes(item.id)"
+                (change)="toggleVoucherPickerId(item.id)"
+              />
+              <div class="picker-item__content">
+                <strong>{{ item.code }}</strong>
+                <span>{{ item.description || 'Voucher hiển thị trên trang sale' }}</span>
+                <small>{{ couponSummaryText(item) }}</small>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="picker-overlay" *ngIf="activeRoundPickerBlock() as block">
+      <div class="picker-modal">
+        <div class="picker-modal__head">
+          <h3>Chọn danh mục tròn</h3>
+          <button class="soft-btn" type="button" (click)="closeRoundPicker()">Đóng</button>
+        </div>
+
+        <div class="picker-modal__body">
+          <div class="field-inline-search">
+            <div class="field">
+              <label>Tìm danh mục</label>
+              <input class="input" [(ngModel)]="roundPickerQuery" placeholder="Nhập tên/slug danh mục..." />
+            </div>
+            <button class="soft-btn" type="button" (click)="applyRoundPicker(block)">Áp dụng</button>
+          </div>
+
+          <div class="picker-list">
+            <label class="picker-item" *ngFor="let item of filteredRoundCategoryOptions()">
+              <input
+                type="checkbox"
+                [checked]="roundPickerTempSlugs.includes(item.slug)"
+                (change)="toggleRoundPickerSlug(item.slug)"
+              />
+              <div
+                class="picker-item__content"
+                [class.level-1]="(item.level || 0) === 0"
+                [class.level-2]="(item.level || 0) === 1"
+                [class.level-3]="(item.level || 0) >= 2"
+                [style.paddingLeft.px]="(item.level || 0) * 28"
+              >
+                <strong>{{ item.label }}</strong>
+                <span>Slug: {{ item.slug }}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="picker-overlay" *ngIf="activeProductPickerBlock() as block">
+      <div class="picker-modal">
+        <div class="picker-modal__head">
+          <h3>Chọn danh mục để hiển thị toàn bộ sản phẩm</h3>
+          <button class="soft-btn" type="button" (click)="closeProductPicker()">Đóng</button>
+        </div>
+
+        <div class="picker-modal__body">
+          <div class="field-inline-search">
+            <div class="field">
+              <label>Tìm danh mục</label>
+              <input class="input" [(ngModel)]="productPickerQuery" placeholder="Nhập tên/slug danh mục..." />
+            </div>
+            <button class="soft-btn" type="button" (click)="applyProductPicker(block)">Áp dụng</button>
+          </div>
+
+          <div class="picker-list">
+            <label class="picker-item" *ngFor="let item of filteredCategoryOptions()">
+              <input
+                type="checkbox"
+                [checked]="productPickerTempSlugs.includes(item.slug)"
+                (change)="toggleProductPickerSlug(item.slug)"
+              />
+              <div
+                class="picker-item__content"
+                [class.level-1]="(item.level || 0) === 0"
+                [class.level-2]="(item.level || 0) === 1"
+                [class.level-3]="(item.level || 0) >= 2"
+                [style.paddingLeft.px]="(item.level || 0) * 28"
+              >
+                <strong>{{ item.label }}</strong>
+                <span>Slug: {{ item.slug }}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

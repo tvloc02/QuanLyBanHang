@@ -1,14 +1,163 @@
-<footer id="footer" class="footer">
-  <div class="container footer-inner">
-    <div class="footer-quote">
-      <div class="footer-quote-title">{{ quoteTitle }}</div>
-      <div class="footer-quote-text">{{ quoteText }}</div>
-    </div>
-    <div class="footer-actions">
-      <div class="footer-input">
-        <input placeholder="Nhập email để nhận tin" />
-        <button type="button">Đăng ký</button>
+<footer id="footer" class="tl-footer">
+  <div class="tl-footer__top">
+    <div class="container">
+      <div class="tl-footer__intro">
+        <div class="tl-footer__logo" aria-label="L.event">
+          <span class="tl-footer__logo-l">L</span><span class="tl-footer__logo-rest">.event</span>
+        </div>
+        <div class="tl-footer__tagline">Thời trang chính hãng - giao nhanh - đổi trả linh hoạt</div>
       </div>
+
+      <div class="tl-footer__grid">
+        <section class="tl-footer__col">
+          <div class="tl-footer__title">Về L.event</div>
+          <ul class="tl-footer__list">
+            <li><a routerLink="/pages/chung-toi-la-ai">Chúng tôi là ai</a></li>
+            <li><a routerLink="/pages/cam-ket">Cam kết của chúng tôi</a></li>
+            <li><a routerLink="/pages/tuyen-dung">Tin tuyển dụng</a></li>
+            <li><a routerLink="/pages/he-thong-cua-hang">Hệ thống cửa hàng</a></li>
+          </ul>
+        </section>
+
+        <section class="tl-footer__col">
+          <div class="tl-footer__title">Hỗ trợ khách hàng</div>
+          <ul class="tl-footer__list">
+            <li><a routerLink="/pages/huong-dan-dat-hang">Hướng dẫn đặt hàng</a></li>
+            <li><a routerLink="/pages/phuong-thuc-thanh-toan">Phương thức thanh toán</a></li>
+            <li><a routerLink="/pages/chinh-sach-sinh-nhat">Chính sách sinh nhật thành viên</a></li>
+            <li><a routerLink="/pages/chinh-sach-tich-diem">Chính sách tích - tiêu điểm</a></li>
+            <li><a routerLink="/pages/chinh-sach-hoan-tien">Chính sách hoàn tiền</a></li>
+          </ul>
+        </section>
+
+        <section class="tl-footer__col">
+          <div class="tl-footer__title">Chính sách</div>
+          <ul class="tl-footer__list">
+            <li><a routerLink="/pages/chinh-sach-van-chuyen">Chính sách vận chuyển</a></li>
+            <li><a routerLink="/pages/chinh-sach-kiem-hang">Chính sách kiểm hàng</a></li>
+            <li><a routerLink="/pages/chinh-sach-doi-tra">Chính sách đổi trả</a></li>
+            <li><a routerLink="/pages/dieu-kien-dieu-khoan">Điều kiện &amp; điều khoản</a></li>
+            <li><a routerLink="/pages/chinh-sach-bao-mat">Chính sách bảo mật</a></li>
+          </ul>
+        </section>
+
+        <section class="tl-footer__col">
+          <div class="tl-footer__title">Liên hệ</div>
+          <ul class="tl-footer__list">
+            <li>Tư vấn mua online: <a href="tel:02473082882">024 7308 2882</a></li>
+            <li>Khiếu nại và bảo hành: <a href="tel:02473006999">024 7300 6999</a></li>
+            <li>Email: <a href="mailto:cskh@fashionhub.vn">cskh&#64;fashionhub.vn</a></li>
+            <li>Giờ làm việc: 8:30 - 22:00 hằng ngày</li>
+            <li><a routerLink="/pages/lien-he">Xem chi tiết liên hệ</a></li>
+          </ul>
+        </section>
+
+        <section class="tl-footer__subscribe">
+          <div class="tl-footer__title tl-footer__title--right">Đăng ký nhận tin từ L.event</div>
+          <div class="tl-footer__newsletter">
+            <input class="tl-footer__input" type="email" placeholder="Nhập địa chỉ Email" />
+            <button class="tl-footer__btn" type="button">Đăng ký</button>
+          </div>
+
+          <div class="tl-footer__app-text">
+            <div>Cài app nhận <span class="tl-footer__highlight">ưu đãi 50% sinh nhật</span></div>
+            <div>Tích điểm mỗi hóa đơn</div>
+          </div>
+
+          <div class="tl-footer__app">
+            <div class="tl-footer__qr" aria-label="QR"></div>
+            <div class="tl-footer__stores">
+              <a class="tl-footer__store tl-footer__store--apple" routerLink="/pages/app-store" aria-label="App Store">Available on the App Store</a>
+              <a class="tl-footer__store tl-footer__store--google" routerLink="/pages/google-play" aria-label="Google Play">Get it on Google Play</a>
+            </div>
+          </div>
+
+          <div class="tl-footer__payment">
+            <div class="tl-footer__payment-title">Chúng tôi kết nối thanh toán qua</div>
+            <div class="tl-footer__payment-logos">
+              <span class="tl-footer__pay tl-footer__pay--cod">COD</span>
+              <span class="tl-footer__pay tl-footer__pay--vnpay">VNPAY QR</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="tl-footer__social">
+        <div class="tl-footer__social-head">
+          <div class="tl-footer__social-title">Kết nối với L.event</div>
+          <div class="tl-footer__social-note">Theo dõi ưu đãi mới, bộ sưu tập mới và các chương trình dành riêng cho thành viên.</div>
+        </div>
+        <div class="tl-footer__social-icons">
+          <a class="tl-footer__social-link tl-footer__social-link--facebook" routerLink="/pages/facebook" aria-label="Facebook" title="Facebook">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13.5 21v-7h2.7l.4-3h-3.1V9.2c0-.9.3-1.5 1.5-1.5H16.7V5.1c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.4V11H7.5v3H10v7h3.5Z" fill="currentColor"/>
+            </svg>
+          </a>
+          <a class="tl-footer__social-link tl-footer__social-link--instagram" routerLink="/pages/instagram" aria-label="Instagram" title="Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" fill="none"/>
+              <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor"/>
+            </svg>
+          </a>
+          <a class="tl-footer__social-link tl-footer__social-link--youtube" routerLink="/pages/youtube" aria-label="YouTube" title="YouTube">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21.4 8.2a2.8 2.8 0 0 0-2-2c-1.7-.5-7.4-.5-7.4-.5s-5.7 0-7.4.5a2.8 2.8 0 0 0-2 2C2 9.8 2 12 2 12s0 2.2.6 3.8a2.8 2.8 0 0 0 2 2c1.7.5 7.4.5 7.4.5s5.7 0 7.4-.5a2.8 2.8 0 0 0 2-2C22 14.2 22 12 22 12s0-2.2-.6-3.8Z" fill="currentColor"/>
+              <path d="m10 15.4 5.2-3.4L10 8.6v6.8Z" fill="#fff"/>
+            </svg>
+          </a>
+          <a class="tl-footer__social-link tl-footer__social-link--tiktok" routerLink="/pages/tiktok" aria-label="TikTok" title="TikTok">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.8 4.2c.4 1.8 1.5 3.1 3.3 3.7v2.6c-1.3 0-2.5-.3-3.6-1v5.1a5.3 5.3 0 1 1-4.6-5.2v2.6a2.6 2.6 0 1 0 1.9 2.6V4.2h3Z" fill="currentColor"/>
+            </svg>
+          </a>
+          <a class="tl-footer__social-link tl-footer__social-link--zalo" routerLink="/pages/zalo" aria-label="Zalo" title="Zalo">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M8 8h8.3v1.5l-5.9 6.8h5.9V18H7.8v-1.5l5.9-6.8H8V8Z" fill="currentColor"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-footer__divider"></div>
+
+  <div class="tl-footer__middle">
+    <div class="container">
+      <div class="tl-footer__middle-grid">
+        <section class="tl-footer__company">
+          <div class="tl-footer__company-title">Công ty cổ phần L.event</div>
+          <div class="tl-footer__company-text">Địa chỉ: Tầng 6, số 96 Thái Hà, Phường Đống Đa, Thành phố Hà Nội, Việt Nam.</div>
+          <div class="tl-footer__company-text">Mã số thuế: 0109749326, ngày cấp ĐKKD 29/04/2021.</div>
+          <div class="tl-footer__company-text">Điện thoại: 024 7300 6999 &nbsp;&nbsp; Email: cskh&#64;fashionhub.vn &nbsp;&nbsp; Nơi cấp: Sở kế hoạch và đầu tư thành phố Hà Nội.</div>
+
+          <div class="tl-footer__branches" *ngIf="footerBranches.length > 0">
+            <div class="tl-footer__branches-title">Hệ thống chi nhánh</div>
+            <ul class="tl-footer__branches-list">
+              <li *ngFor="let branch of footerBranches">
+                <div class="tl-footer__branch-name">{{ branch.name }}</div>
+                <div class="tl-footer__branch-detail" *ngIf="branch.detail">{{ branch.detail }}</div>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="tl-footer__badges">
+          <div class="tl-footer__badge tl-footer__badge--bct">Đã thông báo<br />Bộ Công Thương</div>
+          <div class="tl-footer__badge tl-footer__badge--zalo">Zalo</div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-footer__bottom">
+    <div class="container tl-footer__bottom-inner">
+      <div class="tl-footer__brand" aria-label="L.event">
+        <span class="tl-footer__logo-l">L</span><span class="tl-footer__logo-rest">.event</span>
+      </div>
+      <div class="tl-footer__copyright">Copyright © 2014-2026 fashionhub.vn All Rights Reserved.</div>
     </div>
   </div>
 </footer>

@@ -1,7 +1,7 @@
 <main class="page">
   <div class="container">
     <div class="breadcrumbs">
-      <a routerLink="/">Trang chủ</a>
+      <a routerLink="/sale">Trang chủ</a>
       <span class="sep">/</span>
       <a *ngIf="product?.category" [routerLink]="['/category', product?.category]">{{ product?.category }}</a>
       <span class="sep" *ngIf="product?.category">/</span>
@@ -23,16 +23,16 @@
           <button
             type="button"
             class="thumb"
-            *ngFor="let img of images"
+            *ngFor="let img of images; let i = index"
             [class.active]="img === activeImage"
             (click)="selectImage(img)"
           >
-            <img [src]="img" [alt]="product.name" />
+            <img [src]="img || productPlaceholderImage" [alt]="product.name" (error)="onThumbImageError(i)" />
           </button>
         </div>
 
         <div class="hero">
-          <img class="hero-img" [src]="activeImage" [alt]="product.name" />
+          <img class="hero-img" [src]="activeImage || productPlaceholderImage" [alt]="product.name" (error)="onHeroImageError()" />
         </div>
       </div>
 
@@ -63,10 +63,9 @@
           <span class="discount" *ngIf="discountLabel">{{ discountLabel }}</span>
         </div>
 
-        <div class="promo">
-          <div class="promo-title">ƯU ĐÃI KHÁCH MUA ONLINE</div>
-          <div class="promo-main">MUA TỪ 2 GIẢM 20%</div>
-          <div class="promo-sub">Áp dụng với một số sản phẩm (demo)</div>
+        <div class="promo" *ngIf="product.promotionText">
+          <div class="promo-title">{{ product.promotionTitle || 'ƯU ĐÃI' }}</div>
+          <div class="promo-main">{{ product.promotionText }}</div>
         </div>
 
         <div class="variants" *ngIf="(product.colors && product.colors.length) || (product.sizes && product.sizes.length)">
@@ -105,8 +104,23 @@
           <div class="label">Số lượng</div>
           <div class="qty-box">
             <button type="button" class="qty-btn" (click)="decQty()">−</button>
-            <input class="qty-input" type="number" [(ngModel)]="quantity" min="1" max="99" />
+            <input class="qty-input" type="number" [(ngModel)]="quantity" (ngModelChange)="onQuantityInputChange()" min="1" max="99" />
             <button type="button" class="qty-btn" (click)="incQty()">+</button>
+          </div>
+        </div>
+
+        <div class="branch" *ngIf="product">
+          <div class="label">Chi nhánh</div>
+          <div class="branch-box">
+            <select class="branch-select" [(ngModel)]="selectedBranchId" [disabled]="branchLoading || !branchOptions.length">
+              <option [ngValue]="null">Chọn chi nhánh</option>
+              <option *ngIf="branchLoading" [ngValue]="null">Đang tải chi nhánh...</option>
+              <option *ngIf="!branchLoading && !branchOptions.length" [ngValue]="null">Chưa có chi nhánh phù hợp</option>
+              <option *ngFor="let b of branchOptions" [ngValue]="b.id">
+                {{ b.name }}{{ b.stock != null ? ' (Tồn: ' + b.stock + ')' : '' }}
+              </option>
+            </select>
+            <div class="branch-hint" *ngIf="branchError && !branchLoading">{{ branchError }}</div>
           </div>
         </div>
 
@@ -114,51 +128,77 @@
           <button type="button" class="ghost" (click)="addToCart()">THÊM GIỎ</button>
           <button type="button" class="primary" (click)="buyNow()">MUA NGAY</button>
         </div>
-
-        <div class="note">
-          <div class="note-item"><b>Đổi trả</b> trong 7 ngày (demo)</div>
-          <div class="note-item"><b>Giao hàng</b> toàn quốc (demo)</div>
-        </div>
       </div>
     </section>
 
-    <section class="tabs" *ngIf="!loading && !error && product">
-      <div class="tab-head">
-        <button type="button" class="tab-btn" [class.active]="activeTab === 'desc'" (click)="setTab('desc')">
-          Mô tả
-        </button>
-        <button type="button" class="tab-btn" [class.active]="activeTab === 'reviews'" (click)="setTab('reviews')">
-          Đánh giá
-        </button>
-      </div>
+    <section class="description" *ngIf="!loading && !error && product">
+      <div class="section-title">Mô tả sản phẩm</div>
+      <div class="desc" [innerText]="product.description || 'Chưa có mô tả cho sản phẩm.'"></div>
+    </section>
 
-      <div class="tab-body" *ngIf="activeTab === 'desc'">
-        <div class="desc" [innerText]="product.description || 'Chưa có mô tả cho sản phẩm.'"></div>
-      </div>
-
-      <div class="tab-body" *ngIf="activeTab === 'reviews'">
-        <div class="reviews">
-          <div class="reviews-head">
-            <div class="score">5/5</div>
-            <div class="stars">★★★★★</div>
-            <div class="count">2 đánh giá (demo)</div>
+    <section class="reviews-section" *ngIf="!loading && !error && product && reviews && reviews.length > 0">
+      <div class="section-title">Đánh giá từ người mua</div>
+      
+      <div class="reviews-container">
+        <!-- Phần trái: Thống kê -->
+        <div class="reviews-stats">
+          <div class="stats-score">
+            <div class="score-number">{{ averageRating || '-' }}</div>
+            <div class="score-max">/5</div>
           </div>
-
-          <div class="review">
-            <div class="avatar">C</div>
-            <div class="r-body">
-              <div class="r-name">Chi Hằng</div>
-              <div class="r-stars">★★★★★</div>
-              <div class="r-text">Sản phẩm đẹp, chất liệu ổn, giao nhanh.</div>
+          
+          <div class="stats-stars">
+            <span class="star" *ngFor="let i of [1,2,3,4,5]">★</span>
+          </div>
+          
+          <div class="stats-count">{{ reviews.length }} đánh giá</div>
+          
+          <div class="stats-bars">
+            <div class="bar-row" *ngFor="let rating of [5,4,3,2,1]">
+              <span class="bar-label">{{ rating }} <span class="star-sm">★</span></span>
+              <div class="bar-container">
+                <div class="bar-fill" [style.width]="getRatingPercentage(rating) + '%'"></div>
+              </div>
+              <span class="bar-count">{{ getCountByRating(rating) }}</span>
             </div>
           </div>
+        </div>
 
-          <div class="review">
-            <div class="avatar">K</div>
-            <div class="r-body">
-              <div class="r-name">Kinh Tinh Linh</div>
-              <div class="r-stars">★★★★★</div>
-              <div class="r-text">Form mặc vừa, màu đúng hình, sẽ ủng hộ tiếp.</div>
+        <!-- Phần phải: Hình ảnh -->
+        <div class="reviews-images">
+          <div class="images-title">Hình ảnh từ người mua</div>
+          <div class="images-grid" *ngIf="getReviewImages().length > 0">
+            <img *ngFor="let img of getReviewImages()" [src]="img" alt="Customer review" class="review-img" />
+          </div>
+          <div *ngIf="!getReviewImages().length" class="no-images">Chưa có hình ảnh</div>
+        </div>
+      </div>
+
+      <!-- Filter theo số sao -->
+      <div class="reviews-filter">
+        <span class="filter-label">Lọc đánh giá</span>
+        <div class="filter-buttons">
+          <button type="button" class="filter-btn" [class.active]="selectedRatingFilter === null" (click)="selectedRatingFilter = null">
+            Tất cả
+          </button>
+          <button type="button" class="filter-btn" *ngFor="let r of [5,4,3,2,1]" [class.active]="selectedRatingFilter === r" (click)="selectedRatingFilter = r">
+            {{ r }} sao
+          </button>
+        </div>
+      </div>
+
+      <!-- Danh sách đánh giá -->
+      <div class="reviews-list">
+        <div class="review" *ngFor="let r of getFilteredReviews()">
+          <div class="avatar">{{ r.customerName?.charAt(0)?.toUpperCase() || '?' }}</div>
+          <div class="r-body">
+            <div class="r-name">{{ r.customerName }}</div>
+            <div class="r-stars">
+              <span class="star" *ngFor="let i of [1,2,3,4,5]" [class.filled]="i <= (r.rating || 5)">★</span>
+            </div>
+            <div class="r-text">{{ r.reviewText }}</div>
+            <div class="r-images" *ngIf="r.images && r.images.length">
+              <img *ngFor="let img of r.images" [src]="img" alt="Review" class="r-img" />
             </div>
           </div>
         </div>
@@ -170,7 +210,7 @@
       <div class="related-grid">
         <a class="card" *ngFor="let p of related" (click)="goToProduct(p.slug)">
           <div class="img">
-            <img [src]="p.imageUrl || 'https://via.placeholder.com/300x400?text=Product'" [alt]="p.name" />
+            <img [src]="p.imageUrl || productPlaceholderImage" [alt]="p.name" (error)="onRelatedImageError(p)" />
             <span class="badge" *ngIf="p.badge">{{ p.badge }}</span>
             <span class="disc" *ngIf="p.discountPercent">-{{ p.discountPercent }}%</span>
           </div>
@@ -186,6 +226,57 @@
       </div>
     </section>
   </div>
-</main>
 
-<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>
+  <div class="sheet-backdrop" *ngIf="buySheetOpen" (click)="closeBuySheet()">
+    <div class="sheet" (click)="$event.stopPropagation()">
+      <div class="sheet__grab"></div>
+      <div class="sheet__head">
+        <div class="sheet__title">Chọn kho để mua</div>
+        <button type="button" class="sheet__close" (click)="closeBuySheet()">×</button>
+      </div>
+
+      <div class="sheet__body" *ngIf="product">
+        <div class="sheet-product">
+          <img class="sheet-product__img" [src]="product.imageUrl || activeImage || productPlaceholderImage" [alt]="product.name" />
+          <div class="sheet-product__info">
+            <div class="sheet-product__name">{{ product.name }}</div>
+            <div class="sheet-product__meta" *ngIf="selectedColor || selectedSize">
+              <span *ngIf="selectedColor">Màu: {{ selectedColor }}</span>
+              <span *ngIf="selectedSize">Size: {{ selectedSize }}</span>
+              <span>Số lượng: {{ quantity }}</span>
+            </div>
+            <div class="sheet-product__price">{{ formatMoney(product.price) }}đ</div>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <div class="sheet-section__label">Kho/chi nhánh</div>
+          <div class="sheet-loading" *ngIf="branchLoading">Đang tải kho/chi nhánh...</div>
+          <div class="sheet-error" *ngIf="!branchLoading && branchError">{{ branchError }}</div>
+
+          <div class="branch-list" *ngIf="!branchLoading && !branchError && branchOptions.length">
+            <label class="branch-item" *ngFor="let b of branchOptions">
+              <input type="radio" name="branch" [value]="b.id" [(ngModel)]="selectedBranchId" />
+              <span class="branch-item__dot"></span>
+              <span class="branch-item__body">
+                <span class="branch-item__name">{{ b.name }}</span>
+                <span class="branch-item__addr">
+                  {{ b.address || '' }}
+                  <span *ngIf="b.ward || b.province">{{ (b.address ? ', ' : '') + (b.ward || '') + (b.province ? (b.ward ? ', ' : '') + b.province : '') }}</span>
+                </span>
+                <span class="branch-item__stock" *ngIf="b.stock != null">Tồn: {{ b.stock }}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="sheet-actions">
+          <button type="button" class="ghost" (click)="closeBuySheet()">Để sau</button>
+          <button type="button" class="primary" (click)="confirmBuyNow()" [disabled]="branchLoading || !selectedBranchId">
+            Xác nhận mua
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

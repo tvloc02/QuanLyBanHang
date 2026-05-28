@@ -28,6 +28,14 @@ public class OrderCreateRequest {
 
     private String shippingAddressDetail;
 
+    private Long branchId;
+
+    private Double shippingLatitude;
+
+    private Double shippingLongitude;
+
+    private String orderCode;
+
     public OrderCreateRequest() {}
 
     public Long getUserId() {
@@ -100,5 +108,37 @@ public class OrderCreateRequest {
 
     public void setShippingAddressDetail(String shippingAddressDetail) {
         this.shippingAddressDetail = shippingAddressDetail;
+    }
+
+    public Long getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(Long branchId) {
+        this.branchId = branchId;
+    }
+
+    public Double getShippingLatitude() {
+        return shippingLatitude;
+    }
+
+    public void setShippingLatitude(Double shippingLatitude) {
+        this.shippingLatitude = shippingLatitude;
+    }
+
+    public Double getShippingLongitude() {
+        return shippingLongitude;
+    }
+
+    public void setShippingLongitude(Double shippingLongitude) {
+        this.shippingLongitude = shippingLongitude;
+    }
+
+    public String getOrderCode() {
+        return orderCode;
+    }
+
+    public void setOrderCode(String orderCode) {
+        this.orderCode = orderCode;
     }
 }

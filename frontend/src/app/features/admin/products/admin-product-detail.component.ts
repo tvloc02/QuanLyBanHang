@@ -1,0 +1,434 @@
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { Component } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { environment } from '../../../../environments/environment';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+interface ProductVariantSizeStockResponse {
+  size: string;
+  stock: number;
+}
+
+interface ProductVariantResponse {
+  id?: number;
+  color: string;
+  price: number;
+  oldPrice?: number;
+  images?: string[];
+  stocks?: ProductVariantSizeStockResponse[];
+  active?: boolean;
+}
+
+interface ProductResponse {
+  id: number;
+  sku?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  price: number;
+  oldPrice?: number;
+  stock: number;
+  categoryId?: number;
+  categoryIds?: number[];
+  category: string;
+  brand: string;
+  imageUrl?: string;
+  images?: string[];
+  variants?: ProductVariantResponse[];
+  badge?: string;
+  discountPercent?: number;
+  rating?: number;
+  soldCount?: number;
+  sizes?: string[];
+  colors?: string[];
+  active?: boolean;
+}
+
+interface AdminBranchResponse {
+  id: number;
+  name: string;
+  address?: string;
+  ward?: string;
+  province?: string;
+  active?: boolean;
+}
+
+interface AdminProductBranchStockResponse {
+  branchId: number;
+  productId: number;
+  stock: number;
+}
+
+interface AdminProductVariantBranchStockResponse {
+  branchId: number;
+  productId: number;
+  color: string;
+  size: string;
+  stock: number;
+  imageUrl?: string | null;
+}
+
+type VariantBranchMatrixRow = {
+  color: string;
+  size: string;
+  branchStocks: Array<{ branchId: number; stock: number }>;
+  total: number;
+  imageUrl: string;
+};
+
+type Segment = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+@Component({
+  selector: 'app-admin-product-detail',
+  standalone: true,
+  imports: [CommonModule, RouterLink],
+  templateUrl: './admin-product-detail.component.html',
+  styleUrls: ['./admin-product-detail.component.scss']
+})
+export class AdminProductDetailComponent {
+  loading = false;
+  deleting = false;
+  error = '';
+
+  product: ProductResponse | null = null;
+
+  branches: AdminBranchResponse[] = [];
+  branchStocks: AdminProductBranchStockResponse[] = [];
+  variantBranchStocks: AdminProductVariantBranchStockResponse[] = [];
+  stockLoading = false;
+
+  private id: number;
+
+  constructor(
+    private http: HttpClient,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {
+    const raw = this.route.snapshot.paramMap.get('id');
+    this.id = raw ? Number(raw) : NaN;
+    this.load();
+  }
+
+  private loadBranches(): Promise<void> {
+    const url = `${environment.apiBaseUrl}/api/admin/branches`;
+    return new Promise((resolve) => {
+      this.http.get<ApiResponse<AdminBranchResponse[]>>(url).subscribe({
+        next: (res) => {
+          const rows = res?.success && Array.isArray(res.data) ? res.data : [];
+          this.branches = rows.filter((x) => x && typeof x.id === 'number');
+          resolve();
+        },
+        error: () => {
+          this.branches = [];
+          resolve();
+        }
+      });
+    });
+  }
+
+  private loadBranchStocks(): Promise<void> {
+    const url = `${environment.apiBaseUrl}/api/admin/products/${this.id}/branch-stocks`;
+    return new Promise((resolve) => {
+      this.http.get<ApiResponse<AdminProductBranchStockResponse[]>>(url).subscribe({
+        next: (res) => {
+          this.branchStocks = res?.success && Array.isArray(res.data) ? res.data : [];
+          resolve();
+        },
+        error: () => {
+          this.branchStocks = [];
+          resolve();
+        }
+      });
+    });
+  }
+
+  private loadVariantBranchStocks(): Promise<void> {
+    const url = `${environment.apiBaseUrl}/api/admin/products/${this.id}/variant-branch-stocks`;
+    return new Promise((resolve) => {
+      this.http.get<ApiResponse<AdminProductVariantBranchStockResponse[]>>(url).subscribe({
+        next: (res) => {
+          this.variantBranchStocks = res?.success && Array.isArray(res.data) ? res.data : [];
+          resolve();
+        },
+        error: () => {
+          this.variantBranchStocks = [];
+          resolve();
+        }
+      });
+    });
+  }
+
+  private async loadStocks(): Promise<void> {
+    if (!Number.isFinite(this.id)) return;
+    this.stockLoading = true;
+    try {
+      await this.loadBranches();
+      await Promise.all([this.loadBranchStocks(), this.loadVariantBranchStocks()]);
+    } finally {
+      this.stockLoading = false;
+    }
+  }
+
+  private resolveImageUrl(input?: string | null): string {
+    const url = (input || '').toString().trim();
+    if (!url) return '';
+    if (/^data:/i.test(url)) return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    if (url.startsWith('/')) return `${environment.apiBaseUrl}${url}`;
+    return `${environment.apiBaseUrl}/${url}`;
+  }
+
+  get images(): string[] {
+    const p = this.product;
+    if (!p) return [];
+    const imgs = Array.isArray(p.images) ? p.images.filter(Boolean) : [];
+    if (imgs.length > 0) return imgs.map((x) => this.resolveImageUrl(x)).filter(Boolean);
+    return p.imageUrl ? [this.resolveImageUrl(p.imageUrl)].filter(Boolean) : [];
+  }
+
+  get mainImage(): string {
+    return this.images[0] || 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'><rect width='600' height='600' fill='#f3f4f6'/><circle cx='300' cy='220' r='84' fill='#d1d5db'/><rect x='160' y='340' width='280' height='32' rx='16' fill='#e5e7eb'/><rect x='195' y='395' width='210' height='24' rx='12' fill='#e5e7eb'/></svg>"
+    );
+  }
+
+  get soldCount(): number {
+    return Math.max(0, Number(this.product?.soldCount || 0));
+  }
+
+  get averageRating(): number {
+    const raw = Number(this.product?.rating);
+    return Number.isFinite(raw) ? Math.max(0, Math.min(5, raw)) : 0;
+  }
+
+  get totalInventory(): number {
+    if (this.hasVariantBranchStocks && this.variantBranchMatrixRows.length > 0) {
+      return this.variantBranchMatrixRows.reduce((sum, row) => sum + row.total, 0);
+    }
+    if ((this.branchStocks || []).length > 0) {
+      return this.branchStocks.reduce((sum, row) => sum + Math.max(0, Number(row?.stock || 0)), 0);
+    }
+    return Math.max(0, Number(this.product?.stock || 0));
+  }
+
+  get inventoryValue(): number {
+    return this.totalInventory * Math.max(0, Number(this.product?.price || 0));
+  }
+
+  get lowStockCount(): number {
+    if (this.hasVariantBranchStocks && this.variantBranchMatrixRows.length > 0) {
+      return this.variantBranchMatrixRows.filter((row) => row.total <= 5).length;
+    }
+    return (this.branchStocks || []).filter((row) => Number(row?.stock || 0) <= 5).length;
+  }
+
+  get variantCount(): number {
+    return (this.product?.variants || []).length;
+  }
+
+  get branchCount(): number {
+    return this.selectedBranches.length;
+  }
+
+  get sizeCount(): number {
+    return (this.product?.sizes || []).length;
+  }
+
+  get colorCount(): number {
+    return (this.product?.colors || []).length;
+  }
+
+  get sellThroughRate(): number {
+    const sold = this.soldCount;
+    const total = sold + this.totalInventory;
+    if (total <= 0) return 0;
+    return Math.round((sold / total) * 100);
+  }
+
+  get salesSegments(): Segment[] {
+    return [
+      { label: 'Đã bán', value: this.soldCount, color: '#4f6ff0' },
+      { label: 'Tồn kho', value: this.totalInventory, color: '#60d6d2' },
+      { label: 'Sắp hết', value: this.lowStockCount, color: '#f59e0b' }
+    ];
+  }
+
+  get salesDonutStyle(): string {
+    return this.buildConicStyle(this.salesSegments);
+  }
+
+  get branchBars(): Array<{ label: string; value: number; percent: number }> {
+    const rows = this.selectedBranches.map((b) => ({
+      label: this.branchLabelById(b.id),
+      value: this.stockByBranchId(b.id)
+    }));
+    const max = Math.max(1, ...rows.map((x) => x.value));
+    return rows.map((x) => ({ ...x, percent: Math.max(8, Math.round((x.value / max) * 100)) }));
+  }
+
+  private buildConicStyle(segments: Segment[]): string {
+    const total = Math.max(1, segments.reduce((sum, item) => sum + Math.max(0, item.value), 0));
+    let current = 0;
+    const parts = segments.map((item) => {
+      const start = current;
+      const angle = (Math.max(0, item.value) / total) * 360;
+      current += angle;
+      return `${item.color} ${start}deg ${current}deg`;
+    });
+    return `conic-gradient(${parts.join(', ')})`;
+  }
+
+  load(): void {
+    if (!Number.isFinite(this.id)) {
+      this.error = 'ID sản phẩm không hợp lệ.';
+      return;
+    }
+
+    this.loading = true;
+    this.error = '';
+
+    const url = `${environment.apiBaseUrl}/api/products/${this.id}`;
+    this.http.get<ApiResponse<ProductResponse>>(url).subscribe({
+      next: (res) => {
+        this.loading = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Không thể tải sản phẩm.';
+          return;
+        }
+        this.product = res.data;
+        this.loadStocks();
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = err?.error?.message || 'Không thể kết nối backend để tải sản phẩm.';
+      }
+    });
+  }
+
+  formatMoney(input: any): string {
+    const n = Number(input);
+    if (!Number.isFinite(n)) return '-';
+    return new Intl.NumberFormat('vi-VN').format(n);
+  }
+
+  totalVariantStock(v: ProductVariantResponse): number {
+    const st = (v?.stocks || []) as ProductVariantSizeStockResponse[];
+    return st.reduce((sum, s) => sum + Number(s?.stock || 0), 0);
+  }
+
+  branchLabelById(branchId: number): string {
+    const bid = Number(branchId);
+    const b = (this.branches || []).find((x) => x && x.id === bid);
+    return b?.name ? String(b.name) : `#${bid}`;
+  }
+
+  get selectedBranches(): AdminBranchResponse[] {
+    const ids = new Set<number>();
+    for (const x of this.branchStocks || []) if (typeof x?.branchId === 'number') ids.add(x.branchId);
+    for (const x of this.variantBranchStocks || []) if (typeof x?.branchId === 'number') ids.add(x.branchId);
+    const rows = (this.branches || []).filter((b) => b && typeof b.id === 'number' && ids.has(b.id));
+    if (rows.length > 0) return rows;
+    return Array.from(ids).map((id) => ({ id, name: `#${id}` } as AdminBranchResponse));
+  }
+
+  get hasVariantBranchStocks(): boolean {
+    return (this.variantBranchStocks || []).length > 0;
+  }
+
+  get variantBranchMatrixRows(): VariantBranchMatrixRow[] {
+    const branchIds = (this.selectedBranches || []).map((b) => b.id).filter((x) => typeof x === 'number');
+    if (branchIds.length === 0) return [];
+
+    const rowsByKey = new Map<string, VariantBranchMatrixRow>();
+    for (const x of this.variantBranchStocks || []) {
+      if (!x || typeof x.branchId !== 'number') continue;
+      const color = (x.color || '').toString().trim();
+      const size = (x.size || '').toString().trim();
+      if (!color || !size) continue;
+      const key = `${color.toLowerCase()}|${size.toLowerCase()}`;
+      const existing = rowsByKey.get(key);
+      if (!existing) {
+        rowsByKey.set(key, {
+          color,
+          size,
+          imageUrl: (x.imageUrl || '').toString().trim(),
+          branchStocks: branchIds.map((bid) => ({ branchId: bid, stock: 0 })),
+          total: 0
+        });
+      }
+      const row = rowsByKey.get(key)!;
+      const cell = row.branchStocks.find((s) => s.branchId === x.branchId);
+      if (cell) cell.stock = Number(x.stock || 0);
+      if (!row.imageUrl && x.imageUrl) row.imageUrl = (x.imageUrl || '').toString().trim();
+    }
+
+    const rows = Array.from(rowsByKey.values());
+    for (const row of rows) {
+      row.total = (row.branchStocks || []).reduce((sum, s) => sum + Math.max(0, Number(s?.stock || 0)), 0);
+    }
+
+    rows.sort((a, b) => {
+      const colorCmp = a.color.localeCompare(b.color, 'vi', { sensitivity: 'base' });
+      if (colorCmp !== 0) return colorCmp;
+      return a.size.localeCompare(b.size, 'vi', { sensitivity: 'base' });
+    });
+    return rows;
+  }
+
+  variantBranchCellStock(row: VariantBranchMatrixRow, branchId: number): number {
+    const bid = Number(branchId);
+    const cell = (row?.branchStocks || []).find((x) => x && x.branchId === bid);
+    const value = Number(cell?.stock ?? 0);
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  stockByBranchId(branchId: number): number {
+    const bid = Number(branchId);
+    const row = (this.branchStocks || []).find((x) => x && x.branchId === bid);
+    const value = Number(row?.stock ?? 0);
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  back(): void {
+    this.router.navigateByUrl('/admin/products');
+  }
+
+  edit(): void {
+    this.router.navigate(['/admin/products', this.id, 'edit']);
+  }
+
+  remove(): void {
+    if (!this.product?.id) return;
+    const ok = window.confirm(`Xóa sản phẩm #${this.product.id} (${this.product.name})?`);
+    if (!ok) return;
+
+    this.deleting = true;
+    this.error = '';
+
+    const url = `${environment.apiBaseUrl}/api/products/${this.product.id}`;
+    this.http.delete<ApiResponse<void>>(url).subscribe({
+      next: (res) => {
+        this.deleting = false;
+        if (!res?.success) {
+          this.error = res?.message || 'Xóa sản phẩm thất bại.';
+          return;
+        }
+        this.router.navigateByUrl('/admin/products');
+      },
+      error: (err) => {
+        this.deleting = false;
+        this.error = err?.error?.message || 'Gọi API thất bại.';
+      }
+    });
+  }
+}

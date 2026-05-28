@@ -1,0 +1,55 @@
+<div class="page">
+  <div class="page-head">
+    <div class="title">Chat với khách hàng</div>
+    <button class="btn" type="button" (click)="loadConversations()" [disabled]="loading">
+      {{ loading ? 'Đang tải...' : 'Làm mới' }}
+    </button>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="layout">
+    <div class="card list">
+      <div class="list-head">Hội thoại đang mở</div>
+      <div class="list-body">
+        <button
+          type="button"
+          class="conv"
+          *ngFor="let c of conversations"
+          [class.active]="selected?.id === c.id"
+          (click)="select(c)"
+        >
+          <div class="conv-title">{{ displayConvTitle(c) }}</div>
+          <div class="conv-sub">{{ c.lastMessageAt ? (c.lastMessageAt | date: 'short') : '-' }}</div>
+        </button>
+        <div class="empty" *ngIf="!loading && conversations.length === 0">Chưa có hội thoại.</div>
+      </div>
+    </div>
+
+    <div class="card chat">
+      <div class="chat-head">
+        <div class="chat-title">
+          {{ selected ? displayConvTitle(selected) : 'Chọn một hội thoại' }}
+        </div>
+        <button class="btn danger" type="button" (click)="closeConversation()" [disabled]="!selected || sending">
+          Đóng
+        </button>
+      </div>
+
+      <div class="chat-body">
+        <div class="empty" *ngIf="!selected">Hãy chọn hội thoại bên trái.</div>
+        <div class="empty" *ngIf="selected && messagesLoading">Đang tải tin nhắn...</div>
+
+        <div class="msg" *ngFor="let m of messages" [class.is-staff]="m.senderType === 'STAFF'" [class.is-customer]="m.senderType === 'CUSTOMER'">
+          <div class="bubble">{{ m.message }}</div>
+          <div class="time">{{ m.createdAt ? (m.createdAt | date: 'short') : '' }}</div>
+        </div>
+      </div>
+
+      <div class="chat-foot" *ngIf="selected">
+        <textarea class="input" rows="2" [(ngModel)]="input" placeholder="Nhập tin nhắn..."></textarea>
+        <button class="btn" type="button" (click)="send()" [disabled]="sending">Gửi</button>
+      </div>
+    </div>
+  </div>
+</div>

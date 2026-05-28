@@ -1,0 +1,2 @@
+ALTER TABLE users
+    MODIFY COLUMN address_detail LONGTEXT NULL;

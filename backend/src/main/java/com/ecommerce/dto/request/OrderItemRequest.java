@@ -7,8 +7,8 @@ import java.math.BigDecimal;
 
 public class OrderItemRequest {
 
-    @NotBlank(message = "productId is required")
-    private String productId;
+    @NotNull(message = "productId is required")
+    private Long productId;
 
     @NotBlank(message = "productName is required")
     private String productName;
@@ -20,13 +20,17 @@ public class OrderItemRequest {
     @NotNull(message = "unitPrice is required")
     private BigDecimal unitPrice;
 
+    private String size;
+
+    private String color;
+
     public OrderItemRequest() {}
 
-    public String getProductId() {
+    public Long getProductId() {
         return productId;
     }
 
-    public void setProductId(String productId) {
+    public void setProductId(Long productId) {
         this.productId = productId;
     }
 
@@ -52,5 +56,21 @@ public class OrderItemRequest {
 
     public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
+    }
+
+    public String getSize() {
+        return size;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

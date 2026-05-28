@@ -24,9 +24,21 @@ public class ProductResponse {
 
     private Long categoryId;
 
+    private Long productTypeId;
+
+    private String productTypeFieldsJson;
+
+    private String gender;
+
+    private String attributesJson;
+
+    private List<Long> categoryIds = new ArrayList<>();
+
     private String category;
 
     private String brand;
+
+    private Double weightKg;
 
     private String imageUrl;
 
@@ -43,6 +55,8 @@ public class ProductResponse {
     private List<String> colors = new ArrayList<>();
 
     private List<String> images = new ArrayList<>();
+
+    private List<ProductVariantResponse> variants = new ArrayList<>();
 
     private Boolean active;
 
@@ -120,6 +134,46 @@ public class ProductResponse {
         this.categoryId = categoryId;
     }
 
+    public Long getProductTypeId() {
+        return productTypeId;
+    }
+
+    public void setProductTypeId(Long productTypeId) {
+        this.productTypeId = productTypeId;
+    }
+
+    public String getProductTypeFieldsJson() {
+        return productTypeFieldsJson;
+    }
+
+    public void setProductTypeFieldsJson(String productTypeFieldsJson) {
+        this.productTypeFieldsJson = productTypeFieldsJson;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getAttributesJson() {
+        return attributesJson;
+    }
+
+    public void setAttributesJson(String attributesJson) {
+        this.attributesJson = attributesJson;
+    }
+
+    public List<Long> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(List<Long> categoryIds) {
+        this.categoryIds = categoryIds;
+    }
+
     public String getCategory() {
         return category;
     }
@@ -134,6 +188,14 @@ public class ProductResponse {
 
     public void setBrand(String brand) {
         this.brand = brand;
+    }
+
+    public Double getWeightKg() {
+        return weightKg;
+    }
+
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public String getImageUrl() {
@@ -198,6 +260,14 @@ public class ProductResponse {
 
     public void setImages(List<String> images) {
         this.images = images;
+    }
+
+    public List<ProductVariantResponse> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantResponse> variants) {
+        this.variants = variants;
     }
 
     public Boolean getActive() {

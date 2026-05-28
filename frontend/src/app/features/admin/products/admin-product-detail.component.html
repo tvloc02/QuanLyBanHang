@@ -1,0 +1,364 @@
+<div class="product-detail-page" *ngIf="!loading">
+  <div class="detail-hero">
+    <div class="detail-hero__main">
+      <div class="detail-hero__icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 7h-7V4a2 2 0 0 0-2-2H4v7h3v11a2 2 0 0 0 2 2h11V7Z" />
+          <path d="M9 11h7" />
+          <path d="M9 15h7" />
+        </svg>
+      </div>
+      <div>
+        <h1>Kiểm kê sản phẩm</h1>
+        <p *ngIf="product as p">Theo dõi ảnh chính, tồn kho, ma trận biến thể và số lượng bán ra của {{ p.name }}</p>
+      </div>
+    </div>
+
+    <div class="detail-hero__actions">
+      <button class="hero-btn ghost" type="button" (click)="back()">← Quay lại</button>
+      <button class="hero-btn solid" type="button" (click)="edit()" [disabled]="!product">Sửa sản phẩm</button>
+      <button class="hero-btn danger" type="button" (click)="remove()" [disabled]="!product || deleting">
+        {{ deleting ? 'Đang xóa...' : 'Xóa' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert error" *ngIf="error">{{ error }}</div>
+
+  <ng-container *ngIf="product as p">
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">Tồn kho thực tế</div>
+        <div class="metric-value">{{ totalInventory }}</div>
+        <div class="metric-note">Tổng từ kho và biến thể</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Đã bán</div>
+        <div class="metric-value">{{ soldCount }}</div>
+        <div class="metric-note">Tỷ lệ bán {{ sellThroughRate }}%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Giá trị tồn</div>
+        <div class="metric-value">{{ formatMoney(inventoryValue) }}đ</div>
+        <div class="metric-note">Theo giá hiện tại</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Sắp hết hàng</div>
+        <div class="metric-value">{{ lowStockCount }}</div>
+        <div class="metric-note">Biến thể <= 5 sản phẩm</div>
+      </div>
+    </div>
+
+    <div class="detail-layout">
+      <div class="detail-main">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Thông tin sản phẩm</h2>
+              <p>Ảnh chính, thông tin định danh và các chỉ số cơ bản phục vụ kiểm kê.</p>
+            </div>
+          </div>
+
+          <div class="panel-body product-profile">
+            <div class="product-media">
+              <div class="product-main-image">
+                <img [src]="mainImage" [alt]="p.name" />
+              </div>
+
+              <div class="thumb-row" *ngIf="images.length > 1">
+                <div class="thumb" *ngFor="let img of images">
+                  <img [src]="img" alt="Ảnh sản phẩm" />
+                </div>
+              </div>
+            </div>
+
+            <div class="product-info-grid">
+              <div class="info-card info-card--wide">
+                <div class="info-label">Tên sản phẩm</div>
+                <div class="info-value">{{ p.name }}</div>
+                <div class="info-sub">#{{ p.id }} · /{{ p.slug }}</div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-label">Giá bán</div>
+                <div class="info-value">{{ formatMoney(p.price) }}đ</div>
+                <div class="info-sub" *ngIf="p.oldPrice">Giá cũ: {{ formatMoney(p.oldPrice) }}đ</div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-label">Trạng thái</div>
+                <div class="info-value">
+                  <span class="status-pill" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Đang bán' }}</span>
+                </div>
+                <div class="info-sub" *ngIf="p.badge">Badge: {{ p.badge }}</div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-label">Brand</div>
+                <div class="info-value">{{ p.brand || '-' }}</div>
+                <div class="info-sub">Danh mục: {{ p.category || '-' }}</div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-label">Biến thể</div>
+                <div class="info-value">{{ variantCount }}</div>
+                <div class="info-sub">{{ colorCount }} màu · {{ sizeCount }} size</div>
+              </div>
+
+              <div class="info-card info-card--wide" *ngIf="p.description">
+                <div class="info-label">Mô tả</div>
+                <div class="description">{{ p.description }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Bảng ma trận tồn kho</h2>
+              <p>Theo dõi tồn kho theo màu, size và chi nhánh để kiểm kê chính xác.</p>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            <div class="matrix-summary">
+              <div class="mini-stat">
+                <span class="mini-stat__label">Chi nhánh tham gia</span>
+                <strong>{{ branchCount }}</strong>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">Dòng ma trận</span>
+                <strong>{{ variantBranchMatrixRows.length || variantCount }}</strong>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">Tổng tồn</span>
+                <strong>{{ totalInventory }}</strong>
+              </div>
+            </div>
+
+            <div class="matrix-wrap" *ngIf="hasVariantBranchStocks && variantBranchMatrixRows.length > 0">
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Màu</th>
+                    <th>Size</th>
+                    <th *ngFor="let b of selectedBranches">SL · {{ branchLabelById(b.id) }}</th>
+                    <th>Tổng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of variantBranchMatrixRows; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ row.color }}</td>
+                    <td>{{ row.size }}</td>
+                    <td *ngFor="let b of selectedBranches">{{ variantBranchCellStock(row, b.id) }}</td>
+                    <td><strong>{{ row.total }}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="matrix-wrap" *ngIf="!hasVariantBranchStocks && selectedBranches.length > 0">
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Chi nhánh</th>
+                    <th>Tồn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let b of selectedBranches; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ branchLabelById(b.id) }}</td>
+                    <td><strong>{{ stockByBranchId(b.id) }}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="empty-state" *ngIf="!stockLoading && selectedBranches.length === 0">
+              Chưa có dữ liệu tồn kho theo chi nhánh.
+            </div>
+
+            <div class="variants-grid" *ngIf="variantCount > 0">
+              <article class="variant-card" *ngFor="let v of p.variants">
+                <div class="variant-card__head">
+                  <div>
+                    <h3>{{ v.color }}</h3>
+                    <p>{{ v.images?.length || 0 }} ảnh · {{ totalVariantStock(v) }} sản phẩm</p>
+                  </div>
+                  <span class="status-pill" [class.off]="v.active === false">{{ v.active === false ? 'Ẩn' : 'Bật' }}</span>
+                </div>
+
+                <div class="variant-card__stats">
+                  <div>
+                    <span>Giá</span>
+                    <strong>{{ formatMoney(v.price) }}đ</strong>
+                  </div>
+                  <div>
+                    <span>Giá cũ</span>
+                    <strong>{{ v.oldPrice ? (formatMoney(v.oldPrice) + 'đ') : '-' }}</strong>
+                  </div>
+                  <div>
+                    <span>Tồn</span>
+                    <strong>{{ totalVariantStock(v) }}</strong>
+                  </div>
+                </div>
+
+                <div class="size-chips" *ngIf="(v.stocks?.length || 0) > 0">
+                  <span class="size-chip" *ngFor="let s of v.stocks">{{ s.size }} · {{ s.stock }}</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Thống kê bán ra và kiểm kê</h2>
+              <p>Chỉ hiển thị các chỉ số có thật từ dữ liệu sản phẩm và kho, không dùng số giả lập.</p>
+            </div>
+          </div>
+
+          <div class="panel-body analytics-grid">
+            <div class="analytics-card">
+              <h3>Tỷ trọng bán ra</h3>
+              <div class="donut-block">
+                <div class="donut" [style.background]="salesDonutStyle">
+                  <div class="donut__center">
+                    <strong>{{ soldCount + totalInventory }}</strong>
+                    <span>Tổng số lượng</span>
+                  </div>
+                </div>
+
+                <div class="legend">
+                  <div class="legend-row" *ngFor="let item of salesSegments">
+                    <span class="legend-dot" [style.background]="item.color"></span>
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="analytics-card">
+              <h3>Tồn theo chi nhánh</h3>
+              <div class="branch-bars" *ngIf="branchBars.length > 0">
+                <div class="branch-bar" *ngFor="let item of branchBars">
+                  <div class="branch-bar__meta">
+                    <span>{{ item.label }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </div>
+                  <div class="branch-bar__track">
+                    <div class="branch-bar__fill" [style.width.%]="item.percent"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="empty-state" *ngIf="branchBars.length === 0">Chưa có dữ liệu chi nhánh.</div>
+            </div>
+
+            <div class="analytics-card">
+              <h3>Đánh giá và tín hiệu bán hàng</h3>
+              <div class="rating-overview">
+                <div class="rating-overview__score">{{ averageRating > 0 ? (averageRating | number:'1.1-1') : '-' }}</div>
+                <div class="rating-overview__meta">
+                  <span>{{ averageRating > 0 ? 'Điểm đánh giá hiện tại' : 'Chưa có điểm đánh giá' }}</span>
+                  <strong>{{ soldCount }} sản phẩm đã bán</strong>
+                </div>
+              </div>
+
+              <div class="health-grid">
+                <div>
+                  <span>Điểm rating</span>
+                  <strong>{{ averageRating > 0 ? (averageRating | number:'1.1-1') + '/5' : '-' }}</strong>
+                </div>
+                <div>
+                  <span>Đã bán</span>
+                  <strong>{{ soldCount }}</strong>
+                </div>
+                <div>
+                  <span>Tổng tồn</span>
+                  <strong>{{ totalInventory }}</strong>
+                </div>
+                <div>
+                  <span>Sắp hết</span>
+                  <strong>{{ lowStockCount }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="analytics-card analytics-card--compact">
+              <h3>Chỉ số kiểm kê</h3>
+              <div class="health-grid">
+                <div>
+                  <span>Tỷ lệ bán</span>
+                  <strong>{{ sellThroughRate }}%</strong>
+                </div>
+                <div>
+                  <span>Chi nhánh</span>
+                  <strong>{{ branchCount }}</strong>
+                </div>
+                <div>
+                  <span>Biến thể</span>
+                  <strong>{{ variantCount }}</strong>
+                </div>
+                <div>
+                  <span>Danh mục gắn</span>
+                  <strong>{{ p.categoryIds?.length || 0 }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="detail-side">
+        <section class="panel sticky-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Tóm tắt kiểm kê</h2>
+              <p>Những thông tin cần nắm nhanh khi kiểm tra sản phẩm.</p>
+            </div>
+          </div>
+
+          <div class="panel-body side-summary">
+            <div class="summary-row">
+              <span>Mã sản phẩm</span>
+              <strong>#{{ p.id }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Slug</span>
+              <strong>/{{ p.slug }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Danh mục chính</span>
+              <strong>{{ p.category || '-' }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Màu / Size</span>
+              <strong>{{ colorCount }} / {{ sizeCount }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Biến thể</span>
+              <strong>{{ variantCount }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Chi nhánh</span>
+              <strong>{{ branchCount }}</strong>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </ng-container>
+</div>
+
+<div class="product-detail-page" *ngIf="loading">
+  <div class="panel">
+    <div class="panel-body">Đang tải dữ liệu sản phẩm...</div>
+  </div>
+</div>

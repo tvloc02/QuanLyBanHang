@@ -1,167 +1,477 @@
-<div class="topbar">
+<div class="cart-page">
   <div class="container">
-    <div class="topbar-text">{{ cfg.topBarText }}</div>
-  </div>
-</div>
-
-<button
-  type="button"
-  class="scroll-top"
-  *ngIf="showScrollTop"
-  (click)="scrollToTop()"
-  aria-label="Về đầu trang"
->
-  ↑
-</button>
-
-<header class="header" (click)="closeAccount()">
-  <div class="container header-inner">
-    <a class="brand" routerLink="/">{{ cfg.brandText }}</a>
-
-    <div class="search">
-      <div class="search-wrap" (click)="$event.stopPropagation()">
-        <input
-          type="text"
-          placeholder="Tìm kiếm..."
-          [value]="searchQuery"
-          (focus)="onSearchFocus()"
-          (input)="onSearchInput($any($event.target).value)"
-          (keydown)="onSearchKeydown($any($event))"
-        />
-      </div>
-
-      <button type="button" aria-label="Search" (click)="submitSearch()">🔍</button>
-
-      <div class="search-suggest" *ngIf="showSearchSuggest && searchSuggest.length > 0" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="suggest-item"
-          *ngFor="let s of searchSuggest; let i = index"
-          (click)="selectSuggestion(s.route)"
-          (mouseenter)="activeSuggestIndex = i"
-          [class.active]="i === activeSuggestIndex"
-        >
-          {{ s.label }}
-        </button>
-      </div>
+    <div *ngIf="paymentToast" class="payment-toast" [class.is-warning]="paymentToastType === 'warning'">
+      {{ paymentToast }}
     </div>
 
-    <div class="actions">
-      <button type="button" class="icon-btn badge" (click)="go('/wishlist')" aria-label="Yêu thích">
-        ❤
-        <span class="badge-count" *ngIf="wishlistCount > 0">{{ wishlistCount }}</span>
-      </button>
-
-      <button type="button" class="icon-btn badge" (click)="go('/cart')" aria-label="Giỏ hàng">
-        🛒
-        <span class="badge-count" *ngIf="cartCount > 0">{{ cartCount }}</span>
-      </button>
-
-      <div class="action account" (click)="$event.stopPropagation()">
-        <button
-          type="button"
-          class="icon-btn"
-          (click)="$event.stopPropagation(); toggleAccount()"
-          aria-label="Tài khoản"
-        >
-          👤
-        </button>
-        <div class="dropdown" *ngIf="accountOpen" (click)="$event.stopPropagation()">
-          <button type="button" class="dropdown-item" (click)="go('/login')">Đăng nhập</button>
-          <button type="button" class="dropdown-item" (click)="go('/register')">Đăng ký</button>
-        </div>
+    <div class="cart-header" *ngIf="items.length > 0">
+      <div class="cart-heading">
+        <h1>Giỏ hàng</h1>
       </div>
+      <a class="continue-shopping-btn" routerLink="/products">← Tiếp tục mua sắm</a>
     </div>
 
-    <nav class="nav">
-      <button
-        type="button"
-        class="nav-item"
-        *ngFor="let item of cfg.nav"
-        (click)="onNavClick(item)"
-      >
-        {{ item.label }}
-      </button>
-    </nav>
-  </div>
-</header>
-
-<main class="cart-page">
-  <div class="container">
-    <div class="steps">
-      <div class="step active">
-        <span class="dot"></span>
-        <span class="label">GIỎ HÀNG</span>
-      </div>
-      <div class="divider"></div>
-      <div class="step">
-        <span class="dot"></span>
-        <span class="label">ĐẶT HÀNG</span>
-      </div>
-      <div class="divider"></div>
-      <div class="step">
-        <span class="dot"></span>
-        <span class="label">HOÀN THÀNH ĐƠN HÀNG</span>
-      </div>
+    <div *ngIf="items.length === 0" class="empty-cart">
+      <div class="empty-cart-icon">🛍️</div>
+      <h2>Ốp!</h2>
+      <p>Bạn chưa có sản phẩm nào trong giỏ hàng</p>
+      <a routerLink="/products" class="continue-shopping-empty-btn">Tiếp tục mua sắm</a>
     </div>
 
-    <div class="empty" *ngIf="items.length === 0">
-      <div class="empty-illu">🛍️</div>
-      <div class="empty-title">Ốp!</div>
-      <div class="empty-text">Bạn chưa có sản phẩm nào trong giỏ hàng</div>
-      <button type="button" class="primary" (click)="continueShopping()">TIẾP TỤC MUA SẮM</button>
-    </div>
-
-    <div class="cart" *ngIf="items.length > 0">
-      <div class="cart-left">
-        <div class="cart-title">Giỏ hàng ({{ cartCount }})</div>
-
-        <div class="item" *ngFor="let it of items">
-          <div class="thumb">
-            <img [src]="it.imageUrl || 'https://via.placeholder.com/120x120?text=Product'" [alt]="it.name" />
-          </div>
-          <div class="info">
-            <div class="name">{{ it.name }}</div>
-            <div class="meta" *ngIf="it.size || it.color">
-              <span *ngIf="it.size">Size: {{ it.size }}</span>
-              <span *ngIf="it.color">Màu: {{ it.color }}</span>
+    <div *ngIf="items.length > 0" class="cart-layout">
+      <div class="cart-main">
+        <section class="cart-section">
+          <div class="section-header">
+            <div>
+              <h2>Sản phẩm ({{ items.length }})</h2>
+              <p>Chọn sản phẩm cần thanh toán. Các sản phẩm ở nhiều kho sẽ được tách riêng để tính phí giao hàng.</p>
             </div>
-            <div class="row">
-              <div class="price">{{ formatMoney(it.price) }}đ</div>
-              <div class="qty">
-                <button type="button" (click)="dec(it)" aria-label="Giảm">−</button>
-                <div class="num">{{ it.quantity }}</div>
-                <button type="button" (click)="inc(it)" aria-label="Tăng">+</button>
+            <button type="button" class="clear-cart-btn" (click)="clearCart()">Xóa tất cả</button>
+          </div>
+
+          <div class="cart-items">
+            <article class="cart-item" *ngFor="let item of items; let i = index">
+              <label class="item-select">
+                <input
+                  type="checkbox"
+                  [checked]="item.selected !== false"
+                  (change)="toggleItemSelection(i, $any($event.target).checked)">
+                <span></span>
+              </label>
+
+              <div class="item-image">
+                <img
+                  [src]="item.imageUrl || item.image || '/assets/no-image.png'"
+                  [alt]="item.name"
+                  (error)="item.imageUrl = '/assets/no-image.png'; item.image = '/assets/no-image.png'">
               </div>
-              <div class="line">{{ formatMoney(it.price * it.quantity) }}đ</div>
-              <button type="button" class="remove" (click)="remove(it)">Xóa</button>
-            </div>
-          </div>
-        </div>
 
-        <div class="actions-row">
-          <button type="button" class="ghost" (click)="continueShopping()">← Tiếp tục mua sắm</button>
-        </div>
+              <div class="item-content">
+                <div class="item-top">
+                  <div class="item-details">
+                    <a [routerLink]="['/product', item.slug || item.id]" class="item-name">{{ item.name }}</a>
+                    <div class="item-meta">
+                      <span *ngIf="item.color">Màu: {{ item.color }}</span>
+                      <span *ngIf="item.size">Size: {{ item.size }}</span>
+                      <span *ngIf="item.branchName || item.branch">Chi nhánh: {{ item.branchName || item.branch }}</span>
+                    </div>
+                    <div class="item-price-line">
+                      <span class="item-current-price">{{ item.price | number:'1.0-0' }}đ</span>
+                      <span class="item-old-price" *ngIf="item.originalPrice && item.originalPrice > item.price">
+                        {{ item.originalPrice | number:'1.0-0' }}đ
+                      </span>
+                    </div>
+                  </div>
+
+                  <button type="button" class="remove-item-btn" (click)="removeItem(i)">Xóa</button>
+                </div>
+
+                <div class="item-bottom">
+                  <div class="quantity-control">
+                    <button type="button" (click)="decreaseQuantity(i)">−</button>
+                    <span>{{ item.quantity }}</span>
+                    <button type="button" (click)="increaseQuantity(i)">+</button>
+                  </div>
+                  <div class="item-total">{{ item.price * item.quantity | number:'1.0-0' }}đ</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
 
-      <aside class="summary">
-        <div class="sum-title">Tóm tắt</div>
-        <div class="sum-row">
-          <span>Tạm tính</span>
-          <b>{{ formatMoney(subtotal) }}đ</b>
+      <aside class="cart-sidebar">
+        <section class="cart-section system-card">
+          <div class="section-header compact">
+            <div>
+              <h2>Địa chỉ giao hàng</h2>
+              <p>Chọn địa chỉ để hệ thống xác định cùng tỉnh hay khác tỉnh với kho chi nhánh.</p>
+            </div>
+            <button type="button" class="secondary-btn" (click)="openAddressModal()">Chọn địa chỉ khác</button>
+          </div>
+
+          <div class="selected-address-card" *ngIf="selectedAddress; else noAddressSelected">
+            <div class="address-top">
+              <div class="address-name">{{ selectedAddress.name }}</div>
+              <div class="address-phone">{{ selectedAddress.phone }}</div>
+              <span class="default-badge">Mặc định</span>
+            </div>
+            <div class="address-detail">{{ selectedAddress.address }}</div>
+            <div class="address-region" *ngIf="selectedAddress.district || selectedAddress.province">
+              {{ selectedAddress.district || '' }}{{ selectedAddress.district && selectedAddress.province ? ', ' : '' }}{{ selectedAddress.province || '' }}
+            </div>
+          </div>
+
+          <ng-template #noAddressSelected>
+            <div class="empty-address">Chưa có địa chỉ nào. Hãy thêm hoặc chọn một địa chỉ để tiếp tục.</div>
+          </ng-template>
+        </section>
+
+        <section class="cart-section system-card">
+          <div class="section-header compact">
+            <div>
+              <h2>Chọn hình thức giao hàng</h2>
+              <p>Chọn hình thức giao hàng phù hợp cho từng đơn.</p>
+            </div>
+          </div>
+
+          <div class="shipment-groups" *ngIf="shipmentGroups.length > 0; else emptyShipmentState">
+            <article class="shipment-card" *ngFor="let shipment of shipmentGroups">
+              <div class="shipment-head">
+                <div>
+                  <div class="shipment-title">{{ shipment.branchName }}</div>
+                  <div class="shipment-subtitle">{{ shipment.branchAddress }}</div>
+                  <div class="shipment-zone">{{ shipment.sameProvince ? 'Khách cùng tỉnh với chi nhánh' : 'Khách khác tỉnh với chi nhánh' }}</div>
+                </div>
+                <div class="shipment-meta">
+                  <strong>{{ shipment.quantity }} SP</strong>
+                  <span>{{ shipment.subtotal | number:'1.0-0' }}đ</span>
+                </div>
+              </div>
+
+              <div class="shipment-products">
+                <div class="shipment-product" *ngFor="let item of shipment.items">
+                  <span>{{ item.name }}</span>
+                  <strong>x{{ item.quantity }}</strong>
+                </div>
+              </div>
+
+              <label
+                class="shipment-option"
+                *ngFor="let option of shipment.options"
+                [class.selected]="shipment.selectedOption.method === option.method"
+                (click)="setShipmentMethod(shipment, option.method)"
+              >
+                <div class="shipment-radio">
+                  <input
+                    type="radio"
+                    [name]="'shipment-' + shipment.key"
+                    [value]="option.method"
+                    [checked]="shipment.selectedOption.method === option.method"
+                    (change)="setShipmentMethod(shipment, option.method)"
+                  >
+                  <span></span>
+                </div>
+
+                <div class="shipment-option-main">
+                  <div class="shipment-option-title">{{ option.label }}</div>
+                  <div class="shipment-option-grid">
+                    <span>Khoảng cách: {{ formatDistanceKm(option.distanceKm) }}</span>
+                    <span>Ngày giao: {{ formatShippingDays(option.minDays, option.maxDays) }}</span>
+                    <strong>{{ option.fee | number:'1.0-0' }}đ</strong>
+                  </div>
+                  <div class="shipment-distance-note">
+                    {{ shipment.distanceSource === 'map' ? 'Khoảng cách đo theo tọa độ bản đồ.' : 'Khoảng cách lấy theo cấu hình mặc định do chưa có đủ tọa độ.' }}
+                  </div>
+                </div>
+              </label>
+            </article>
+          </div>
+
+          <ng-template #emptyShipmentState>
+            <div class="empty-address">Chọn ít nhất một sản phẩm để xem đơn vận chuyển.</div>
+          </ng-template>
+        </section>
+
+        <section class="cart-section system-card">
+          <div class="section-header compact">
+            <div>
+              <h2>Voucher</h2>
+              <p>Bấm để mở popup và chọn mã giảm giá phù hợp.</p>
+            </div>
+            <button type="button" class="secondary-btn" (click)="openDiscountModal()">Chọn voucher</button>
+          </div>
+
+          <div class="voucher-inline-card">
+            <div class="voucher-inline-title" *ngIf="discountCode; else noVoucherSelected">{{ discountCode }}</div>
+            <ng-template #noVoucherSelected>
+              <div class="voucher-inline-title">Chưa áp dụng voucher</div>
+            </ng-template>
+            <div class="voucher-inline-note" *ngIf="discountMessage">{{ discountMessage }}</div>
+          </div>
+        </section>
+
+        <section class="cart-section system-card">
+          <div class="section-header compact">
+            <div>
+              <h2>Phương thức thanh toán</h2>
+              <p>Chọn cách thanh toán phù hợp cho đơn hàng.</p>
+            </div>
+          </div>
+
+          <div class="payment-methods">
+            <label
+              class="payment-method"
+              *ngFor="let method of paymentMethods; let i = index"
+              [class.selected]="selectedPaymentMethod === i"
+              [class.disabled]="isPaymentMethodDisabled(i)"
+              (click)="onPaymentMethodClick(i, $event)"
+            >
+              <div class="payment-radio">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  [checked]="selectedPaymentMethod === i"
+                  [disabled]="isPaymentMethodDisabled(i)"
+                  (change)="selectPaymentMethod(i)"
+                >
+                <span></span>
+              </div>
+              <div class="payment-info">
+                <div class="payment-name">{{ method.name }}</div>
+                <div class="payment-desc">{{ method.description }}</div>
+                <div *ngIf="method.id === 2 && !hasAdminBankAccount" class="payment-note payment-note--warning">
+                  Shop chưa cấu hình tài khoản ngân hàng nhận tiền nên tạm thời chưa dùng được phương thức này.
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div *ngIf="!hasAdminBankAccount" class="payment-linking-box">
+            <div class="payment-linking-title">Shop chưa cấu hình nhận chuyển khoản</div>
+            <div class="payment-linking-desc">Vào khu quản trị và mở trang Cấu hình thanh toán để nhập tài khoản ngân hàng nhận tiền của shop.</div>
+          </div>
+
+          <div *ngIf="isBankTransferSelected && primaryBankAccount" class="bank-transfer-summary">
+            <div class="bank-transfer-summary__title">Tài khoản nhận tiền</div>
+            <div class="bank-transfer-summary__line">{{ primaryBankAccount.bankName }}</div>
+            <div class="bank-transfer-summary__line">STK: {{ primaryBankAccount.accountNumber }}</div>
+            <div class="bank-transfer-summary__line">Chủ TK: {{ primaryBankAccount.accountHolder }}</div>
+            <div class="bank-transfer-summary__line" *ngIf="primaryBankAccount.branchName">Chi nhánh: {{ primaryBankAccount.branchName }}</div>
+            <div class="bank-transfer-summary__line" *ngIf="adminPaymentSettings?.note">{{ adminPaymentSettings?.note }}</div>
+          </div>
+        </section>
+
+        <div class="order-summary">
+          <div class="summary-header">
+            <h2>Tóm tắt đơn hàng</h2>
+            <p>{{ selectedItemsCount }} sản phẩm được chọn</p>
+          </div>
+
+          <div class="summary-rows">
+            <div class="summary-row">
+              <span>Tạm tính</span>
+              <strong>{{ subtotal | number:'1.0-0' }}đ</strong>
+            </div>
+            <div class="summary-row">
+              <span>Phí vận chuyển</span>
+              <strong>{{ shippingFee | number:'1.0-0' }}đ</strong>
+            </div>
+            <div class="summary-row" *ngIf="discountAmount > 0">
+              <span>Giảm giá</span>
+              <strong class="discount-value">-{{ discountAmount | number:'1.0-0' }}đ</strong>
+            </div>
+            <div class="summary-row grand-total">
+              <span>Thành tiền</span>
+              <strong>{{ total | number:'1.0-0' }}đ</strong>
+            </div>
+          </div>
+
+          <button type="button" class="checkout-btn" (click)="checkout()" [disabled]="selectedAddressIndex === -1 || selectedItemsCount === 0">
+            Tiến hành thanh toán
+          </button>
+
+          <a class="continue-shopping-link" routerLink="/products">← Tiếp tục mua sắm</a>
         </div>
-        <div class="sum-row">
-          <span>Vận chuyển</span>
-          <b>0đ</b>
-        </div>
-        <div class="sum-row total">
-          <span>Tổng cộng</span>
-          <b>{{ formatMoney(subtotal) }}đ</b>
-        </div>
-        <button type="button" class="primary" (click)="checkout()">THANH TOÁN</button>
       </aside>
     </div>
-  </div>
-</main>
 
-<app-footer [quoteTitle]="cfg.footerQuoteTitle" [quoteText]="cfg.footerQuote"></app-footer>
+    <div class="modal-overlay" *ngIf="addressModalOpen" (click)="closeAddressModal()">
+      <div class="voucher-modal address-modal" (click)="$event.stopPropagation()">
+        <div class="voucher-modal-header">
+          <h3>Chọn địa chỉ giao hàng</h3>
+          <button type="button" class="close-modal-btn" (click)="closeAddressModal()">×</button>
+        </div>
+
+        <div class="modal-block">
+          <div class="modal-actions-row">
+            <button type="button" class="secondary-btn" (click)="showAddAddress = !showAddAddress">+ Thêm địa chỉ</button>
+            <button type="button" class="secondary-btn" (click)="showAddAddressForm = !showAddAddressForm">+ Thêm nhanh</button>
+          </div>
+
+          <div *ngIf="showAddAddressForm" class="quick-add-form">
+            <div class="form-grid">
+              <div class="field">
+                <label for="quickNameModal">Tên người nhận *</label>
+                <input id="quickNameModal" [(ngModel)]="quickAddress.name" placeholder="Nhập tên người nhận">
+              </div>
+              <div class="field">
+                <label for="quickPhoneModal">Số điện thoại *</label>
+                <input id="quickPhoneModal" [(ngModel)]="quickAddress.phone" placeholder="Nhập số điện thoại">
+              </div>
+              <div class="field field-full">
+                <label for="quickAddressModal">Địa chỉ chi tiết *</label>
+                <input id="quickAddressModal" [(ngModel)]="quickAddress.address" placeholder="Nhập địa chỉ">
+              </div>
+              <div class="field">
+                <label for="quickProvinceModal">Tỉnh/Thành phố</label>
+                <input id="quickProvinceModal" [(ngModel)]="quickAddress.province" placeholder="Nhập tỉnh/thành phố">
+              </div>
+              <div class="field">
+                <label for="quickDistrictModal">Quận/Huyện</label>
+                <input id="quickDistrictModal" [(ngModel)]="quickAddress.district" placeholder="Nhập quận/huyện">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="ghost-btn" (click)="cancelQuickAdd()">Hủy</button>
+              <button type="button" class="primary-btn" (click)="saveQuickAddress()">Lưu địa chỉ</button>
+            </div>
+          </div>
+
+          <div *ngIf="showAddAddress" class="add-address-form">
+            <div class="form-grid">
+              <div class="field">
+                <label for="recipientNameModal">Tên người nhận *</label>
+                <input id="recipientNameModal" [(ngModel)]="newAddress.name" placeholder="Nhập tên người nhận">
+              </div>
+              <div class="field">
+                <label for="phoneNumberModal">Số điện thoại *</label>
+                <input id="phoneNumberModal" [(ngModel)]="newAddress.phone" placeholder="Nhập số điện thoại">
+              </div>
+              <div class="field field-full">
+                <label for="addressModalInput">Địa chỉ chi tiết *</label>
+                <input id="addressModalInput" [(ngModel)]="newAddress.address" placeholder="Nhập địa chỉ">
+              </div>
+              <div class="field">
+                <label for="addressTypeModal">Loại địa chỉ</label>
+                <input id="addressTypeModal" [(ngModel)]="newAddress.type" placeholder="Ví dụ: Nhà riêng">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="ghost-btn" (click)="cancelAddAddress()">Hủy</button>
+              <button type="button" class="primary-btn" (click)="saveNewAddress()">Lưu địa chỉ</button>
+            </div>
+          </div>
+
+          <div *ngIf="addresses && addresses.length > 0" class="address-list">
+            <article
+              class="address-item"
+              *ngFor="let address of addresses; let i = index"
+              [class.active]="selectedAddressIndex === i"
+              (click)="selectAddressFromModal(i)"
+            >
+              <div class="address-main">
+                <div class="address-top">
+                  <div class="address-name">{{ address.name }}</div>
+                  <div class="address-phone">{{ address.phone }}</div>
+                  <span class="default-badge" *ngIf="i === 0">Mặc định</span>
+                  <span class="default-badge" *ngIf="address.type && i !== 0">{{ address.type }}</span>
+                </div>
+                <div class="address-detail">{{ address.address }}</div>
+                <div class="address-region" *ngIf="address.district || address.province">
+                  {{ address.district || '' }}{{ address.district && address.province ? ', ' : '' }}{{ address.province || '' }}
+                </div>
+              </div>
+
+              <div class="address-actions" (click)="$event.stopPropagation()">
+                <button type="button" class="link-btn" *ngIf="i !== 0" (click)="setPrimaryAddress(i)">Thiết lập mặc định</button>
+                <button type="button" class="link-btn danger" (click)="deleteAddress(i)">Xóa</button>
+              </div>
+            </article>
+          </div>
+
+          <div *ngIf="!addresses || addresses.length === 0" class="empty-address">
+            Chưa có địa chỉ nào. Hãy thêm địa chỉ để tiếp tục thanh toán.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" *ngIf="discountModalOpen" (click)="closeDiscountModal()">
+      <div class="voucher-modal" (click)="$event.stopPropagation()">
+        <div class="voucher-modal-header">
+          <h3>Chọn mã giảm giá</h3>
+          <button type="button" class="close-modal-btn" (click)="closeDiscountModal()">×</button>
+        </div>
+
+        <div class="voucher-modal-search">
+          <input type="text" [(ngModel)]="discountSearchQuery" (ngModelChange)="filterDiscounts()" placeholder="Tìm kiếm mã giảm giá...">
+        </div>
+
+        <div class="voucher-empty" *ngIf="discountLoading">Đang tải mã giảm giá...</div>
+        <div class="voucher-empty" *ngIf="!discountLoading && discountLoadError">{{ discountLoadError }}</div>
+
+        <div class="voucher-list" *ngIf="!discountLoading && filteredDiscounts.length > 0">
+          <div class="voucher-item" *ngFor="let coupon of filteredDiscounts" [class.disabled]="!isDiscountEligible(coupon)" [class.selected]="isDiscountSelected(coupon)">
+            <div class="voucher-main">
+              <div class="voucher-code">{{ coupon.code }}</div>
+              <div class="voucher-title">{{ coupon.description || ('Nhập mã ' + coupon.code) }}</div>
+              <div class="voucher-condition" *ngIf="coupon.minOrderAmount">
+                Đơn tối thiểu {{ coupon.minOrderAmount | number:'1.0-0' }}đ
+              </div>
+            </div>
+
+            <div class="voucher-side">
+              <div class="voucher-status" *ngIf="!isDiscountEligible(coupon)">Chưa đủ điều kiện</div>
+              <div class="voucher-status ok" *ngIf="isDiscountEligible(coupon)">Đủ điều kiện áp dụng</div>
+              <button type="button" class="voucher-apply-btn" [disabled]="!isDiscountEligible(coupon)" (click)="pickDiscount(coupon)">
+                {{ isDiscountSelected(coupon) ? 'Đang chọn' : 'Áp dụng' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="voucher-empty" *ngIf="!discountLoading && filteredDiscounts.length === 0">
+          Không có mã giảm giá phù hợp.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" *ngIf="qrPaymentOpen" (click)="closeQrPaymentModal()">
+      <div class="qr-payment-modal" (click)="$event.stopPropagation()">
+        <div class="voucher-modal-header">
+          <h3>Thanh toán chuyển khoản</h3>
+          <button type="button" class="close-modal-btn" (click)="closeQrPaymentModal()">×</button>
+        </div>
+
+        <div class="qr-payment-body" *ngIf="primaryBankAccount as bank">
+          <div class="qr-payment-top">
+            <div>
+              <div class="qr-payment-amount">{{ qrPaymentAmount | number:'1.0-0' }}đ</div>
+              <div class="qr-payment-ref">Mã thanh toán: {{ qrPaymentReference }}</div>
+            </div>
+            <div class="qr-payment-timer" [class.is-expired]="qrPaymentStatus === 'expired'">
+              {{ qrPaymentCountdown }}s
+            </div>
+          </div>
+
+          <div class="qr-payment-grid">
+            <div class="qr-payment-code">
+              <img *ngIf="qrPaymentStatus !== 'expired'" [src]="qrPaymentQrUrl" alt="QR thanh toán" />
+              <div *ngIf="qrPaymentStatus === 'expired'" class="qr-payment-expired">
+                Mã QR đã hết hạn
+              </div>
+            </div>
+
+            <div class="qr-payment-info">
+              <div class="qr-payment-bank">{{ bank.bankName }}</div>
+              <div class="qr-payment-line">Số tài khoản: <strong>{{ bank.accountNumber }}</strong></div>
+              <div class="qr-payment-line">Chủ tài khoản: <strong>{{ bank.accountHolder }}</strong></div>
+              <div class="qr-payment-line" *ngIf="bank.branchName">Chi nhánh: <strong>{{ bank.branchName }}</strong></div>
+              <div class="qr-payment-line">Số tiền: <strong>{{ qrPaymentAmount | number:'1.0-0' }}đ</strong></div>
+              <div class="qr-payment-line">Nội dung CK: <strong>{{ qrPaymentReference }}</strong></div>
+              <div class="qr-payment-note">
+                Mã QR có hiệu lực trong 30 giây. Sau khi khách chuyển khoản xong, bấm xác nhận để hoàn tất.
+              </div>
+              <div class="qr-payment-note" *ngIf="adminPaymentSettings?.note">
+                {{ adminPaymentSettings?.note }}
+              </div>
+            </div>
+          </div>
+
+          <div class="qr-payment-success" *ngIf="qrPaymentStatus === 'success'">
+            {{ qrPaymentSuccessMessage }}
+          </div>
+
+          <div class="qr-payment-actions">
+            <button type="button" class="secondary-btn" *ngIf="qrPaymentStatus === 'expired'" (click)="renewQrPayment()">Tạo mã mới</button>
+            <button type="button" class="secondary-btn" *ngIf="qrPaymentStatus !== 'success'" (click)="closeQrPaymentModal()">Đóng</button>
+            <button type="button" class="checkout-btn" *ngIf="qrPaymentStatus === 'idle' || qrPaymentStatus === 'checking'" [disabled]="qrPaymentStatus !== 'idle'" (click)="confirmQrPayment()">
+              {{ qrPaymentStatus === 'checking' ? 'Đang xác nhận...' : 'Tôi đã thanh toán' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

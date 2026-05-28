@@ -12,6 +12,9 @@ public class ProductDto {
     private String description;
     private BigDecimal price;
     private BigDecimal oldPrice;
+    private Double weightKg;
+    private Long productTypeId;
+    private String gender;
     private String imageUrl;
     private String badge;
     private Integer discountPercent;
@@ -31,6 +34,9 @@ public class ProductDto {
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
         dto.setOldPrice(product.getOldPrice());
+        dto.setWeightKg(product.getWeightKg());
+        dto.setProductTypeId(product.getProductTypeId());
+        dto.setGender(product.getGender());
         dto.setImageUrl(product.getImageUrl());
         dto.setBadge(product.getBadge());
         dto.setDiscountPercent(product.getDiscountPercent());
@@ -62,6 +68,15 @@ public class ProductDto {
 
     public BigDecimal getOldPrice() { return oldPrice; }
     public void setOldPrice(BigDecimal oldPrice) { this.oldPrice = oldPrice; }
+
+    public Double getWeightKg() { return weightKg; }
+    public void setWeightKg(Double weightKg) { this.weightKg = weightKg; }
+
+    public Long getProductTypeId() { return productTypeId; }
+    public void setProductTypeId(Long productTypeId) { this.productTypeId = productTypeId; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }

@@ -1,0 +1,210 @@
+<div class="page">
+  <div class="page-head">
+    <div class="head-left">
+      <div class="title">Trang bán hàng</div>
+      <div class="subtitle">Cấu hình nội dung hiển thị trên trang chủ: yêu thích, hot, độc quyền, voucher, tin tức...</div>
+    </div>
+    <div class="head-actions">
+      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading || saving">
+        <span class="btn-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </span>
+        {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+      <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">
+        <span class="btn-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        </span>
+        {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="layout">
+    <div class="side">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Danh mục cấu hình</div>
+            <div class="card-sub">Chọn mục cần chỉnh</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <button
+            type="button"
+            class="tab"
+            *ngFor="let s of sections"
+            [class.active]="(s.sectionKey || '').toUpperCase() === selectedKey"
+            (click)="select(s.sectionKey || '')"
+          >
+            <span class="tab-title">{{ s.title || (s.sectionKey || '') }}</span>
+            <span class="tab-sub">{{ (s.sectionKey || '').toUpperCase() }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">{{ form.title || selectedKey }}</div>
+            <div class="card-sub">Thiết lập tiêu đề, bật/tắt và danh sách item</div>
+          </div>
+          <div class="badge" [class.off]="!form.enabled">{{ form.enabled ? 'Đang bật' : 'Đang tắt' }}</div>
+        </div>
+
+        <div class="card-body">
+          <div class="form">
+            <div *ngIf="selectedKey === 'NEWS'" class="alert" style="margin-bottom: 12px">
+              Banner trang Tin tức đã tách ra trang cấu hình riêng.
+              <a routerLink="/admin/settings/news-banner" style="margin-left: 8px; font-weight: 900">Mở cấu hình Banner</a>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Tiêu đề</label>
+                <input class="input" [(ngModel)]="form.title" placeholder="Nhập tiêu đề section" />
+              </div>
+              <div class="field">
+                <label class="label">Trạng thái</label>
+                <select class="input" [(ngModel)]="form.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <div class="hint">Thêm item theo loại (sản phẩm / voucher / tin tức / link). Có thể kéo thứ tự bằng nút lên/xuống.</div>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn" type="button" (click)="addProduct()">+ Sản phẩm</button>
+                <button class="btn" type="button" (click)="addCoupon()">+ Voucher</button>
+                <button class="btn" type="button" (click)="addNews()">+ Tin tức</button>
+                <button class="btn" type="button" (click)="addLink()">+ Link</button>
+              </div>
+            </div>
+
+            <div class="items" *ngIf="form.items.length > 0">
+              <div class="item" *ngFor="let it of form.items; let i = index">
+                <div class="item-head">
+                  <div class="item-left">
+                    <span class="pill">{{ it.itemType }}</span>
+                    <span class="item-name" *ngIf="it.itemType === 'PRODUCT'">{{ productName(it.refId) }}</span>
+                    <span class="item-name" *ngIf="it.itemType === 'COUPON'">{{ couponCode(it.refId) }}</span>
+                    <span class="item-name" *ngIf="it.itemType === 'NEWS' || it.itemType === 'LINK'">{{ it.title || 'Item' }}</span>
+                  </div>
+                  <div class="item-actions">
+                    <label class="toggle"><input type="checkbox" [(ngModel)]="it.enabled" /> Bật</label>
+                    <button class="mini" type="button" (click)="up(i)" [disabled]="i === 0">↑</button>
+                    <button class="mini" type="button" (click)="down(i)" [disabled]="i === form.items.length - 1">↓</button>
+                    <button class="mini danger" type="button" (click)="remove(i)">Xóa</button>
+                  </div>
+                </div>
+
+                <div class="item-body">
+                  <div class="grid2" *ngIf="it.itemType === 'PRODUCT'">
+                    <div class="field">
+                      <label class="label">Sản phẩm</label>
+                      <select class="input" [(ngModel)]="it.refId">
+                        <option [ngValue]="null">-- Chọn sản phẩm --</option>
+                        <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="label">Ghi chú (tuỳ chọn)</label>
+                      <input class="input" [(ngModel)]="it.note" placeholder="Ví dụ: Sale hôm nay" />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'COUPON'">
+                    <div class="field">
+                      <label class="label">Voucher</label>
+                      <select class="input" [(ngModel)]="it.refId">
+                        <option [ngValue]="null">-- Chọn voucher --</option>
+                        <option *ngFor="let c of coupons" [ngValue]="c.id">{{ c.code }}</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="label">Nút</label>
+                      <input class="input" [(ngModel)]="it.buttonText" placeholder="Sao chép mã" />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'COUPON'">
+                    <div class="field">
+                      <label class="label">Tiêu đề (tuỳ chọn)</label>
+                      <input class="input" [(ngModel)]="it.title" placeholder="Ví dụ: Giảm đến 300K" />
+                    </div>
+                    <div class="field">
+                      <label class="label">Nội dung (tuỳ chọn)</label>
+                      <input class="input" [(ngModel)]="it.note" placeholder="Ví dụ: Cho đơn hàng từ 399.000đ" />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'NEWS'">
+                    <div class="field">
+                      <label class="label">Tiêu đề</label>
+                      <input class="input" [(ngModel)]="it.title" placeholder="Tiêu đề bài viết" />
+                    </div>
+                    <div class="field">
+                      <label class="label">Route</label>
+                      <input class="input" [(ngModel)]="it.route" placeholder="/news hoặc /pages/..." />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'NEWS'">
+                    <div class="field">
+                      <label class="label">Mô tả</label>
+                      <input class="input" [(ngModel)]="it.description" placeholder="Mô tả ngắn" />
+                    </div>
+                    <div class="field">
+                      <label class="label">Ảnh</label>
+                      <input class="input" [(ngModel)]="it.imageUrl" placeholder="https://..." />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'LINK'">
+                    <div class="field">
+                      <label class="label">Tiêu đề</label>
+                      <input class="input" [(ngModel)]="it.title" placeholder="Ví dụ: Giỏ hàng tiết kiệm" />
+                    </div>
+                    <div class="field">
+                      <label class="label">Route</label>
+                      <input class="input" [(ngModel)]="it.route" placeholder="/cart" />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'LINK'">
+                    <div class="field">
+                      <label class="label">Mô tả</label>
+                      <input class="input" [(ngModel)]="it.description" placeholder="Mô tả ngắn" />
+                    </div>
+                    <div class="field">
+                      <label class="label">Nút</label>
+                      <input class="input" [(ngModel)]="it.buttonText" placeholder="Xem ngay" />
+                    </div>
+                  </div>
+
+                  <div class="grid2" *ngIf="it.itemType === 'LINK'">
+                    <div class="field">
+                      <label class="label">Ảnh (tuỳ chọn)</label>
+                      <input class="input" [(ngModel)]="it.imageUrl" placeholder="https://..." />
+                    </div>
+                    <div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="empty" *ngIf="form.items.length === 0">Chưa có item nào. Hãy thêm item để hiển thị lên trang bán hàng.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

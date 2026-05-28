@@ -1,0 +1,117 @@
+<div class="page">
+  <div class="page-head">
+    <div class="head-left">
+      <div class="title">Thông báo</div>
+      <div class="subtitle">Thiết lập các kênh thông báo nội bộ (đơn hàng mới, thay đổi trạng thái, cảnh báo tồn kho)</div>
+    </div>
+    <div class="head-actions">
+      <button class="btn ghost" type="button" (click)="load()" [disabled]="loading || saving">
+        <span class="btn-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        </span>
+        {{ loading ? 'Đang tải...' : 'Làm mới' }}
+      </button>
+
+      <button class="btn" type="button" (click)="save()" [disabled]="loading || saving">
+        <span class="btn-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        </span>
+        {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert" *ngIf="error">{{ error }}</div>
+
+  <div class="layout">
+    <div class="main">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Cấu hình</div>
+            <div class="card-sub">Chọn các sự kiện hệ thống sẽ tạo thông báo</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="form">
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Bật thông báo</label>
+                <select class="input" [(ngModel)]="form.enabled">
+                  <option [ngValue]="true">Bật</option>
+                  <option [ngValue]="false">Tắt</option>
+                </select>
+              </div>
+              <div class="note">
+                <div class="small muted">Các tuỳ chọn bên dưới áp dụng cho hệ thống.</div>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="chk"><input type="checkbox" [(ngModel)]="form.notifyNewOrder" /> Thông báo khi có đơn hàng mới</label>
+                <div class="hint">Gửi thông báo cho quản trị khi phát sinh đơn hàng mới.</div>
+              </div>
+              <div class="field">
+                <label class="chk"><input type="checkbox" [(ngModel)]="form.notifyOrderStatus" /> Thông báo khi thay đổi trạng thái đơn</label>
+                <div class="hint">Theo dõi các cập nhật xử lý đơn (đang giao, hoàn tất...).</div>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="chk"><input type="checkbox" [(ngModel)]="form.notifyLowStock" /> Cảnh báo tồn kho thấp</label>
+                <div class="hint">Nhắc nhở khi sản phẩm sắp hết hàng.</div>
+              </div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Trạng thái</div>
+            <div class="card-sub">Tóm tắt cấu hình hiện tại</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="meta" *ngIf="settings">
+            <div class="meta-row">
+              <span class="k">Thông báo</span>
+              <span class="badge" [class.off]="!settings.enabled">{{ settings.enabled ? 'Đang bật' : 'Đang tắt' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="k">Đơn hàng mới</span>
+              <span class="badge" [class.off]="!settings.notifyNewOrder">{{ settings.notifyNewOrder ? 'Bật' : 'Tắt' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="k">Trạng thái đơn</span>
+              <span class="badge" [class.off]="!settings.notifyOrderStatus">{{ settings.notifyOrderStatus ? 'Bật' : 'Tắt' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="k">Tồn kho thấp</span>
+              <span class="badge" [class.off]="!settings.notifyLowStock">{{ settings.notifyLowStock ? 'Bật' : 'Tắt' }}</span>
+            </div>
+            <div class="meta-row" *ngIf="settings.updatedAt">
+              <span class="k">Cập nhật</span>
+              <span class="v">{{ settings.updatedAt }}</span>
+            </div>
+          </div>
+
+          <div class="meta" *ngIf="!settings">
+            <div class="meta-row">
+              <span class="k">Trạng thái</span>
+              <span class="v">Chưa có dữ liệu</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

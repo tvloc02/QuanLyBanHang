@@ -1,0 +1,90 @@
+<div class="payment-settings-page">
+  <section class="hero-card">
+    <div>
+      <div class="eyebrow">Cấu hình thanh toán</div>
+      <h1>Tài khoản nhận tiền chuyển khoản</h1>
+      <p>Nhập tài khoản ngân hàng của shop để trang giỏ hàng tạo mã QR thanh toán đúng theo số tiền đơn hàng.</p>
+    </div>
+    <button type="button" class="ghost-btn" (click)="load()" [disabled]="saving || loading">Tải lại</button>
+  </section>
+
+  <div *ngIf="error" class="status-banner status-banner--error">{{ error }}</div>
+  <div *ngIf="message" class="status-banner status-banner--success">{{ message }}</div>
+
+  <div class="content-grid">
+    <section class="form-card">
+      <div class="card-head">
+        <h2>Thông tin tài khoản</h2>
+        <label class="toggle-line">
+          <input type="checkbox" [(ngModel)]="form.enabled" />
+          <span>Bật thanh toán chuyển khoản bằng QR</span>
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <label class="field">
+          <span>Ngân hàng</span>
+          <input [(ngModel)]="form.bankName" placeholder="Ví dụ: Vietcombank" />
+        </label>
+
+        <label class="field">
+          <span>Mã ngân hàng VietQR</span>
+          <input [(ngModel)]="form.bankBin" placeholder="Ví dụ: vietcombank" />
+        </label>
+
+        <label class="field">
+          <span>Số tài khoản</span>
+          <input [(ngModel)]="form.accountNumber" placeholder="Nhập số tài khoản nhận tiền" />
+        </label>
+
+        <label class="field">
+          <span>Chủ tài khoản</span>
+          <input [(ngModel)]="form.accountHolder" placeholder="Nhập tên chủ tài khoản" />
+        </label>
+
+        <label class="field">
+          <span>Chi nhánh</span>
+          <input [(ngModel)]="form.branchName" placeholder="Ví dụ: Tây Hồ" />
+        </label>
+
+        <label class="field field--full">
+          <span>Ghi chú hiển thị</span>
+          <textarea [(ngModel)]="form.note" rows="4" placeholder="Ví dụ: Vui lòng chuyển đúng nội dung để hệ thống đối soát nhanh hơn."></textarea>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="ghost-btn" (click)="load()" [disabled]="saving">Khôi phục</button>
+        <button type="button" class="primary-btn" (click)="save()" [disabled]="saving || loading">
+          {{ saving ? 'Đang lưu...' : 'Lưu cấu hình' }}
+        </button>
+      </div>
+    </section>
+
+    <section class="preview-card">
+      <div class="card-head">
+        <h2>Xem trước QR</h2>
+        <div class="pill" [class.off]="!form.enabled">{{ form.enabled ? 'Đang bật' : 'Đang tắt' }}</div>
+      </div>
+
+      <div class="preview-amount">819.000đ</div>
+      <div class="preview-code">Nội dung CK: {{ previewTransferContent }}</div>
+
+      <div class="qr-frame">
+        <img *ngIf="previewQrUrl; else qrEmpty" [src]="previewQrUrl" alt="QR thanh toán xem trước" />
+      </div>
+
+      <ng-template #qrEmpty>
+        <div class="qr-empty">Điền thông tin ngân hàng để xem trước mã QR.</div>
+      </ng-template>
+
+      <div class="preview-info">
+        <div><strong>Ngân hàng:</strong> {{ form.bankName || '-' }}</div>
+        <div><strong>Số tài khoản:</strong> {{ form.accountNumber || '-' }}</div>
+        <div><strong>Chủ tài khoản:</strong> {{ form.accountHolder || '-' }}</div>
+        <div *ngIf="form.branchName"><strong>Chi nhánh:</strong> {{ form.branchName }}</div>
+        <div *ngIf="form.note"><strong>Ghi chú:</strong> {{ form.note }}</div>
+      </div>
+    </section>
+  </div>
+</div>

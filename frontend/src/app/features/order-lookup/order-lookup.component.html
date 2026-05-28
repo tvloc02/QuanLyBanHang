@@ -1,0 +1,176 @@
+<main class="lookup-page">
+  <div class="container">
+    <div class="lookup-shell">
+      <div class="lookup-search">
+        <div class="lookup-search__fields">
+          <input class="lookup-input" [(ngModel)]="orderId" placeholder="Mã đơn hàng" />
+          <input class="lookup-input" [(ngModel)]="phone" placeholder="Số điện thoại nhận hàng" />
+        </div>
+        <button type="button" class="lookup-button" (click)="lookup()" [disabled]="loading || loadingMyOrders">
+          {{ loading ? 'Đang tra cứu...' : 'Tra cứu' }}
+        </button>
+      </div>
+
+      <div class="lookup-error" *ngIf="error">{{ error }}</div>
+
+      <div class="lookup-tabs">
+        <button
+          type="button"
+          class="lookup-tab"
+          *ngFor="let tab of tabs"
+          [class.is-active]="activeTab === tab.key"
+          (click)="setActiveTab(tab.key)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="lookup-content" *ngIf="hasOrders; else emptyState">
+        <div class="order-list">
+          <article class="order-card" *ngFor="let order of filteredOrders">
+            <div class="order-card__head">
+              <div class="order-card__head-main">
+                <div class="order-card__source">
+                  {{ order.source === 'user-list' ? 'Đơn của tài khoản' : 'Tra cứu trực tiếp' }}
+                </div>
+                <div class="order-card__id">Đơn hàng {{ displayOrderCode(order) }}</div>
+                <div class="order-card__date">{{ formatDate(order.createdAt) }}</div>
+              </div>
+              <div class="order-card__status">{{ mapStatusLabel(order.status) }}</div>
+            </div>
+
+            <div class="order-card__submeta" *ngIf="order.shippingPhone || order.couponCode">
+              <span *ngIf="order.shippingPhone">SĐT: {{ order.shippingPhone }}</span>
+              <span *ngIf="order.couponCode">Voucher: {{ order.couponCode }}</span>
+            </div>
+
+            <div class="order-items" *ngIf="order.items?.length">
+              <div class="order-item" *ngFor="let item of order.items">
+                <div class="order-item__row">
+                  <div class="order-item__content">
+                    <div class="order-item__name">{{ item.productName || 'Sản phẩm' }}</div>
+                    <div class="order-item__meta">
+                      <span>x{{ item.quantity || 0 }}</span>
+                      <span>{{ formatMoney(item.unitPrice) }}đ / sản phẩm</span>
+                    </div>
+                  </div>
+                  <div class="order-item__side">
+                    <div class="order-item__price">{{ formatMoney(item.totalPrice) }}đ</div>
+                    <div class="order-item__actions" *ngIf="canReview(order, item)">
+                      <button type="button" class="ghost-button ghost-button--primary" (click)="openReview(order, item)">
+                        {{ reviewLabel(item) }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-card__foot">
+              <div class="order-card__total">
+                <span>Thành tiền:</span>
+                <strong>{{ formatMoney(order.total) }}đ</strong>
+              </div>
+
+              <div class="order-actions">
+                <button
+                  type="button"
+                  class="ghost-button ghost-button--primary"
+                  *ngIf="canCancel(order)"
+                  (click)="updateOrderAction(order, 'CANCEL')"
+                  [disabled]="actionLoadingId === order.id"
+                >
+                  {{ actionLoadingId === order.id ? 'Đang cập nhật...' : 'Hủy đơn' }}
+                </button>
+                <button
+                  type="button"
+                  class="ghost-button ghost-button--primary"
+                  *ngIf="canConfirmReceived(order)"
+                  (click)="updateOrderAction(order, 'CONFIRM_RECEIVED')"
+                  [disabled]="actionLoadingId === order.id"
+                >
+                  {{ actionLoadingId === order.id ? 'Đang cập nhật...' : 'Đã nhận hàng' }}
+                </button>
+                <button type="button" class="ghost-button" (click)="goShopping()">Mua lại</button>
+                <a class="ghost-button" routerLink="/sale">Trang Sale</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <ng-template #emptyState>
+        <div class="lookup-empty">
+          <div class="lookup-empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 120 120" width="120" height="120" fill="none">
+              <path d="M36 20h40l16 16v48c0 6.6-5.4 12-12 12H36c-6.6 0-12-5.4-12-12V32c0-6.6 5.4-12 12-12Z" fill="#FFD15A"/>
+              <path d="M76 20v16h16" fill="#F4B73C"/>
+              <path d="M64 20h12v16H64z" fill="#D29A37"/>
+              <rect x="45" y="58" width="30" height="4" rx="2" fill="#E2AB35"/>
+              <rect x="45" y="68" width="30" height="4" rx="2" fill="#E2AB35"/>
+              <rect x="45" y="78" width="22" height="4" rx="2" fill="#E2AB35"/>
+            </svg>
+          </div>
+          <div class="lookup-empty__text">Chưa có đơn hàng hiển thị</div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</main>
+
+<div class="review-overlay" *ngIf="reviewOpen" (click)="closeReview()">
+  <div class="review-modal" (click)="$event.stopPropagation()">
+    <div class="review-modal__head">
+      <div>
+        <div class="review-modal__title">Đánh giá sản phẩm</div>
+        <div class="review-modal__subtitle">{{ reviewTargetProductName }}</div>
+      </div>
+      <button type="button" class="review-modal__close" (click)="closeReview()">×</button>
+    </div>
+
+    <div class="review-modal__body">
+      <div class="review-rating">
+        <button
+          type="button"
+          class="review-star"
+          *ngFor="let star of [1, 2, 3, 4, 5]"
+          [class.is-active]="star <= reviewRating"
+          (click)="reviewRating = star"
+        >
+          ★
+        </button>
+      </div>
+
+      <textarea
+        class="review-textarea"
+        [(ngModel)]="reviewComment"
+        rows="5"
+        placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
+      ></textarea>
+
+      <div class="review-upload">
+        <label class="review-upload__button">
+          <input type="file" accept="image/*" multiple (change)="onReviewImagesSelected($event)" />
+          <span>Thêm ảnh minh chứng</span>
+        </label>
+        <div class="review-upload__hint">Tối đa 5 ảnh</div>
+      </div>
+
+      <div class="review-images" *ngIf="reviewImagePreviews.length > 0">
+        <div class="review-image" *ngFor="let preview of reviewImagePreviews; let i = index">
+          <img [src]="preview" [alt]="'Ảnh minh chứng ' + (i + 1)" />
+          <button type="button" class="review-image__remove" (click)="removeReviewImage(i)">×</button>
+        </div>
+      </div>
+
+      <div class="lookup-error review-error" *ngIf="reviewError">{{ reviewError }}</div>
+    </div>
+
+    <div class="review-modal__actions">
+      <button type="button" class="ghost-button" (click)="closeReview()" [disabled]="reviewSaving">Hủy</button>
+      <button type="button" class="lookup-button" (click)="submitReview()" [disabled]="reviewSaving">
+        {{ reviewSaving ? 'Đang gửi...' : 'Gửi đánh giá' }}
+      </button>
+    </div>
+  </div>
+</div>

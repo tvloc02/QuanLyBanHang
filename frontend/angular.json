@@ -25,7 +25,9 @@
               "src/assets"
             ],
             "styles": [
-              "src/styles/styles.scss"
+              "src/tailwind.css",
+              "src/styles/styles.scss",
+              "node_modules/leaflet/dist/leaflet.css"
             ],
             "scripts": []
           },

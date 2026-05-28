@@ -1,6 +1,8 @@
  package com.ecommerce.controller.user;
 
 import com.ecommerce.dto.request.GoogleLoginRequest;
+import com.ecommerce.dto.request.LoginRequest;
+import com.ecommerce.dto.request.RegisterRequest;
 import com.ecommerce.dto.response.ApiResponse;
 import com.ecommerce.dto.response.AuthTokenResponse;
 import com.ecommerce.service.user.AuthService;
@@ -22,13 +24,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login() {
-        return ResponseEntity.ok("OK");
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.login(request)));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register() {
-        return ResponseEntity.ok("OK");
+    public ResponseEntity<ApiResponse<AuthTokenResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.register(request)));
     }
 
     @PostMapping("/google")

@@ -1,0 +1,598 @@
+﻿
+<div class="space-y-6">
+  <div class="page-hero bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-xl p-5 sm:p-6 lg:p-8 text-white">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start sm:items-center gap-4 min-w-0">
+        <div class="hero-icon w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 7h-7V4a2 2 0 0 0-2-2H4v7h3v11a2 2 0 0 0 2 2h11V7Z" />
+            <path d="M9 11h7" />
+            <path d="M9 15h7" />
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold mb-1 leading-tight">{{ isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm' }} </h1>
+          <p class="text-blue-100 text-sm sm:text-base">{{ isEdit ? 'Cập nhật thông tin sản phẩm và biến thể' : 'Tạo mới sản phẩm và cấu hình biến thể màu/kích cỡ' }}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:justify-end">
+        <button
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all font-semibold disabled:opacity-60 whitespace-nowrap text-sm"
+          type="button"
+          (click)="back()"
+        >
+          <span>← Quay lại</span>
+        </button>
+        <button
+          class="flex items-center gap-2 px-3 py-2 sm:px-4 bg-white text-blue-700 rounded-xl hover:bg-blue-50 transition-all font-extrabold whitespace-nowrap text-sm disabled:opacity-60"
+          type="button"
+          (click)="submit()"
+          [disabled]="saving"
+        >
+          <span>{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" *ngIf="toastOpen" [class.is-error]="toastType==='error'" [class.is-success]="toastType==='success'">
+    <div class="toast__body">{{ toastMessage }}</div>
+    <button class="toast__close" type="button" (click)="closeToast()">×</button>
+  </div>
+
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6" *ngIf="error">
+    <div class="text-red-800 font-semibold mb-1">Lỗi</div>
+    <div class="text-red-700">{{ error }}</div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Product form tabs">
+    <button
+      *ngFor="let t of cleanTabs"
+      type="button"
+      class="tab"
+      role="tab"
+      [class.is-active]="isTab(t.key)"
+      [attr.aria-selected]="isTab(t.key)"
+      (click)="setTab(t.key)"
+    >
+      {{ t.label }}
+    </button>
+  </div>
+
+  <div class="layout" [class.disabled]="loading">
+    <form class="form" [formGroup]="form" (ngSubmit)="$event.preventDefault(); submit()">
+      <div class="cat-overlay" *ngIf="branchModalOpen">
+        <div class="cat-modal">
+          <div class="cat-head">
+            <div class="cat-title">Chọn chi nhánh</div>
+            <button class="btn ghost" type="button" (click)="closeBranchModal()">×</button>
+          </div>
+
+          <div class="cat-body">
+            <div class="cat-search">
+              <input class="input" [(ngModel)]="branchFilter" [ngModelOptions]="{ standalone: true }" name="branchFilterModal" placeholder="Tìm chi nhánh (mã/tên)..." />
+              <div class="cat-search-hint">Tick vào chi nhánh bạn muốn áp dụng.</div>
+            </div>
+
+            <div class="cat-tree">
+              <div class="cat-nodes">
+                <div class="cat-row" *ngFor="let b of filteredBranches; trackBy: trackByBranchId">
+                  <div class="cat-left" style="padding-left:12px">
+                    <span class="cat-name">{{ b.code }} - {{ b.name }}</span>
+                  </div>
+                  <div class="cat-right">
+                    <label class="cat-check">
+                      <input type="checkbox" [checked]="selectedBranchIds.has(b.id)" (change)="toggleBranchSelection(b.id, $any($event.target).checked)" />
+                      <span>Chọn</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-actions">
+            <button class="btn ghost" type="button" (click)="closeBranchModal()">Đóng</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="isTab('BASIC')" id="prod-sec-basic">
+        <div class="card-head">Thông tin cơ bản</div>
+        <div class="card-body">
+          <div class="basic-topbar">
+            <button class="btn ghost basic-topbar__btn" type="button" (click)="openBranchModal()" [disabled]="!canEditStock">
+              <span>Chọn chi nhánh</span>
+              <span class="basic-topbar__count">{{ selectedBranchIds.size }}</span>
+            </button>
+            <button class="btn ghost basic-topbar__btn" type="button" (click)="openCategoryModal()">
+              <span>Chọn danh mục</span>
+              <span class="basic-topbar__count">{{ selectedCategoryLeafs.length }}</span>
+            </button>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Tên sản phẩm</label>
+              <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
+            </div>
+
+            <div class="field">
+              <label class="label">Đường dẫn</label>
+              <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Brand</label>
+              <input class="input" formControlName="brand" placeholder="FashionHub" />
+            </div>
+
+            <div class="field">
+              <label class="label">Loại sản phẩm</label>
+              <select class="input" formControlName="productTypeId" [disabled]="productTypesLoading">
+                <option [ngValue]="null">-- Chọn loại sản phẩm --</option>
+                <option *ngFor="let pt of activeProductTypes" [ngValue]="pt.id">{{ pt.name }}</option>
+              </select>
+            </div>
+
+            <div class="field field--span2" *ngIf="availableSizeGroups.length > 0">
+              <label class="label">Nhóm size / giới tính</label>
+              <div class="branch-picker">
+                <label class="branch-pill" *ngFor="let g of availableSizeGroups">
+                  <input
+                    type="checkbox"
+                    class="accent-blue-600"
+                    [ngModel]="selectedSizeGroupKeys.has(g.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="toggleSizeGroupSelection(g.key, $event)"
+                  />
+                  <span class="branch-pill__text">{{ g.label }}</span>
+                </label>
+
+                <div class="size-inline-summary" *ngIf="selectedSizeGroups.length > 0">
+                  <span class="size-inline-item" *ngFor="let sg of selectedSizeGroups">
+                    <span class="size-group__title">{{ sg.label }}:</span>
+                    <span class="size-group__list">{{ sizesOfGroup(sg.key).join(', ') }}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Trạng thái</label>
+              <label class="switch">
+                <input type="checkbox" formControlName="active" />
+                <span>{{ form.value.active === false ? 'Ẩn' : 'Bật' }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Kích cỡ (CSV)</label>
+              <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
+            </div>
+
+            <div class="field">
+              <label class="label">Màu sắc (CSV)</label>
+              <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label class="label">Giá</label>
+              <div class="vnd-input">
+                <input
+                  class="input"
+                  type="text"
+                  inputmode="numeric"
+                  [value]="formatVnd(form.get('price')?.value)"
+                  (focus)="onVndControlFocus('price', $event)"
+                  (input)="onVndControlInput('price', $event)"
+                  (blur)="onVndControlBlur('price', $event)"
+                />
+                <span class="vnd-suffix">VNĐ</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Giá cũ</label>
+              <div class="vnd-input">
+                <input
+                  class="input"
+                  type="text"
+                  inputmode="numeric"
+                  [value]="formatVnd(form.get('oldPrice')?.value)"
+                  (focus)="onVndControlFocus('oldPrice', $event)"
+                  (input)="onVndControlInput('oldPrice', $event)"
+                  (blur)="onVndControlBlur('oldPrice', $event)"
+                />
+                <span class="vnd-suffix">VNĐ</span>
+              </div>
+            </div>
+          </div>
+
+          <input type="hidden" formControlName="category" />
+        </div>
+      </div>
+
+      <div class="cat-overlay" *ngIf="categoryModalOpen">
+        <div class="cat-modal">
+          <div class="cat-head">
+            <div class="cat-title">Chọn danh mục</div>
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">×</button>
+          </div>
+
+          <div class="cat-body">
+            <div class="cat-search">
+              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="categoryFilterModal" placeholder="Tìm danh mục..." />
+              <div class="cat-search-hint">Bạn có thể tick ở cả cấp 1/2/3.</div>
+            </div>
+
+            <div class="cat-tree">
+              <ng-container *ngTemplateOutlet="treeTpl; context: { $implicit: categoryTree, level: 0 }"></ng-container>
+            </div>
+
+            <ng-template #treeTpl let-nodes let-level="level">
+              <div class="cat-nodes">
+                <ng-container *ngFor="let node of (nodes || [])">
+                  <div class="cat-row">
+                    <div class="cat-left" [style.paddingLeft.px]="12 + level * 16">
+                      <button
+                        class="cat-exp"
+                        type="button"
+                        *ngIf="node.children?.length"
+                        (click)="toggleExpandCategory(node)"
+                        [attr.aria-label]="isExpandedCategory(node) ? 'Thu gọn' : 'Mở rộng'"
+                      >
+                        {{ isExpandedCategory(node) ? '-' : '+' }}
+                      </button>
+                      <span class="cat-name">{{ node.name }}</span>
+                    </div>
+
+                    <div class="cat-right">
+                      <label class="cat-check">
+                        <input type="checkbox" [checked]="selectedCategoryIds.has(node.id)" (change)="toggleCategory(node)" />
+                        <span>Chọn</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="cat-children" *ngIf="node.children?.length && (categoryFilter ? true : isExpandedCategory(node))">
+                    <ng-container *ngTemplateOutlet="treeTpl; context: { $implicit: node.children, level: level + 1 }"></ng-container>
+                  </div>
+                </ng-container>
+              </div>
+            </ng-template>
+          </div>
+
+          <div class="cat-actions">
+            <button class="btn ghost" type="button" (click)="closeCategoryModal()">Đóng</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="isTab('BASIC')">
+        <div class="card-head">Tạo ma trận / biến thể</div>
+        <div class="card-body">
+          <div *ngIf="!canEditStock" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div class="text-yellow-800 font-semibold">Chỉ có Manager mới có thể nhập số lượng tồn kho</div>
+            <div class="text-yellow-700 text-sm mt-1">Bạn có thể sửa thông tin sản phẩm, nhưng việc nhập tồn kho sẽ do Manager chi nhánh thực hiện.</div>
+          </div>
+          <div class="variant-toolbar" style="margin:0">
+            <button class="btn ghost" type="button" (click)="generateVariantsFromCsv()">Tạo biến thể theo màu</button>
+            <button class="btn ghost" type="button" (click)="importMatrixFile()" [disabled]="variantBranchRows.length === 0">
+              Import ma trận từ file
+            </button>
+            <button class="btn ghost" type="button" (click)="exportMatrixTemplate()" [disabled]="variantBranchRows.length === 0">
+              Export mẫu ma trận
+            </button>
+            <input type="file" #matrixFileInput hidden accept=".csv,.xlsx,.xls" (change)="onMatrixFileSelected($event)" />
+          </div>
+
+          <div class="hint" *ngIf="selectedBranchIds.size===0">Chọn kho (chi nhánh) trước rồi mới tạo ma trận.</div>
+
+          <div class="variant-matrix" *ngIf="variants.length > 0 && selectedBranches.length > 0">
+            <div class="empty" *ngIf="variantBranchRows.length === 0">Chưa có dòng ma trận. Hãy nhập Size/Màu (CSV) và bấm “Tạo biến thể theo màu”.</div>
+
+            <div class="matrix-wrap" *ngIf="variantBranchRows.length > 0">
+              <table class="matrix-table matrix-table--center">
+                <thead>
+                  <tr>
+                    <th style="width:70px">STT</th>
+                    <th>Giới tính</th>
+                    <th>Màu sắc</th>
+                    <th>Size</th>
+                    <th style="width:100px">Cân nặng (kg)</th>
+                    <th *ngFor="let b of selectedBranches; trackBy: trackByBranchId" style="width:140px">
+                      SL - {{ branchLabelById(b.id) }}
+                    </th>
+                    <th style="width:140px">Tổng</th>
+                    <th style="width:160px">Giá</th>
+                    <th style="width:160px">Ảnh</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let r of variantBranchRows; let ri = index">
+                    <td><b>{{ ri + 1 }}</b></td>
+                    <td>{{ r.genderLabel }}</td>
+                    <td>{{ r.color }}</td>
+                    <td class="matrix-size">{{ r.size }}</td>
+                    <td>
+                      <input
+                        class="input matrix-input"
+                        type="number"
+                        [ngModel]="r.weightKg"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="setVariantWeightKg(r, $event)"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.35"
+                      />
+                    </td>
+                    <td *ngFor="let b of selectedBranches; trackBy: trackByBranchId">
+                      <input
+                        class="input matrix-input"
+                        type="number"
+                        [ngModel]="variantBranchStockValue(r, b.id)"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="setVariantBranchStockValue(r, b.id, $event)"
+                        [disabled]="!canEditStock"
+                      />
+                    </td>
+                    <td><b>{{ r.total || 0 }}</b></td>
+                    <td>
+                      <ng-container *ngIf="canEditMatrixPrice; else priceReadonly">
+                        <div class="vnd-input vnd-input--matrix">
+                          <input
+                            class="input matrix-input"
+                            type="text"
+                            inputmode="numeric"
+                            [value]="formatVnd(r.price)"
+                            (focus)="onVndRowPriceFocus(r, $event)"
+                            (input)="onVndRowPriceInput(r, $event)"
+                            (blur)="onVndRowPriceBlur(r, $event)"
+                          />
+                          <span class="vnd-suffix">VNĐ</span>
+                        </div>
+                      </ng-container>
+                      <ng-template #priceReadonly>
+                        <span>{{ formatVnd(r.price) }} VNĐ</span>
+                      </ng-template>
+                    </td>
+                    <td class="matrix-image">
+                      <div class="matrix-image-cell">
+                        <ng-container *ngIf="matrixImagePreview(r.imageUrl) as imgSrc">
+                          <button class="thumb-btn" type="button" (click)="openCropMatrix(ri)">
+                            <img class="matrix-thumb" [src]="imgSrc" alt="preview" />
+                          </button>
+                        </ng-container>
+                        <input class="file-input" type="file" accept="image/*" [id]="'matrixImg_' + ri" (change)="onMatrixImageFileSelect(ri, $event)" />
+                        <label class="btn ghost file-btn" [for]="'matrixImg_' + ri">Chọn ảnh</label>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="isTab('IMAGES')">
+        <div class="card-head">Ảnh sản phẩm (tổng)</div>
+        <div class="card-body">
+          <div class="img-layout-toolbar">
+            <div class="img-layout-label">Bố cục hiển thị</div>
+            <select
+              class="input img-layout-select"
+              [ngModel]="imageLayout"
+              (ngModelChange)="setImageLayout($event)"
+              [ngModelOptions]="{ standalone: true }"
+              name="imageLayout"
+            >
+              <option value="free">Tự do</option>
+              <option value="1-4">1 lớn - 4 nhỏ</option>
+              <option value="1-3">1 lớn - 3 nhỏ</option>
+              <option value="2-2">2 - 2 (4 ảnh bằng nhau)</option>
+            </select>
+          </div>
+
+          <div class="images" formArrayName="images" *ngIf="imageLayout === 'free'">
+            <div class="img-row" *ngFor="let c of images.controls; let i = index">
+              <button class="thumb-btn" type="button" *ngIf="mainPreview(i)" (click)="openCropMain(i)">
+                <img class="thumb-img" [src]="mainPreview(i)" alt="preview" />
+              </button>
+              <input type="hidden" [formControlName]="i" />
+              <input class="file-input" type="file" accept="image/*" [id]="'mainFile' + i" (change)="onFileSelect(i, $event)" />
+              <label class="btn ghost file-btn" [for]="'mainFile' + i">Chọn ảnh</label>
+              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
+              <button class="btn ghost danger" type="button" (click)="removeImage(i)">Xóa</button>
+            </div>
+            <button class="btn ghost add-btn" type="button" (click)="addImage()">+ Thêm ảnh</button>
+          </div>
+
+          <div class="img-grid" formArrayName="images" *ngIf="imageLayout !== 'free'" [class.layout-1-4]="imageLayout==='1-4'" [class.layout-1-3]="imageLayout==='1-3'" [class.layout-2-2]="imageLayout==='2-2'">
+            <div class="slot" *ngFor="let c of images.controls; let i = index" [class.slot-0]="i===0" [class.empty]="!mainPreview(i)">
+              <button class="slot-preview" type="button" *ngIf="mainPreview(i)" (click)="openCropMain(i)">
+                <img class="slot-img" [src]="mainPreview(i)" alt="preview" />
+                <div class="slot-badge" *ngIf="i===0">Chính</div>
+              </button>
+
+              <div class="slot-empty" *ngIf="!mainPreview(i)">
+                <div class="slot-empty-title">Chưa có ảnh</div>
+                <div class="slot-empty-sub">Bấm chọn ảnh để thêm</div>
+              </div>
+
+              <input type="hidden" [formControlName]="i" />
+              <input class="file-input" type="file" accept="image/*" [id]="'mainGridFile' + i" (change)="onFileSelect(i, $event)" />
+
+              <div class="slot-actions">
+                <label class="btn ghost file-btn" [for]="'mainGridFile' + i">Chọn ảnh</label>
+                <button class="btn ghost" type="button" (click)="setMain(i)" [disabled]="i===0">{{ i === 0 ? 'Ảnh chính' : 'Đặt chính' }}</button>
+                <button class="btn ghost danger" type="button" (click)="clearImage(i)">Xóa</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="isTab('DESCRIPTION')">
+        <div class="card-head">Mô tả</div>
+        <div class="card-body">
+          <div class="description-builder">
+            <div class="description-toolbar" *ngIf="descriptionBlocks.length === 0">
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('image')">+ Ảnh</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-lg')">+ Tiêu đề lớn</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-sm')">+ Tiêu đề bé</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('divider')">+ Gạch ngang</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('paragraph')">+ Nội dung</button>
+            </div>
+
+            <div class="description-empty" *ngIf="descriptionBlocks.length === 0">
+              Chưa có block mô tả. Hãy chọn một loại nội dung để bắt đầu.
+            </div>
+
+            <div class="description-list">
+              <div class="description-block" *ngFor="let block of descriptionBlocks; let i = index; trackBy: trackByDescriptionBlock">
+                <div class="description-block__head">
+                  <div class="description-block__type">
+                    <span *ngIf="block.type === 'heading-lg'">Tiêu đề lớn</span>
+                    <span *ngIf="block.type === 'heading-sm'">Tiêu đề bé</span>
+                    <span *ngIf="block.type === 'paragraph'">Nội dung</span>
+                    <span *ngIf="block.type === 'divider'">Gạch ngang</span>
+                    <span *ngIf="block.type === 'image'">Ảnh</span>
+                  </div>
+                  <div class="description-block__actions">
+                    <button class="btn ghost" type="button" (click)="moveDescriptionBlockUp(i)" [disabled]="i === 0">↑</button>
+                    <button class="btn ghost" type="button" (click)="moveDescriptionBlockDown(i)" [disabled]="i === descriptionBlocks.length - 1">↓</button>
+                    <button class="btn ghost danger" type="button" (click)="removeDescriptionBlock(i)">Xóa</button>
+                  </div>
+                </div>
+
+                <div class="description-block__body" [ngSwitch]="block.type">
+                  <div *ngSwitchCase="'heading-lg'">
+                    <input class="input description-input description-input--lg" type="text" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập tiêu đề lớn..." />
+                  </div>
+
+                  <div *ngSwitchCase="'heading-sm'">
+                    <input class="input description-input description-input--sm" type="text" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập tiêu đề bé..." />
+                  </div>
+
+                  <div *ngSwitchCase="'paragraph'">
+                    <textarea class="textarea description-textarea" rows="3" [(ngModel)]="block.text" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Nhập nội dung mô tả..."></textarea>
+                  </div>
+
+                  <div *ngSwitchCase="'divider'" class="description-divider-preview">
+                    <span class="description-divider-preview__line"></span>
+                  </div>
+
+                  <div *ngSwitchCase="'image'" class="description-image-editor">
+                    <div class="description-image-preview" *ngIf="block.imageUrl; else descriptionImageEmpty">
+                      <img [src]="resolveDescriptionImageUrl(block.imageUrl)" alt="Ảnh mô tả" />
+                    </div>
+                    <ng-template #descriptionImageEmpty>
+                      <div class="description-image-empty">Chưa có ảnh mô tả</div>
+                    </ng-template>
+
+                    <div class="description-image-actions">
+                      <label class="btn ghost file-btn">
+                        Chọn ảnh
+                        <input class="file-input" type="file" accept="image/*" (change)="onDescriptionImageSelect(i, $event)" />
+                      </label>
+                      <button class="btn ghost danger" type="button" (click)="clearDescriptionImage(i)" [disabled]="!block.imageUrl">Xóa ảnh</button>
+                    </div>
+
+                    <input class="input" type="text" [(ngModel)]="block.alt" [ngModelOptions]="{ standalone: true }" (ngModelChange)="onDescriptionBlockChanged()" placeholder="Mô tả ảnh (tuỳ chọn)" />
+                  </div>
+                </div>
+
+                <div class="description-block__insert">
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'image')">+ Ảnh</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'heading-lg')">+ Tiêu đề lớn</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'heading-sm')">+ Tiêu đề bé</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'divider')">+ Gạch ngang</button>
+                  <button class="btn ghost" type="button" (click)="insertDescriptionBlockAfter(i, 'paragraph')">+ Nội dung</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="description-toolbar description-toolbar--bottom" *ngIf="descriptionBlocks.length > 0">
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('image')">+ Ảnh</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-lg')">+ Tiêu đề lớn</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('heading-sm')">+ Tiêu đề bé</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('divider')">+ Gạch ngang</button>
+              <button class="btn ghost" type="button" (click)="addDescriptionBlock('paragraph')">+ Nội dung</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="side">
+      <div class="card sticky">
+        <div class="card-head">Tóm tắt</div>
+        <div class="card-body">
+          <div class="summary">
+            <div class="s-row"><span>Tên</span><b>{{ form.value.name || '-' }}</b></div>
+            <div class="s-row"><span>Đường dẫn</span><b>{{ form.value.slug || '-' }}</b></div>
+            <div class="s-row"><span>Giá</span><b>{{ formatVnd(form.value.price) }} VNĐ</b></div>
+            <div class="s-row"><span>Danh mục</span><b>{{ selectedCategoryLeafs.length }}</b></div>
+            <div class="s-row"><span>Biến thể</span><b>{{ variants.length }}</b></div>
+          </div>
+
+          <div class="side-actions">
+            <button class="btn" type="button" (click)="submit()" [disabled]="saving">{{ saving ? 'Đang lưu...' : (isEdit ? 'Lưu thay đổi' : 'Tạo sản phẩm') }}</button>
+            <button class="btn ghost" type="button" (click)="back()">Quay lại danh sách</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card side-progress">
+        <div class="card-body">
+          <div class="completion completion--side" aria-label="Completion">
+            <div class="completion__label">Hoàn thành</div>
+            <div class="completion__value">{{ completionPercent }}%</div>
+            <div class="completion__bar" aria-hidden="true">
+              <div class="completion__bar-fill" [style.width.%]="completionPercent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="crop-overlay" *ngIf="cropOpen">
+  <div class="crop-modal">
+    <div class="crop-head">
+      <div class="crop-title">Cắt ảnh</div>
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">×</button>
+    </div>
+
+    <div class="crop-body">
+      <canvas
+        #cropCanvas
+        class="crop-canvas"
+        width="780"
+        height="440"
+        (mousedown)="onCropMouseDown($event)"
+        (mousemove)="onCropMouseMove($event)"
+        (mouseup)="onCropMouseUp($event)"
+        (mouseleave)="onCropMouseUp($event)"
+      ></canvas>
+      <div class="crop-hint">Kéo chuột để chọn vùng cắt. Kéo vùng đã chọn để di chuyển.</div>
+    </div>
+
+    <div class="crop-actions">
+      <button class="btn ghost" type="button" (click)="closeCrop(true)" [disabled]="cropBusy">Hủy</button>
+      <button class="btn" type="button" (click)="applyCrop()" [disabled]="cropBusy">Cắt & Lưu</button>
+    </div>
+  </div>
+</div>
+
+

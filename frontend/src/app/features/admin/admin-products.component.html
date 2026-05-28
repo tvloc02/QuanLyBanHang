@@ -1,103 +1,279 @@
-<div class="admin-shell">
-  <div class="admin-head">
-    <a routerLink="/" class="back">← Về trang chủ</a>
-    <div class="title">Admin - Thêm sản phẩm</div>
+<div class="page">
+  <div class="page-head">
+    <div class="title">Sản phẩm</div>
+    <div class="head-actions">
+      <button class="btn ghost" type="button" (click)="exportProductsZip()" [disabled]="loading">Xuất File</button>
+      <button class="btn ghost" type="button" (click)="openImport()" [disabled]="loading">Nhập File</button>
+      <button class="btn" type="button" (click)="openCreate()">Thêm Sản Phẩm</button>
+    </div>
   </div>
 
+  <div class="search-row">
+    <input class="search" [(ngModel)]="q" placeholder="Tìm theo tên/slug/category/brand..." />
+  </div>
+
+  <div class="alert error" *ngIf="error">{{ error }}</div>
+  <div class="alert success" *ngIf="success">{{ success }}</div>
+
   <div class="card">
-    <div class="note">
-      Nhập <b>category</b> theo slug bạn muốn hiển thị ở trang danh mục.
-      Ví dụ: <code>ao-khoac-gio</code>, <code>ao-khoac-phao-long-vu</code>...
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 100px">Mức độ</th>
+          <th style="width: 70px">Ảnh</th>
+          <th>Tên</th>
+          <th style="width: 170px">Category</th>
+          <th style="width: 160px">Brand</th>
+          <th style="width: 120px" class="right">Giá</th>
+          <th style="width: 110px" class="right">Tồn</th>
+          <th style="width: 110px">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="!loading && filteredProducts.length === 0">
+          <td colspan="8" class="empty">Chưa có sản phẩm.</td>
+        </tr>
+        <tr *ngFor="let p of filteredProducts">
+          <td>
+            <div class="status-indicator" [ngClass]="getProductStatus(p)">
+              <span class="dot"></span>
+              <span class="status-text">{{ getProductStatusText(p) }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="thumb">
+              <img *ngIf="p.imageUrl" [src]="resolveImageUrl(p.imageUrl)" alt="thumb" />
+            </div>
+          </td>
+          <td>
+            <div class="pname">{{ p.name }}</div>
+            <div class="pslug">/{{ p.slug }}</div>
+          </td>
+          <td>{{ p.category }}</td>
+          <td>{{ p.brand }}</td>
+          <td class="right">{{ p.price }}</td>
+          <td class="right">{{ getDisplayStock(p) }}</td>
+          <td>
+            <span class="badge" [class.off]="p.active === false">{{ p.active === false ? 'Ẩn' : 'Bật' }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="overlay" *ngIf="importOpen" (click)="closeImport()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">Import sản phẩm</div>
+        <button class="icon" type="button" (click)="closeImport()">✕</button>
+      </div>
+
+      <div class="form" style="padding:16px">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Mode</label>
+            <select class="input" [(ngModel)]="importMode" [ngModelOptions]="{ standalone: true }">
+              <option value="CREATE">Tạo mới</option>
+              <option value="UPDATE">Cập nhật theo SKU</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">File (.xlsx hoặc .zip)</label>
+            <input class="input" type="file" accept=".xlsx,.zip" (change)="onImportFileSelected($event)" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Loại sản phẩm (Product Type)</label>
+          <select class="input" [(ngModel)]="importProductTypeId" [ngModelOptions]="{ standalone: true }">
+            <option [ngValue]="null">-- Không chọn (phải điền productTypeCode trong file) --</option>
+            <option *ngFor="let pt of productTypes" [ngValue]="pt.id">{{ pt.code }} - {{ pt.name }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Danh mục (tùy chọn)</label>
+          <div class="cat-box">
+            <div class="cat-box__head">
+              <input class="input" [(ngModel)]="categoryFilter" [ngModelOptions]="{ standalone: true }" name="importCategoryFilter" placeholder="Tìm danh mục..." />
+              <button class="btn ghost" type="button" (click)="clearSelectedCategories()">Xóa chọn</button>
+            </div>
+
+            <div class="cat-box__selected" *ngIf="selectedCategoryLeafs.length > 0">
+              <span class="chip" *ngFor="let c of selectedCategoryLeafs">{{ c.name }}</span>
+            </div>
+
+            <div class="cat-box__list">
+              <label class="cat-item" *ngFor="let cat of filteredLeafCategories">
+                <input type="checkbox" [checked]="selectedCategoryIds.has(cat.id)" (change)="toggleCategory(cat)" />
+                <span class="cat-item__name">{{ cat.name }}</span>
+                <span class="cat-item__slug">/{{ cat.slug }}</span>
+              </label>
+            </div>
+          </div>
+          <div class="hint">
+            Đã chọn: <code>{{ selectedCategoryLeafs.length }}</code> danh mục
+          </div>
+        </div>
+
+        <div class="alert success" *ngIf="importResult && (importResult.successCount || 0) > 0">
+          Import OK: {{ importResult.successCount }}/{{ importResult.total }} dòng.
+          <span *ngIf="(importResult.errorCount || 0) > 0"> Lỗi: {{ importResult.errorCount }}.</span>
+        </div>
+        <div class="alert error" *ngIf="importResult && (importResult.errorCount || 0) > 0">
+          Có lỗi khi import. Vui lòng kiểm tra lại file.
+          <span *ngIf="importResult.errorFileUrl"> (File lỗi: {{ importResult.errorFileUrl }})</span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="downloadProductsTemplateZip()">Tải file mẫu</button>
+          <button class="btn ghost" type="button" (click)="closeImport()">Đóng</button>
+          <button class="btn" type="button" (click)="submitImport()" [disabled]="importLoading">{{ importLoading ? 'Đang import...' : 'Import' }}</button>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="alert error" *ngIf="error">{{ error }}</div>
-    <div class="alert success" *ngIf="success">{{ success }}</div>
-
-    <form class="form" [formGroup]="form" (ngSubmit)="submit()">
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Tên sản phẩm *</label>
-          <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
-        </div>
-
-        <div class="field">
-          <label class="label">Slug *</label>
-          <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
-        </div>
+  <div class="overlay" *ngIf="modalOpen" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">Thêm sản phẩm</div>
+        <button class="icon" type="button" (click)="closeModal()">✕</button>
       </div>
 
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Category (slug) *</label>
-          <input class="input" formControlName="category" placeholder="ao-khoac-gio" />
+      <form class="form" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Tên sản phẩm *</label>
+            <input class="input" formControlName="name" (blur)="autoSlug()" placeholder="VD: Áo khoác gió basic" />
+          </div>
+          <div class="field">
+            <label class="label">Brand *</label>
+            <input class="input" formControlName="brand" placeholder="FashionHub" />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Slug *</label>
+            <input class="input" formControlName="slug" placeholder="ao-khoac-gio-basic" />
+          </div>
+          <div class="field">
+            <label class="label">Trạng thái</label>
+            <select class="input" formControlName="active">
+              <option [ngValue]="true">Bật</option>
+              <option [ngValue]="false">Ẩn</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label class="label">Size & Màu (dạng động)</label>
+            <div class="size-color-variants">
+              <div *ngFor="let variant of sizeColorVariants; let i = index" class="size-color-row">
+                <input class="input size-input" type="text" placeholder="Size" 
+                       [(ngModel)]="variant.size" />
+                <input class="input color-input" type="text" placeholder="Màu sắc" 
+                       [(ngModel)]="variant.color" />
+                <input class="input stock-input" type="number" placeholder="Tồn kho" 
+                       [(ngModel)]="variant.stock" />
+                <input class="input price-input" type="number" placeholder="Giá" 
+                       [(ngModel)]="variant.price" />
+                <button class="btn ghost remove-btn" type="button" 
+                        (click)="removeSizeColorVariant(i)" 
+                        [disabled]="sizeColorVariants.length <= 1">✕</button>
+              </div>
+              <button class="btn ghost add-btn" type="button" (click)="addSizeColorVariant()">
+                + Thêm Size & Màu
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="variant-toolbar">
+          <button class="btn ghost" type="button" (click)="generateVariantsFromSizeColor()">Tạo biến thể từ Size & Màu</button>
+          <button class="btn ghost" type="button" (click)="copyPriceFromFirstVariant()" [disabled]="variants.length < 2">Copy giá từ màu đầu</button>
+          <button class="btn ghost" type="button" (click)="createAndImportMatrixFile()" [disabled]="shouldDisableImportButton()">Import Ma Trận</button>
+          <div class="variant-toolbar__meta" *ngIf="form.value.stock">Tổng tồn: <code>{{ form.value.stock }}</code></div>
+        </div>
+
+        <div class="variants" formArrayName="variants" *ngIf="variants.length > 0">
+          <div class="variant" *ngFor="let vg of variants.controls; let i = index" [formGroupName]="i">
+            <div class="variant__head">
+              <div class="variant__title">Màu: <code>{{ vg.get('color')?.value }}</code></div>
+              <div class="variant__toggles">
+                <label class="switch">
+                  <span>Hiện</span>
+                  <input type="checkbox" formControlName="active" />
+                </label>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="field">
+                <label class="label">Giá (màu)</label>
+                <input class="input" type="number" formControlName="price" />
+              </div>
+              <div class="field">
+                <label class="label">Cân nặng (kg)</label>
+                <input class="input" type="number" formControlName="weight" />
+              </div>
+              <div class="field">
+                <label class="label">Giá cũ</label>
+                <input class="input" type="number" formControlName="oldPrice" />
+              </div>
+            </div>
+
+            <div class="field" formArrayName="images">
+              <label class="label">Ảnh theo màu</label>
+              <div class="images">
+                <div class="img-row" *ngFor="let ic of variantImages(i).controls; let j = index">
+                  <input class="input" [formControlName]="j" placeholder="https://..." />
+                  <input type="file" accept="image/*" (change)="onVariantFileSelect(i, j, $event)" style="margin-left:8px" />
+                  <button class="btn ghost" type="button" (click)="removeVariantImage(i, j)" style="margin-left:8px">Xóa</button>
+                </div>
+                <button class="btn ghost" type="button" (click)="addVariantImage(i)">+ Thêm ảnh</button>
+              </div>
+            </div>
+
+            <div class="field" formArrayName="stocks">
+              <label class="label">Tồn kho theo size</label>
+              <div class="stock-grid">
+                <div class="stock-row" *ngFor="let sc of variantStocks(i).controls; let k = index" [formGroupName]="k">
+                  <div class="stock-size">{{ sc.get('size')?.value }}</div>
+                  <input class="input" type="number" formControlName="stock" (input)="recalculateTotalStock()" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="field">
-          <label class="label">Brand *</label>
-          <input class="input" formControlName="brand" placeholder="FashionHub" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Giá *</label>
-          <input class="input" type="number" formControlName="price" />
-        </div>
-
-        <div class="field">
-          <label class="label">Giá cũ</label>
-          <input class="input" type="number" formControlName="oldPrice" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Tồn kho *</label>
-          <input class="input" type="number" formControlName="stock" />
+          <label class="label">Ảnh (URL hoặc chọn file)</label>
+          <div class="images" formArrayName="images">
+            <div class="img-row" *ngFor="let c of images.controls; let i = index">
+              <input class="input" [formControlName]="i" placeholder="https://..." />
+              <input type="file" accept="image/*" (change)="onFileSelect(i, $event)" style="margin-left:8px" />
+              <button class="btn ghost" type="button" (click)="setMain(i)" title="Đặt ảnh chính" style="margin-left:8px">{{ i === 0 ? 'Ảnh chính' : 'Đặt ảnh chính' }}</button>
+              <button class="btn ghost" type="button" (click)="removeImage(i)" style="margin-left:8px">Xóa</button>
+            </div>
+            <button class="btn ghost" type="button" (click)="addImage()">+ Thêm ảnh</button>
+          </div>
         </div>
 
         <div class="field">
-          <label class="label">Ảnh (URL)</label>
-          <input class="input" formControlName="imageUrl" placeholder="https://..." />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Badge</label>
-          <input class="input" formControlName="badge" placeholder="HOT/NEW/SALE" />
+          <label class="label">Mô tả</label>
+          <textarea class="textarea" formControlName="description" rows="4" placeholder="Mô tả sản phẩm..."></textarea>
         </div>
 
-        <div class="field">
-          <label class="label">Discount %</label>
-          <input class="input" type="number" formControlName="discountPercent" />
+        <div class="modal-actions">
+          <button class="btn ghost" type="button" (click)="closeModal()">Hủy</button>
+          <button class="btn" type="submit" [disabled]="saving">
+            {{ saving ? 'Đang lưu...' : 'Tạo sản phẩm' }}
+          </button>
         </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label class="label">Sizes (CSV)</label>
-          <input class="input" formControlName="sizesCsv" placeholder="S,M,L" />
-        </div>
-
-        <div class="field">
-          <label class="label">Colors (CSV)</label>
-          <input class="input" formControlName="colorsCsv" placeholder="Đen,Trắng" />
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="label">Mô tả</label>
-        <textarea class="textarea" formControlName="description" rows="4" placeholder="Mô tả ngắn..."></textarea>
-      </div>
-
-      <button class="btn" type="submit" [disabled]="saving">
-        {{ saving ? 'Đang lưu...' : 'Tạo sản phẩm' }}
-      </button>
-
-      <div class="hint">
-        Sau khi tạo xong, bạn mở: <code>/category/&lt;category&gt;</code> để xem.
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 </div>
